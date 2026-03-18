@@ -45,6 +45,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
+        {/* Content centered in remaining space above the fixed button */}
         <View style={styles.center}>
           <Text style={styles.appName}>RisePath</Text>
           <Text style={styles.appTagline}>بِسْمِ اللَّهِ الرَّحْمٰنِ الرَّحِيْمِ</Text>
@@ -73,7 +74,10 @@ export function OnboardingScreen({ onComplete }: Props) {
             </View>
             {language === 'ur' && <Text style={styles.checkmark}>✓</Text>}
           </TouchableOpacity>
+        </View>
 
+        {/* Fixed absolute button at bottom — always visible without scrolling */}
+        <View style={styles.fixedBottom}>
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('method')}>
             <Text style={styles.nextBtnText}>
               {isUrdu ? 'آگے بڑھیں ←' : 'Continue →'}
@@ -93,7 +97,11 @@ export function OnboardingScreen({ onComplete }: Props) {
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Scrollable options list — ends before fixed buttons */}
+        <ScrollView
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 }]}
+          showsVerticalScrollIndicator={false}
+        >
           <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۲ از ۲' : 'Step 2 of 2'}</Text>
           <Text style={styles.stepTitle}>
             {isUrdu ? 'نماز کا طریقہ منتخب کریں' : 'Select Prayer Method'}
@@ -117,9 +125,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                 <Text style={styles.optionLabel}>{m.label}</Text>
                 <Text style={styles.optionRegion}>{m.region}</Text>
               </View>
-              {selectedMethod === m.id && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
+              {selectedMethod === m.id && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
           ))}
 
@@ -127,9 +133,7 @@ export function OnboardingScreen({ onComplete }: Props) {
             {isUrdu ? 'عصر کا طریقہ (مذہب)' : 'Asr Calculation (Madhab)'}
           </Text>
           <Text style={styles.stepSubtitle}>
-            {isUrdu
-              ? 'عصر کے وقت پر اثر ڈالتا ہے'
-              : 'This affects only the Asr prayer time'}
+            {isUrdu ? 'عصر کے وقت پر اثر ڈالتا ہے' : 'This affects only the Asr prayer time'}
           </Text>
           {MADHABS.map((m) => (
             <TouchableOpacity
@@ -141,23 +145,24 @@ export function OnboardingScreen({ onComplete }: Props) {
                 <Text style={styles.optionLabel}>{m.label}</Text>
                 <Text style={styles.optionRegion}>{m.region}</Text>
               </View>
-              {selectedMadhab === m.id && (
-                <Text style={styles.checkmark}>✓</Text>
-              )}
+              {selectedMadhab === m.id && <Text style={styles.checkmark}>✓</Text>}
             </TouchableOpacity>
           ))}
+        </ScrollView>
 
+        {/* Fixed absolute buttons — always visible */}
+        <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('language')}>
               <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.nextBtn} onPress={finish}>
+            <TouchableOpacity style={[styles.nextBtn, { flex: 2 }]} onPress={finish}>
               <Text style={styles.nextBtnText}>
                 {isUrdu ? 'شروع کریں ✦' : 'Get Started ✦'}
               </Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       </View>
     );
   }
@@ -175,6 +180,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
+    paddingBottom: 110, // leave room for the fixed bottom button
+  },
+  fixedBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: theme.colors.background,
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
   },
   scrollContent: {
     padding: theme.spacing.xl,

@@ -5,9 +5,17 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
-  Platform,
 } from 'react-native';
-import Svg, { Circle, Line, G } from 'react-native-svg';
+import Svg, {
+  Circle,
+  Line,
+  Text as SvgText,
+  G,
+  Path,
+  Defs,
+  RadialGradient,
+  Stop,
+} from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocation } from '../hooks/useLocation';
 import { useQibla, getCardinalDirection } from '../hooks/useQibla';
@@ -15,34 +23,52 @@ import { useCompass } from '../hooks/useCompass';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 
-const SIZE = Dimensions.get('window').width * 0.75;
-const CENTER = SIZE / 2;
-const RADIUS = CENTER - 20;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const SIZE = SCREEN_WIDTH * 0.82;
+const C = SIZE / 2;           // center
+const OUTER_R = C - 4;        // outer ring radius
+const INNER_R = C - 28;       // inner ring (degree labels)
+const FACE_R  = C - 48;       // compass face radius
+
+// Pre-compute degree tick positions
+const TICKS = Array.from({ length: 72 }, (_, i) => i * 5); // every 5°
+const CARDINAL = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+const CARDINAL_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
+
+function degToRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+function polarToXY(angleDeg: number, r: number) {
+  const rad = degToRad(angleDeg - 90); // 0° at top
+  return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
+}
 
 export function QiblaScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { location, loading } = useLocation();
   const { heading, available } = useCompass();
   const lat = location?.latitude ?? 24.8607;
   const lng = location?.longitude ?? 67.0011;
   const qiblaAngle = useQibla(lat, lng);
 
+  // How many degrees to turn to face Qibla from current heading
   const angleToQibla = heading != null
     ? (qiblaAngle - heading + 360) % 360
     : null;
 
-  const turnDirection =
-    angleToQibla != null
-      ? angleToQibla > 180
-        ? 'left'
-        : 'right'
-      : null;
-  const turnDegrees =
-    angleToQibla != null
-      ? angleToQibla > 180
-        ? 360 - angleToQibla
-        : angleToQibla
-      : null;
+  const isFacingQibla = angleToQibla != null && angleToQibla < 5;
+
+  const turnDirection = angleToQibla != null
+    ? (angleToQibla > 180 ? 'left' : 'right')
+    : null;
+  const turnDegrees = angleToQibla != null
+    ? (angleToQibla > 180 ? 360 - angleToQibla : angleToQibla)
+    : null;
+
+  // The compass RING rotates opposite to device heading
+  // so that North on the ring always points to real North
+  const ringRotation = heading != null ? -heading : 0;
 
   if (loading) {
     return (
@@ -63,92 +89,157 @@ export function QiblaScreen() {
         style={styles.heroGradient}
         pointerEvents="none"
       />
+
       <Text style={styles.title}>{t.qiblaDirection}</Text>
       <Text style={styles.subtitle}>{t.qiblaSubtitle}</Text>
 
-      {/* Fixed-height container so the absolute SVG has proper bounds */}
+      {/* Compass */}
       <View style={styles.compassContainer}>
         <Svg width={SIZE} height={SIZE}>
-          <Circle
-            cx={CENTER}
-            cy={CENTER}
-            r={RADIUS}
-            stroke={theme.colors.border}
-            strokeWidth={2}
-            fill="none"
-          />
-          {/* N/S/E/W tick marks */}
-          <Line x1={CENTER} y1={20} x2={CENTER} y2={34} stroke={theme.colors.textMuted} strokeWidth={2} />
-          <Line x1={CENTER} y1={SIZE - 34} x2={CENTER} y2={SIZE - 20} stroke={theme.colors.textMuted} strokeWidth={2} />
-          <Line x1={20} y1={CENTER} x2={34} y2={CENTER} stroke={theme.colors.textMuted} strokeWidth={2} />
-          <Line x1={SIZE - 34} y1={CENTER} x2={SIZE - 20} y2={CENTER} stroke={theme.colors.textMuted} strokeWidth={2} />
-          {/* Device heading needle (amber) */}
-          <G transform={`rotate(${heading ?? 0} ${CENTER} ${CENTER})`}>
-            <Line
-              x1={CENTER}
-              y1={CENTER}
-              x2={CENTER}
-              y2={CENTER - RADIUS + 15}
-              stroke={theme.colors.accent}
-              strokeWidth={4}
-              strokeLinecap="round"
-            />
+          <Defs>
+            <RadialGradient id="faceBg" cx="50%" cy="50%" r="50%">
+              <Stop offset="0%" stopColor={theme.colors.surface} />
+              <Stop offset="100%" stopColor={theme.colors.backgroundSoft} />
+            </RadialGradient>
+          </Defs>
+
+          {/* Outer bezel ring */}
+          <Circle cx={C} cy={C} r={OUTER_R} fill={theme.colors.text} />
+          <Circle cx={C} cy={C} r={OUTER_R - 3} fill="#2A1A08" />
+
+          {/* Compass face — this rotates with device heading */}
+          <G transform={`rotate(${ringRotation} ${C} ${C})`}>
+            {/* Face background */}
+            <Circle cx={C} cy={C} r={INNER_R} fill="url(#faceBg)" />
+
+            {/* Degree ticks */}
+            {TICKS.map((deg) => {
+              const isMajor = deg % 45 === 0;
+              const isMid   = deg % 10 === 0;
+              const tickLen = isMajor ? 12 : isMid ? 8 : 5;
+              const strokeW = isMajor ? 2.5 : 1;
+              const outer = polarToXY(deg, INNER_R - 2);
+              const inner = polarToXY(deg, INNER_R - 2 - tickLen);
+              return (
+                <Line
+                  key={deg}
+                  x1={outer.x} y1={outer.y}
+                  x2={inner.x} y2={inner.y}
+                  stroke={isMajor ? theme.colors.accent : theme.colors.border}
+                  strokeWidth={strokeW}
+                />
+              );
+            })}
+
+            {/* Cardinal + intercardinal labels */}
+            {CARDINAL.map((label, i) => {
+              const angle = CARDINAL_ANGLES[i];
+              const isNorth = label === 'N';
+              const isCardinal = i % 2 === 0;
+              const pos = polarToXY(angle, INNER_R - 22);
+              return (
+                <SvgText
+                  key={label}
+                  x={pos.x}
+                  y={pos.y + 5}
+                  fontSize={isNorth ? 18 : isCardinal ? 14 : 11}
+                  fontWeight={isNorth || isCardinal ? 'bold' : 'normal'}
+                  fill={isNorth ? theme.colors.error : isCardinal ? theme.colors.text : theme.colors.textMuted}
+                  textAnchor="middle"
+                >
+                  {label}
+                </SvgText>
+              );
+            })}
+
+            {/* Degree numbers at 30° intervals */}
+            {[30, 60, 120, 150, 210, 240, 300, 330].map((deg) => {
+              const pos = polarToXY(deg, INNER_R - 22);
+              return (
+                <SvgText
+                  key={`d${deg}`}
+                  x={pos.x}
+                  y={pos.y + 4}
+                  fontSize={9}
+                  fill={theme.colors.textMuted}
+                  textAnchor="middle"
+                >
+                  {deg}
+                </SvgText>
+              );
+            })}
           </G>
-          {/* Qibla direction arrow (green) */}
-          <G transform={`rotate(${qiblaAngle} ${CENTER} ${CENTER})`}>
+
+          {/* Center pivot dot */}
+          <Circle cx={C} cy={C} r={8} fill={theme.colors.accent} />
+          <Circle cx={C} cy={C} r={4} fill="#fff" />
+
+          {/* Qibla indicator — fixed, always points to Qibla bearing from North */}
+          <G transform={`rotate(${qiblaAngle + ringRotation} ${C} ${C})`}>
+            {/* Kaaba emoji positioned at tip of Qibla arrow */}
+            <SvgText
+              x={C}
+              y={C - FACE_R + 4}
+              fontSize={28}
+              textAnchor="middle"
+            >
+              🕋
+            </SvgText>
+            {/* Qibla arrow shaft */}
             <Line
-              x1={CENTER}
-              y1={CENTER}
-              x2={CENTER}
-              y2={CENTER - RADIUS + 15}
+              x1={C} y1={C - 18}
+              x2={C} y2={C - FACE_R + 36}
               stroke={theme.colors.success}
               strokeWidth={3}
               strokeLinecap="round"
               opacity={0.9}
             />
+            {/* Arrowhead */}
+            <Path
+              d={`M ${C} ${C - FACE_R + 36} L ${C - 7} ${C - FACE_R + 50} L ${C + 7} ${C - FACE_R + 50} Z`}
+              fill={theme.colors.success}
+            />
           </G>
         </Svg>
-        {/* N label overlaid on top-center */}
-        <View style={styles.compassLabels} pointerEvents="none">
-          <Text style={styles.compassLabel}>N</Text>
-        </View>
+
+        {/* Qibla facing indicator ring — glows green when aligned */}
+        {isFacingQibla && (
+          <View style={styles.alignedRing} />
+        )}
       </View>
 
-      {/* Legend below compass */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: theme.colors.accent }]} />
-          <Text style={styles.legendText}>{t.you}</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, { backgroundColor: theme.colors.success }]} />
-          <Text style={styles.legendText}>{t.qiblaLabel}</Text>
-        </View>
-      </View>
-
-      <View style={styles.infoCard}>
-        <Text style={styles.angleText}>
-          {Math.round(qiblaAngle)}° {getCardinalDirection(qiblaAngle)}
-        </Text>
-        <Text style={styles.angleLabel}>{t.fromNorth}</Text>
-      </View>
-
-      {available && heading != null && turnDirection && turnDegrees != null && (
-        <View style={styles.turnCard}>
-          <Text style={styles.turnText}>
-            {turnDirection === 'left' ? t.turnLeft : t.turnRight} {Math.round(turnDegrees)}°
+      {/* Status card */}
+      {isFacingQibla ? (
+        <View style={[styles.statusCard, styles.statusCardAligned]}>
+          <Text style={styles.statusEmoji}>🕋</Text>
+          <Text style={styles.statusTitle}>
+            {language === 'ur' ? 'آپ قبلہ کی طرف ہیں!' : 'Facing Qibla!'}
           </Text>
-          <Text style={styles.turnHint}>{t.holdPhoneFlat}</Text>
+          <Text style={styles.statusSub}>
+            {language === 'ur' ? 'ابھی نماز پڑھ سکتے ہیں' : 'You may begin your prayer'}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.statusCard}>
+          <Text style={[styles.angleText]}>
+            {Math.round(qiblaAngle)}° {getCardinalDirection(qiblaAngle)}
+          </Text>
+          <Text style={styles.angleLabel}>{t.fromNorth}</Text>
+          {available && heading != null && turnDirection && turnDegrees != null && (
+            <Text style={styles.turnText}>
+              {turnDirection === 'left' ? t.turnLeft : t.turnRight}{' '}
+              {Math.round(turnDegrees)}°
+            </Text>
+          )}
+          {(!available || heading == null) && (
+            <Text style={styles.hintText}>
+              {t.pointPhoneNorth}
+            </Text>
+          )}
         </View>
       )}
 
-      {(!available || heading == null) && (
-        <View style={styles.turnCard}>
-          <Text style={styles.turnHint}>
-            {t.pointPhoneNorth} ({Math.round(qiblaAngle)}°)
-          </Text>
-        </View>
-      )}
+      <Text style={styles.footerHint}>{t.holdPhoneFlat}</Text>
     </ScrollView>
   );
 }
@@ -166,9 +257,7 @@ const styles = StyleSheet.create({
   },
   heroGradient: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
+    top: 0, left: 0, right: 0,
     height: 250,
   },
   center: {
@@ -180,6 +269,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontBody,
+    fontSize: 15,
   },
   title: {
     fontSize: 28,
@@ -195,87 +285,85 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBody,
     textAlign: 'center',
   },
-  // Fixed width AND height so the SVG renders correctly
   compassContainer: {
     width: SIZE,
     height: SIZE,
-    marginBottom: theme.spacing.lg,
-  },
-  // N label centered at top of compass
-  compassLabels: {
-    position: 'absolute',
-    top: 4,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  compassLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fontBodyBold,
-  },
-  legend: {
-    flexDirection: 'row',
-    gap: theme.spacing.xl,
     marginBottom: theme.spacing.xl,
-  },
-  legendItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  alignedRing: {
+    position: 'absolute',
+    width: SIZE + 12,
+    height: SIZE + 12,
+    borderRadius: (SIZE + 12) / 2,
+    borderWidth: 3,
+    borderColor: theme.colors.success,
+    opacity: 0.6,
   },
-  legendText: {
-    fontSize: 12,
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fontBody,
-  },
-  infoCard: {
+  statusCard: {
     backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
     borderRadius: theme.borderRadius.lg,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.xl,
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
-    minWidth: 200,
+    width: '100%',
     borderWidth: 1,
     borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  statusCardAligned: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.successMuted,
+  },
+  statusEmoji: {
+    fontSize: 32,
+    marginBottom: 6,
+  },
+  statusTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBodyBold,
+    marginBottom: 4,
+  },
+  statusSub: {
+    fontSize: 14,
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBody,
+    opacity: 0.8,
   },
   angleText: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: '700',
     color: theme.colors.accent,
     fontFamily: theme.typography.fontHeadingBold,
+    marginBottom: 4,
   },
   angleLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: theme.colors.textMuted,
-    marginTop: 4,
     fontFamily: theme.typography.fontBody,
-  },
-  turnCard: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    borderRadius: theme.borderRadius.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    marginBottom: 8,
   },
   turnText: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
     color: theme.colors.text,
     fontFamily: theme.typography.fontBodyBold,
   },
-  turnHint: {
+  hintText: {
     fontSize: 13,
     color: theme.colors.textMuted,
-    marginTop: 6,
-    textAlign: 'center',
     fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  footerHint: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

@@ -20,10 +20,10 @@ export function useCompass() {
       Magnetometer.setUpdateInterval(100);
       subscription = Magnetometer.addListener((data) => {
         const { x, y } = data;
-        // atan2(x, y) gives clockwise bearing from North (compass convention).
-        // atan2(y, x) would give the standard-math angle from East (counterclockwise),
-        // which is wrong for a compass regardless of platform.
-        let angle = (Math.atan2(x, y) * 180) / Math.PI;
+        // atan2(-x, y) gives the clockwise bearing from North for the TOP of the
+        // phone (camera end). Using atan2(x, y) points to the BOTTOM (charging port),
+        // which is 180° wrong — exactly the symptom the user reported.
+        let angle = (Math.atan2(-x, y) * 180) / Math.PI;
         if (angle < 0) angle += 360;
         setHeading(angle);
       });
