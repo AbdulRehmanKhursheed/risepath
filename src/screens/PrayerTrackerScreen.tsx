@@ -22,6 +22,7 @@ import {
 } from '../services/notifications';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { MenuButton } from '../components/MenuButton';
 import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
 
 function getDateString(d: Date): string {
@@ -161,7 +162,7 @@ export function PrayerTrackerScreen() {
       />
       <View style={styles.header}>
         <View style={styles.headerRow}>
-          <View>
+          <View style={styles.headerLeft}>
             <Text style={styles.title}>{t.prayerTracker}</Text>
             <Text style={styles.subtitle}>
               {location
@@ -169,12 +170,15 @@ export function PrayerTrackerScreen() {
                 : `${t.usingDefault} • ${calculationMethod}`}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={() => setSettingsVisible(true)}
-          >
-            <Text style={styles.settingsIcon}>⚙️</Text>
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.settingsBtn}
+              onPress={() => setSettingsVisible(true)}
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
+            <MenuButton />
+          </View>
         </View>
       </View>
 
@@ -265,11 +269,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
+  headerLeft: {
+    flex: 1,
+    paddingRight: theme.spacing.md,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   settingsBtn: {
-    padding: theme.spacing.sm,
+    width: 38,
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingsIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
   title: {
     fontSize: 30,

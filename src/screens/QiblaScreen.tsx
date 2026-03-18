@@ -2,6 +2,7 @@ import React from 'react';
 import {
   View,
   Text,
+  ScrollView,
   StyleSheet,
   Dimensions,
   Platform,
@@ -52,7 +53,11 @@ export function QiblaScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.container}
+      showsVerticalScrollIndicator={false}
+    >
       <LinearGradient
         colors={['rgba(200, 120, 10, 0.09)', 'transparent']}
         style={styles.heroGradient}
@@ -61,8 +66,9 @@ export function QiblaScreen() {
       <Text style={styles.title}>{t.qiblaDirection}</Text>
       <Text style={styles.subtitle}>{t.qiblaSubtitle}</Text>
 
+      {/* Fixed-height container so the absolute SVG has proper bounds */}
       <View style={styles.compassContainer}>
-        <Svg width={SIZE} height={SIZE} style={styles.compass}>
+        <Svg width={SIZE} height={SIZE}>
           <Circle
             cx={CENTER}
             cy={CENTER}
@@ -71,6 +77,12 @@ export function QiblaScreen() {
             strokeWidth={2}
             fill="none"
           />
+          {/* N/S/E/W tick marks */}
+          <Line x1={CENTER} y1={20} x2={CENTER} y2={34} stroke={theme.colors.textMuted} strokeWidth={2} />
+          <Line x1={CENTER} y1={SIZE - 34} x2={CENTER} y2={SIZE - 20} stroke={theme.colors.textMuted} strokeWidth={2} />
+          <Line x1={20} y1={CENTER} x2={34} y2={CENTER} stroke={theme.colors.textMuted} strokeWidth={2} />
+          <Line x1={SIZE - 34} y1={CENTER} x2={SIZE - 20} y2={CENTER} stroke={theme.colors.textMuted} strokeWidth={2} />
+          {/* Device heading needle (amber) */}
           <G transform={`rotate(${heading ?? 0} ${CENTER} ${CENTER})`}>
             <Line
               x1={CENTER}
@@ -82,6 +94,7 @@ export function QiblaScreen() {
               strokeLinecap="round"
             />
           </G>
+          {/* Qibla direction arrow (green) */}
           <G transform={`rotate(${qiblaAngle} ${CENTER} ${CENTER})`}>
             <Line
               x1={CENTER}
@@ -95,18 +108,21 @@ export function QiblaScreen() {
             />
           </G>
         </Svg>
-        <View style={styles.compassLabels}>
+        {/* N label overlaid on top-center */}
+        <View style={styles.compassLabels} pointerEvents="none">
           <Text style={styles.compassLabel}>N</Text>
         </View>
-          <View style={styles.legend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: theme.colors.accent }]} />
-            <Text style={styles.legendText}>{t.you}</Text>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDot, { backgroundColor: theme.colors.success }]} />
-            <Text style={styles.legendText}>{t.qiblaLabel}</Text>
-          </View>
+      </View>
+
+      {/* Legend below compass */}
+      <View style={styles.legend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: theme.colors.accent }]} />
+          <Text style={styles.legendText}>{t.you}</Text>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDot, { backgroundColor: theme.colors.success }]} />
+          <Text style={styles.legendText}>{t.qiblaLabel}</Text>
         </View>
       </View>
 
@@ -133,16 +149,19 @@ export function QiblaScreen() {
           </Text>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scrollContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  container: {
     padding: theme.spacing.xl,
     paddingTop: theme.spacing.xxl,
+    paddingBottom: theme.spacing.xxxl,
     alignItems: 'center',
   },
   heroGradient: {
@@ -174,24 +193,21 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.xl,
     fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
   },
+  // Fixed width AND height so the SVG renders correctly
   compassContainer: {
     width: SIZE,
-    marginBottom: theme.spacing.xl,
-    alignItems: 'center',
+    height: SIZE,
+    marginBottom: theme.spacing.lg,
   },
-  compass: {
-    position: 'absolute',
-  },
+  // N label centered at top of compass
   compassLabels: {
     position: 'absolute',
-    top: 0,
+    top: 4,
     left: 0,
     right: 0,
-    bottom: 0,
     alignItems: 'center',
-    justifyContent: 'flex-start',
-    paddingTop: 8,
   },
   compassLabel: {
     fontSize: 14,
@@ -202,7 +218,7 @@ const styles = StyleSheet.create({
   legend: {
     flexDirection: 'row',
     gap: theme.spacing.xl,
-    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
   },
   legendItem: {
     flexDirection: 'row',

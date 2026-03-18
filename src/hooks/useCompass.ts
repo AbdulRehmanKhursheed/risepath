@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Magnetometer } from 'expo-sensors';
-import { Platform } from 'react-native';
 
 /**
  * Returns device heading in degrees (0-360) from magnetic North.
@@ -21,11 +20,11 @@ export function useCompass() {
       Magnetometer.setUpdateInterval(100);
       subscription = Magnetometer.addListener((data) => {
         const { x, y } = data;
-        let angle = (Math.atan2(y, x) * 180) / Math.PI;
+        // atan2(x, y) gives clockwise bearing from North (compass convention).
+        // atan2(y, x) would give the standard-math angle from East (counterclockwise),
+        // which is wrong for a compass regardless of platform.
+        let angle = (Math.atan2(x, y) * 180) / Math.PI;
         if (angle < 0) angle += 360;
-        if (Platform.OS === 'ios') {
-          angle = 360 - angle;
-        }
         setHeading(angle);
       });
     });

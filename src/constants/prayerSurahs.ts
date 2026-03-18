@@ -39,7 +39,7 @@ export const PRAYER_SURAHS: Record<string, PrayerSurah> = {
     surah: 'Surah Al-Mulk',
     surahAr: 'سُورَةُ الْمُلْك',
     number: 67,
-    benefit: 'The Prophet ﷺ never slept without reciting Surah Mulk. It intercedes for its reciter in the grave.',
+    benefit: 'The Prophet (SAW) never slept without reciting Surah Mulk. It intercedes for its reciter in the grave.',
     note: '📖 Recite after Isha or before sleeping',
   },
 };

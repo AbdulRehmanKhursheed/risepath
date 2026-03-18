@@ -263,10 +263,11 @@ const styles = StyleSheet.create({
   },
   connector: {
     position: 'absolute',
-    left: 17,
-    top: 52,
+    // cardHeader padding (16) + stepBubble width/2 (18) - connector width/2 (1) = 33
+    left: 33,
+    top: 54,
     width: 2,
-    height: 24,
+    height: 18,
     backgroundColor: theme.colors.border,
     zIndex: 0,
   },

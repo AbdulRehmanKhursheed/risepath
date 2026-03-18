@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
@@ -8,7 +8,7 @@ import { theme } from '../constants/theme';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
-import { LANGUAGES } from '../constants/translations';
+import { MenuButton } from '../components/MenuButton';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   const hour = new Date().getHours();
@@ -24,7 +24,7 @@ const DEFAULT_GOALS = [
 ];
 
 export function HomeScreen() {
-  const { t, language, setLanguage, languages } = useLanguage();
+  const { t } = useLanguage();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
@@ -55,14 +55,6 @@ export function HomeScreen() {
     await storage.setGoals(updated);
   };
 
-  const cycleLanguage = () => {
-    const idx = languages.findIndex((l) => l.id === language);
-    const next = languages[(idx + 1) % languages.length];
-    setLanguage(next.id);
-  };
-
-  const currentLangLabel = LANGUAGES.find((l) => l.id === language)?.nativeLabel ?? 'English';
-
   return (
     <ScrollView
       style={styles.container}
@@ -80,19 +72,7 @@ export function HomeScreen() {
           <Text style={[styles.greeting, { fontSize: fs(32) }]}>{t.greeting}</Text>
           <Text style={[styles.subGreeting, { fontSize: fs(15) }]}>{getSubGreeting(t)}</Text>
         </View>
-        <View style={styles.pillRow}>
-          <TouchableOpacity style={styles.langPill} onPress={cycleLanguage} activeOpacity={0.8}>
-            <Text style={styles.langIcon}>🌐</Text>
-            <Text style={styles.langText}>{currentLangLabel}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.langPill, simpleMode && styles.pillActive]}
-            onPress={toggleSimpleMode}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.langIcon}>Aa</Text>
-          </TouchableOpacity>
-        </View>
+        <MenuButton />
       </View>
 
       <View style={styles.streakSection}>
@@ -111,8 +91,8 @@ export function HomeScreen() {
       </View>
 
       <View style={styles.goalsSection}>
-        <Text style={styles.sectionTitle}>{t.todaysGoals}</Text>
-        <Text style={styles.sectionSubtitle}>{t.tapToComplete}</Text>
+        <Text style={[styles.sectionTitle, { fontSize: fs(20) }]}>{t.todaysGoals}</Text>
+        <Text style={[styles.sectionSubtitle, { fontSize: fs(14) }]}>{t.tapToComplete}</Text>
         {goals.map((g) => (
           <GoalItem
             key={g.id}
@@ -166,44 +146,6 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontFamily: theme.typography.fontBody,
     lineHeight: 22,
-  },
-  pillRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: 4,
-    alignItems: 'center',
-  },
-  langPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.full,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#7A5A40',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  pillActive: {
-    borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.accentMuted,
-  },
-  langIcon: {
-    fontSize: 14,
-  },
-  langText: {
-    fontSize: 13,
-    color: theme.colors.accent,
-    fontFamily: theme.typography.fontBodyMedium,
   },
   streakSection: {
     alignItems: 'center',

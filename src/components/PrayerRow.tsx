@@ -4,6 +4,7 @@ import { theme } from '../constants/theme';
 import { formatPrayerTime } from '../hooks/usePrayerTimes';
 import { PRAYER_SURAHS } from '../constants/prayerSurahs';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useQuranNav } from '../contexts/QuranNavContext';
 import type { PrayerName } from '../hooks/usePrayerTimes';
 
 type PrayerStatus = 'prayed' | 'missed' | 'upcoming';
@@ -18,6 +19,7 @@ type Props = {
 
 export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
   const { t } = useLanguage();
+  const { openSurah } = useQuranNav();
   const [expanded, setExpanded] = useState(false);
   const surah = PRAYER_SURAHS[prayerKey];
 
@@ -83,6 +85,13 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
           </View>
           <Text style={styles.surahBenefit}>{surah.benefit}</Text>
           <Text style={styles.surahNote}>{surah.note}</Text>
+          <TouchableOpacity
+            style={styles.readBtn}
+            onPress={() => openSurah(surah.number)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.readBtnText}>📖 Read Surah →</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
@@ -197,5 +206,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.accent,
     fontFamily: theme.typography.fontBodyMedium,
+    marginBottom: 10,
+  },
+  readBtn: {
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.success,
+    borderRadius: theme.borderRadius.sm,
+  },
+  readBtnText: {
+    fontSize: 12,
+    color: '#fff',
+    fontFamily: theme.typography.fontBodyBold,
   },
 });
