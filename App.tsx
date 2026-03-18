@@ -1,9 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   useFonts,
   Syne_600SemiBold,
@@ -22,102 +23,78 @@ import { LearnScreen } from './src/screens/LearnScreen';
 import { QiblaScreen } from './src/screens/QiblaScreen';
 import { MoodScreen } from './src/screens/MoodScreen';
 import { StatsScreen } from './src/screens/StatsScreen';
+import { UmrahGuideScreen } from './src/screens/UmrahGuideScreen';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { theme } from './src/constants/theme';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
+import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
 
 SplashScreen.preventAutoHideAsync();
 
 const Tab = createBottomTabNavigator();
+
+// Force light theme so device dark mode never overrides our tab bar
+const NAV_THEME = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: theme.colors.background,
+    card: theme.colors.surface,
+    border: theme.colors.border,
+    primary: theme.colors.accent,
+    text: theme.colors.text,
+    notification: theme.colors.accent,
+  },
+};
+
+// Simple text icons — render identically on every Android and iOS version
+const TAB_ICONS: Record<string, string> = {
+  Home:    '⌂',
+  Prayers: '✦',
+  Learn:   '✎',
+  Umrah:   '✪',
+  Qibla:   '◎',
+  Mood:    '☺',
+  Stats:   '▦',
+};
 
 function AppTabs({ onLayout }: { onLayout: () => void }) {
   const { t } = useLanguage();
 
   return (
     <View style={styles.root} onLayout={onLayout}>
-      <StatusBar style="dark" />
-      <NavigationContainer>
+      <StatusBar style="dark" backgroundColor={theme.colors.background} />
+      <NavigationContainer theme={NAV_THEME}>
         <Tab.Navigator
-          screenOptions={{
+          screenOptions={({ route }) => ({
             headerShown: false,
             tabBarStyle: {
               backgroundColor: theme.colors.surface,
               borderTopColor: theme.colors.border,
               borderTopWidth: 1,
-              height: Platform.OS === 'ios' ? 88 : 68,
-              paddingTop: theme.spacing.sm,
-              paddingBottom: Platform.OS === 'ios' ? 28 : theme.spacing.md,
+              height: Platform.OS === 'ios' ? 88 : 64,
+              paddingTop: 6,
+              paddingBottom: Platform.OS === 'ios' ? 28 : 10,
             },
             tabBarActiveTintColor: theme.colors.accent,
             tabBarInactiveTintColor: theme.colors.textMuted,
             tabBarLabelStyle: {
-              fontSize: 11,
+              fontSize: 10,
               fontFamily: 'PlusJakartaSans_500Medium',
+              marginTop: 2,
             },
-            tabBarItemStyle: {
-              paddingVertical: 4,
-            },
-          }}
+            tabBarIcon: ({ focused }) => (
+              <TabIcon name={route.name} focused={focused} />
+            ),
+          })}
         >
-          <Tab.Screen
-            name="Home"
-            component={HomeScreen}
-            options={{
-              tabBarLabel: t.homeTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="🏠" color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Prayers"
-            component={PrayerTrackerScreen}
-            options={{
-              tabBarLabel: t.prayersTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="🕌" color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Learn"
-            component={LearnScreen}
-            options={{
-              tabBarLabel: t.learnTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="📖" color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Qibla"
-            component={QiblaScreen}
-            options={{
-              tabBarLabel: t.qiblaTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="🕋" color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Mood"
-            component={MoodScreen}
-            options={{
-              tabBarLabel: t.moodTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="💬" color={color} focused={focused} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="Stats"
-            component={StatsScreen}
-            options={{
-              tabBarLabel: t.statsTab,
-              tabBarIcon: ({ color, focused }) => (
-                <TabIcon emoji="📊" color={color} focused={focused} />
-              ),
-            }}
-          />
+          <Tab.Screen name="Home"    component={HomeScreen}          options={{ tabBarLabel: t.homeTab }} />
+          <Tab.Screen name="Prayers" component={PrayerTrackerScreen} options={{ tabBarLabel: t.prayersTab }} />
+          <Tab.Screen name="Learn"   component={LearnScreen}         options={{ tabBarLabel: t.learnTab }} />
+          <Tab.Screen name="Umrah"   component={UmrahGuideScreen}    options={{ tabBarLabel: t.umrahTab }} />
+          <Tab.Screen name="Qibla"   component={QiblaScreen}         options={{ tabBarLabel: t.qiblaTab }} />
+          <Tab.Screen name="Mood"    component={MoodScreen}          options={{ tabBarLabel: t.moodTab }} />
+          <Tab.Screen name="Stats"   component={StatsScreen}         options={{ tabBarLabel: t.statsTab }} />
         </Tab.Navigator>
       </NavigationContainer>
     </View>
@@ -132,14 +109,26 @@ export default function App() {
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
   });
+  const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('onboarding_complete').then((val) => {
+      setOnboardingDone(val === 'true');
+    });
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) {
+    if (fontsLoaded && onboardingDone !== null) {
       await SplashScreen.hideAsync();
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, onboardingDone]);
 
-  if (!fontsLoaded) {
+  const completeOnboarding = async () => {
+    await AsyncStorage.setItem('onboarding_complete', 'true');
+    setOnboardingDone(true);
+  };
+
+  if (!fontsLoaded || onboardingDone === null) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
@@ -150,24 +139,28 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <LanguageProvider>
-        <AppTabs onLayout={onLayoutRootView} />
+        <SimpleModeProvider>
+        {!onboardingDone ? (
+          <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+            <StatusBar style="dark" backgroundColor={theme.colors.background} />
+            <OnboardingScreen onComplete={completeOnboarding} />
+          </View>
+        ) : (
+          <AppTabs onLayout={onLayoutRootView} />
+        )}
+        </SimpleModeProvider>
       </LanguageProvider>
     </SafeAreaProvider>
   );
 }
 
-function TabIcon({
-  emoji,
-  color,
-  focused,
-}: {
-  emoji: string;
-  color: string;
-  focused: boolean;
-}) {
+function TabIcon({ name, focused }: { name: string; focused: boolean }) {
+  const icon = TAB_ICONS[name] ?? '•';
   return (
-    <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
-      <Text style={[styles.tabEmoji, { opacity: focused ? 1 : 0.7 }]}>{emoji}</Text>
+    <View style={[styles.iconWrap, focused && styles.iconWrapFocused]}>
+      <Text style={[styles.iconText, focused && styles.iconTextFocused]}>
+        {icon}
+      </Text>
     </View>
   );
 }
@@ -183,15 +176,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: theme.colors.background,
   },
-  tabIcon: {
+  iconWrap: {
+    width: 36,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 4,
+    borderRadius: 8,
   },
-  tabIconFocused: {
-    transform: [{ scale: 1.05 }],
+  iconWrapFocused: {
+    backgroundColor: theme.colors.accentMuted,
   },
-  tabEmoji: {
-    fontSize: 24,
+  iconText: {
+    fontSize: 20,
+    color: theme.colors.textMuted,
+    lineHeight: 24,
+  },
+  iconTextFocused: {
+    color: theme.colors.accent,
+    fontSize: 22,
   },
 });

@@ -7,6 +7,7 @@ import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { LANGUAGES } from '../constants/translations';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
@@ -24,6 +25,7 @@ const DEFAULT_GOALS = [
 
 export function HomeScreen() {
   const { t, language, setLanguage, languages } = useLanguage();
+  const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
   const [goals, setGoals] = useState(DEFAULT_GOALS);
@@ -75,13 +77,22 @@ export function HomeScreen() {
 
       <View style={styles.topRow}>
         <View style={styles.greetingBlock}>
-          <Text style={styles.greeting}>{t.greeting}</Text>
-          <Text style={styles.subGreeting}>{getSubGreeting(t)}</Text>
+          <Text style={[styles.greeting, { fontSize: fs(32) }]}>{t.greeting}</Text>
+          <Text style={[styles.subGreeting, { fontSize: fs(15) }]}>{getSubGreeting(t)}</Text>
         </View>
-        <TouchableOpacity style={styles.langPill} onPress={cycleLanguage} activeOpacity={0.8}>
-          <Text style={styles.langIcon}>🌐</Text>
-          <Text style={styles.langText}>{currentLangLabel}</Text>
-        </TouchableOpacity>
+        <View style={styles.pillRow}>
+          <TouchableOpacity style={styles.langPill} onPress={cycleLanguage} activeOpacity={0.8}>
+            <Text style={styles.langIcon}>🌐</Text>
+            <Text style={styles.langText}>{currentLangLabel}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.langPill, simpleMode && styles.pillActive]}
+            onPress={toggleSimpleMode}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.langIcon}>Aa</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.streakSection}>
@@ -95,8 +106,8 @@ export function HomeScreen() {
 
       <View style={styles.quoteCard}>
         <Text style={styles.quoteMark}>"</Text>
-        <Text style={styles.quote}>{quote.text}</Text>
-        <Text style={styles.quoteSource}>— {quote.source}</Text>
+        <Text style={[styles.quote, { fontSize: fs(16) }]}>{quote.text}</Text>
+        <Text style={[styles.quoteSource, { fontSize: fs(13) }]}>— {quote.source}</Text>
       </View>
 
       <View style={styles.goalsSection}>
@@ -156,6 +167,12 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBody,
     lineHeight: 22,
   },
+  pillRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 4,
+    alignItems: 'center',
+  },
   langPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -166,7 +183,6 @@ const styles = StyleSheet.create({
     paddingVertical: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginTop: 4,
     ...Platform.select({
       ios: {
         shadowColor: '#7A5A40',
@@ -176,6 +192,10 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 2 },
     }),
+  },
+  pillActive: {
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.accentMuted,
   },
   langIcon: {
     fontSize: 14,
