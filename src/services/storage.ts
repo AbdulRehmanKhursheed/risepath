@@ -7,6 +7,7 @@ const KEYS = {
   MOODS: 'moods',
   LOCATION: 'location',
   PRAYER_SETTINGS: 'prayerSettings',
+  FIQH_SCHOOL: 'fiqhSchool',
 } as const;
 
 export type StreakData = {
@@ -44,6 +45,7 @@ export type LocationData = {
 export type PrayerSettings = {
   calculationMethod: string;
   madhab: string;
+  fiqhSchool?: 'sunni' | 'shia';
 };
 
 export const storage = {
@@ -99,5 +101,14 @@ export const storage = {
 
   async setPrayerSettings(settings: PrayerSettings): Promise<void> {
     await AsyncStorage.setItem(KEYS.PRAYER_SETTINGS, JSON.stringify(settings));
+  },
+
+  async getFiqhSchool(): Promise<'sunni' | 'shia' | null> {
+    const raw = await AsyncStorage.getItem(KEYS.FIQH_SCHOOL);
+    return (raw as 'sunni' | 'shia') ?? null;
+  },
+
+  async setFiqhSchool(school: 'sunni' | 'shia'): Promise<void> {
+    await AsyncStorage.setItem(KEYS.FIQH_SCHOOL, school);
   },
 };

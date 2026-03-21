@@ -76,6 +76,8 @@ export type Translations = {
   quranTab: string;
   learnTab: string;
   umrahTab: string;
+  hajjTab: string;
+  janazaTab: string;
   qiblaTab: string;
   moodTab: string;
   statsTab: string;
@@ -160,6 +162,8 @@ const en: Translations = {
   quranTab: 'Quran',
   learnTab: 'Learn',
   umrahTab: 'Umrah',
+  hajjTab: 'Hajj',
+  janazaTab: 'Janaza',
   qiblaTab: 'Qibla',
   moodTab: 'Mood',
   statsTab: 'Stats',
@@ -244,6 +248,8 @@ const ur: Translations = {
   quranTab: 'قرآن',
   learnTab: 'سیکھیں',
   umrahTab: 'عمرہ',
+  hajjTab: 'حج',
+  janazaTab: 'جنازہ',
   qiblaTab: 'قبلہ',
   moodTab: 'موڈ',
   statsTab: 'اعداد',

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "RisePath",
+    "name": "Noor \u2014 Muslim Companion",
     "slug": "risepath",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -44,10 +44,17 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "RisePath uses your location to calculate accurate prayer times for your area."
+          "locationAlwaysAndWhenInUsePermission": "Noor uses your location to calculate accurate prayer times for your area."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ]
     ],
     "extra": {
       "eas": {

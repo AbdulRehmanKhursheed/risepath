@@ -21,7 +21,7 @@ const RESPONSES: Record<number, string[]> = {
     `Alhamdulillah for stability. "The most beloved deeds to Allah are those done consistently, even if small." (Bukhari). You are building something lasting. Stay the course. ⚡`,
     `Renew your niyyah right now. The same action with a renewed intention earns fresh reward. A prayer prayed with full presence is worth more than a hundred prayed mindlessly. 🌱`,
     `You are in the middle — that is not bad, that is a foundation. Add one small extra today: one extra ayah, one act of kindness, one moment of gratitude. Small + consistent = extraordinary in Allah's sight.`,
-    `"Whoever is content with little from the world, Allah will be content with little from him on the Day of Judgement." Steady, calm, grateful — that is a powerful state to be in. 💛`,
+    `"Whoever is content with what Allah has given him, he will be the richest of people." (Tirmidhi) Steady, calm, grateful — that is a powerful state to be in. 💛`,
     `The Prophet (SAW) said: "Make things easy and do not make them difficult." You do not have to be perfect today. Just be present. Pray. Make dhikr. That is enough. 🌿`,
   ],
   4: [
@@ -35,7 +35,7 @@ const RESPONSES: Record<number, string[]> = {
     `ALLAHU AKBAR! You are on fire! Days like this are rare gifts — do not waste a single minute. Make a commitment, give sadaqah, pray every Sunnah. "If you are grateful, I will surely increase you." (Quran 14:7) 🔥`,
     `You are at your peak! This is the moment to make a promise to Allah — one habit, 30 days. No negotiating. Your future self will be grateful you decided today. 💪`,
     `"Whoever does an atom's weight of good will see it." (Quran 99:7). Every action you take today is being recorded. You are building something eternal right now. Do not stop. ✨🏆`,
-    `Masha Allah! Your energy, your momentum, your streak — all of it is seen by Allah. "Verily, Allah does not allow the reward of the one who does good to be lost." (Quran 9:120). Keep going! 🌟`,
+    `Masha Allah! Your energy, your momentum, your streak — all of it is seen by Allah. "Indeed, Allah does not allow to be lost the reward of those who do good." (Quran 11:115). Keep going! 🌟`,
     `The Prophet (SAW) said: "Take advantage of five before five: youth before old age, health before sickness, wealth before poverty, free time before business, and life before death." You are in a great moment — use it! ⚡`,
   ],
 };

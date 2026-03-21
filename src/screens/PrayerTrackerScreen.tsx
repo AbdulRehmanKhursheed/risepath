@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -53,7 +53,8 @@ export function PrayerTrackerScreen() {
 
   const lat = location?.latitude ?? 24.8607;
   const lng = location?.longitude ?? 67.0011;
-  const today = new Date();
+  // Stable date: only changes when the calendar day changes, not on every render.
+  const today = useMemo(() => new Date(), [getDateString(new Date())]);
   const prayerTimes = usePrayerTimes(lat, lng, today, calculationMethod, madhab);
 
   // Translated prayer display names keyed by PrayerName
@@ -102,7 +103,12 @@ export function PrayerTrackerScreen() {
     [todayRecord, prayers, todayKey]
   );
 
+  // Guard: only reschedule notifications once per day to avoid repeated
+  // cancel/reschedule cycles every time a parent re-render occurs.
+  const lastScheduledDate = useRef<string>('');
   useEffect(() => {
+    const todayKey = getDateString(today);
+    if (lastScheduledDate.current === todayKey) return;
     (async () => {
       const granted = await requestNotificationPermissions();
       if (granted) {
@@ -110,9 +116,10 @@ export function PrayerTrackerScreen() {
         await schedulePrayerNotifications(
           prayerTimes.map((p) => ({ name: p.name, time: p.time }))
         );
+        lastScheduledDate.current = todayKey;
       }
     })();
-  }, [prayerTimes]);
+  }, [prayerTimes, today]);
 
   const getStatus = (key: PrayerName, prayerTime: Date): 'prayed' | 'missed' | 'upcoming' => {
     if (todayRecord[key]) return 'prayed';

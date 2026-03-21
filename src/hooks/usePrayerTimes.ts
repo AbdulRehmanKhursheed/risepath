@@ -3,6 +3,7 @@ import {
   PrayerTimes,
   Coordinates,
   CalculationMethod,
+  CalculationParameters,
   Madhab,
 } from 'adhan';
 import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
@@ -15,7 +16,20 @@ export type PrayerTimeInfo = {
   time: Date;
 };
 
-const METHOD_MAP: Record<CalculationMethodId, () => ReturnType<typeof CalculationMethod.Karachi>> = {
+/**
+ * Custom Jafari (Shia Ithna-Ashari / Leva Research Institute, Qum) parameters.
+ * Fajr: 16°, Isha: 14°, Maghrib: 4° after sunset (when redness fades from east).
+ * Source: praytimes.org/wiki/Calculation_Methods & eahlulbayt.com/pages/calculating-method
+ */
+function buildJafariParams(): CalculationParameters {
+  const params = CalculationMethod.Other();
+  params.fajrAngle = 16;
+  params.ishaAngle = 14;
+  params.maghribAngle = 4;
+  return params;
+}
+
+const METHOD_MAP: Record<CalculationMethodId, () => CalculationParameters> = {
   MuslimWorldLeague: () => CalculationMethod.MuslimWorldLeague(),
   Egyptian: () => CalculationMethod.Egyptian(),
   Karachi: () => CalculationMethod.Karachi(),
@@ -28,6 +42,7 @@ const METHOD_MAP: Record<CalculationMethodId, () => ReturnType<typeof Calculatio
   Singapore: () => CalculationMethod.Singapore(),
   Tehran: () => CalculationMethod.Tehran(),
   Turkey: () => CalculationMethod.Turkey(),
+  Jafari: buildJafariParams,
   Other: () => CalculationMethod.Other(),
 };
 
@@ -59,7 +74,9 @@ export function usePrayerTimes(
     ];
 
     return prayers;
-  }, [latitude, longitude, date.getTime(), calculationMethod, madhab]);
+  // Use day-level key so recalculation only happens when the calendar date changes,
+  // not on every render (which would thrash notification scheduling).
+  }, [latitude, longitude, date.getFullYear(), date.getMonth(), date.getDate(), calculationMethod, madhab]);
 }
 
 export function formatPrayerTime(date: Date): string {

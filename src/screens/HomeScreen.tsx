@@ -3,9 +3,11 @@ import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
+import { AdBanner } from '../components/AdBanner';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
+import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
@@ -56,6 +58,7 @@ export function HomeScreen() {
   };
 
   return (
+    <View style={styles.root}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -103,10 +106,16 @@ export function HomeScreen() {
         ))}
       </View>
     </ScrollView>
+    <AdBanner unitId={AD_UNITS.bannerHome} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AdBanner } from '../components/AdBanner';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
+import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export function StatsScreen() {
@@ -62,6 +64,7 @@ export function StatsScreen() {
   }, []);
 
   return (
+    <View style={styles.root}>
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
@@ -109,10 +112,16 @@ export function StatsScreen() {
         <Text style={styles.soulText}>{t.soulReportText}</Text>
       </View>
     </ScrollView>
+    <AdBanner unitId={AD_UNITS.bannerStats} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,

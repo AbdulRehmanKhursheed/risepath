@@ -16,9 +16,16 @@ export type CalculationMethodId =
   | 'Singapore'
   | 'Tehran'
   | 'Turkey'
+  | 'Jafari'
   | 'Other';
 
 export type MadhabId = 'Shafi' | 'Hanafi';
+
+/**
+ * The broad school of Islamic jurisprudence.
+ * Determines which prayer method / fiqh-aware content is shown.
+ */
+export type FiqhSchool = 'sunni' | 'shia';
 
 export const CALCULATION_METHODS: {
   id: CalculationMethodId;
@@ -37,6 +44,7 @@ export const CALCULATION_METHODS: {
   { id: 'Singapore', label: 'Singapore', region: 'Singapore' },
   { id: 'Tehran', label: 'Institute of Geophysics, Tehran', region: 'Iran' },
   { id: 'Turkey', label: 'Turkey', region: 'Turkey' },
+  { id: 'Jafari', label: 'Jafari / Shia (Leva Research Institute, Qum)', region: 'Global Shia communities' },
   { id: 'Other', label: 'Other', region: 'Custom' },
 ];
 

@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Platform,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,7 +30,9 @@ type NavItem = {
 
 const NAV_ITEMS: NavItem[] = [
   { name: 'Learn',  icon: '✎', labelEn: 'Kalimas & Duas',  labelUr: 'کلمے اور دعائیں' },
+  { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',      labelUr: 'حج گائیڈ' },
   { name: 'Umrah',  icon: '✪', labelEn: 'Umrah Guide',     labelUr: 'عمرہ گائیڈ' },
+  { name: 'Janaza', icon: '☪', labelEn: 'Janaza Guide',    labelUr: 'جنازہ گائیڈ' },
   { name: 'Qibla',  icon: '◎', labelEn: 'Qibla Direction', labelUr: 'قبلہ سمت' },
   { name: 'Mood',   icon: '☺', labelEn: 'Mood Coach',      labelUr: 'موڈ کوچ' },
   { name: 'Stats',  icon: '▦', labelEn: 'My Stats',        labelUr: 'میرے اعداد' },
@@ -45,6 +48,7 @@ export function Sidebar() {
 
   // Keep mounted so animation can play out on close
   const [mounted, setMounted] = useState(false);
+  const [disclaimerVisible, setDisclaimerVisible] = useState(false);
 
   const translateX = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -91,6 +95,38 @@ export function Sidebar() {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* Content Disclaimer Modal */}
+      <Modal
+        visible={disclaimerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDisclaimerVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>
+              {isUrdu ? 'اہم نوٹ' : 'About Noor'}
+            </Text>
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <Text style={styles.modalText}>
+                {isUrdu
+                  ? 'قرآنی آیات العثمانی اسکرپٹ (عربی)، Saheeh International (انگریزی)، اور مودودی (اردو) ترجمہ سے لی گئی ہیں۔\n\nاحادیث اور دعائیں اعلیٰ درجے کی کتب سے لی گئی ہیں۔ جہاں کوئی روایت کمزور یا محل نظر ہو، وہاں نوٹ شامل ہے۔\n\nیہ ایپ ایک تعلیمی اور حوصلہ افزائی کا ذریعہ ہے، کسی مستند عالم کا متبادل نہیں۔ کسی بھی شرعی مسئلہ کے لیے اپنے عالم سے رابطہ کریں۔'
+                  : 'Quran text is sourced from the Uthmani script (Arabic), Saheeh International (English), and Maududi (Urdu) editions.\n\nHadith references and duas have been compiled from authenticated sources. Where a narration is known to be disputed or weak, a note is included.\n\nThis app is an educational and motivational aid — it is not a substitute for a qualified Islamic scholar. For religious rulings, always consult your local scholar.\n\nAll data is stored only on your device. We do not collect or share personal information. See PRIVACY_POLICY.md for full details.'}
+              </Text>
+              <Text style={styles.modalVersion}>Noor v1.0.0</Text>
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setDisclaimerVisible(false)}
+            >
+              <Text style={styles.modalCloseBtnText}>
+                {isUrdu ? 'بند کریں' : 'Close'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Dim overlay — tap to close */}
       <TouchableWithoutFeedback onPress={closeSidebar}>
         <Animated.View
@@ -123,9 +159,9 @@ export function Sidebar() {
               <Text style={styles.logoEmoji}>☾</Text>
             </View>
             <View>
-              <Text style={[styles.appName, { fontSize: fs(22) }]}>RisePath</Text>
+              <Text style={[styles.appName, { fontSize: fs(22) }]}>Noor</Text>
               <Text style={[styles.appTagline, { fontSize: fs(12) }]}>
-                {isUrdu ? 'اسلامی طرز زندگی' : 'Islamic Lifestyle Tracker'}
+                {isUrdu ? 'آپ کا اسلامی ساتھی' : 'Your Muslim Companion'}
               </Text>
             </View>
           </View>
@@ -159,6 +195,17 @@ export function Sidebar() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+
+        {/* About & Disclaimer */}
+        <TouchableOpacity
+          style={styles.aboutBtn}
+          onPress={() => setDisclaimerVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.aboutBtnText}>
+            {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : 'ℹ  About & Content Disclaimer'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Footer: language + simple mode toggles */}
         <View style={styles.footer}>
@@ -351,5 +398,75 @@ const styles = StyleSheet.create({
   footerBtnText: {
     fontFamily: theme.typography.fontBodyMedium,
     color: theme.colors.textMuted,
+  },
+  aboutBtn: {
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+  },
+  aboutBtnText: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing.xl,
+  },
+  modalBox: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xl,
+    width: '100%',
+    maxHeight: '75%',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16 },
+      android: { elevation: 12 },
+    }),
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontHeadingBold,
+    marginBottom: theme.spacing.lg,
+  },
+  modalScroll: {
+    marginBottom: theme.spacing.lg,
+  },
+  modalText: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontBody,
+    lineHeight: 22,
+  },
+  modalVersion: {
+    marginTop: theme.spacing.lg,
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+  },
+  modalCloseBtn: {
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCloseBtnText: {
+    color: '#fff',
+    fontFamily: theme.typography.fontBodyBold,
+    fontSize: 15,
   },
 });

@@ -18,6 +18,7 @@ import {
 } from '@expo-google-fonts/plus-jakarta-sans';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { initAds } from './src/services/ads';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PrayerTrackerScreen } from './src/screens/PrayerTrackerScreen';
 import { LearnScreen } from './src/screens/LearnScreen';
@@ -25,6 +26,8 @@ import { QiblaScreen } from './src/screens/QiblaScreen';
 import { MoodScreen } from './src/screens/MoodScreen';
 import { StatsScreen } from './src/screens/StatsScreen';
 import { UmrahGuideScreen } from './src/screens/UmrahGuideScreen';
+import { HajjGuideScreen } from './src/screens/HajjGuideScreen';
+import { JanazaScreen } from './src/screens/JanazaScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { QuranScreen } from './src/screens/QuranScreen';
 import { Sidebar } from './src/components/Sidebar';
@@ -35,6 +38,8 @@ import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
 
 SplashScreen.preventAutoHideAsync();
+// Initialise AdMob as early as possible with G-rated content filtering.
+initAds().catch(() => { /* non-fatal — app works without ads */ });
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -168,6 +173,16 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             name="Umrah"
             component={UmrahGuideScreen}
             options={{ headerShown: true, title: 'Umrah Guide', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Hajj"
+            component={HajjGuideScreen}
+            options={{ headerShown: true, title: 'Hajj Guide', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Janaza"
+            component={JanazaScreen}
+            options={{ headerShown: true, title: 'Janaza Guide', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
           <Stack.Screen
             name="Qibla"

@@ -57,7 +57,9 @@ export function QiblaScreen() {
     ? (qiblaAngle - heading + 360) % 360
     : null;
 
-  const isFacingQibla = angleToQibla != null && angleToQibla < 5;
+  // Accept ±5° tolerance and correctly handle the 360/0 wrap-around
+  // (e.g. angleToQibla of 357° means only 3° off — the user IS aligned).
+  const isFacingQibla = angleToQibla != null && (angleToQibla < 5 || angleToQibla > 355);
 
   const turnDirection = angleToQibla != null
     ? (angleToQibla > 180 ? 'left' : 'right')
