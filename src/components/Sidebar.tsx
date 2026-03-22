@@ -9,6 +9,9 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  Share,
+  Alert,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +20,7 @@ import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
+import { PLAY_STORE_URL } from '../constants/appLinks';
 
 const SIDEBAR_WIDTH = 290;
 const ANIM_DURATION = 260;
@@ -91,6 +95,31 @@ export function Sidebar() {
     setTimeout(() => {
       (navigation as any).navigate(screenName);
     }, 50);
+  };
+
+  const onShareApp = async () => {
+    try {
+      await Share.share({
+        message: isUrdu
+          ? `Noor — مسلم ساتھی\nنماز، قبلہ، حج/عمرہ/جنازہ گائیڈ اور روزانہ روحانی ٹریکنگ\n${PLAY_STORE_URL}`
+          : `Noor — Muslim Companion\nPrayer, Qibla, Hajj/Umrah/Janaza guides and daily spiritual tracking\n${PLAY_STORE_URL}`,
+      });
+    } catch {
+      Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'شیئر نہیں ہو سکا' : 'Could not share app');
+    }
+  };
+
+  const onRateApp = async () => {
+    try {
+      const supported = await Linking.canOpenURL(PLAY_STORE_URL);
+      if (supported) {
+        await Linking.openURL(PLAY_STORE_URL);
+      } else {
+        Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'لنک نہیں کھل سکا' : 'Could not open store link');
+      }
+    } catch {
+      Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'لنک نہیں کھل سکا' : 'Could not open store link');
+    }
   };
 
   return (
@@ -206,6 +235,16 @@ export function Sidebar() {
             {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : 'ℹ  About & Content Disclaimer'}
           </Text>
         </TouchableOpacity>
+
+        {/* Growth actions */}
+        <View style={styles.growthRow}>
+          <TouchableOpacity style={styles.growthBtn} onPress={onShareApp} activeOpacity={0.85}>
+            <Text style={styles.growthBtnText}>{isUrdu ? '📤 ایپ شیئر کریں' : '📤 Share App'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.growthBtn} onPress={onRateApp} activeOpacity={0.85}>
+            <Text style={styles.growthBtnText}>{isUrdu ? '⭐ ریٹنگ دیں' : '⭐ Rate App'}</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Footer: language + simple mode toggles */}
         <View style={styles.footer}>
@@ -411,6 +450,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   aboutBtnText: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  growthRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+  },
+  growthBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+  },
+  growthBtnText: {
     fontSize: 12,
     fontFamily: theme.typography.fontBodyMedium,
     color: theme.colors.textMuted,

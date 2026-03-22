@@ -1,13 +1,16 @@
-# RisePath
+# Noor — Muslim Companion
 
-A motivational + Islamic lifestyle tracker combining Namaz times, daily goals, streak system, mood tracking, and an AI motivation coach. Target market: Pakistan/Muslim users.
+A trust-first Islamic lifestyle companion combining prayer times, Quran access, Hajj/Umrah/Janaza guidance, daily goals, streaks, and mood coaching. Target market: Pakistan and global Muslim users.
 
 ## Features
 
 - **Home**: Streak ring, daily quote, goals checklist, time-based greeting
 - **Learn**: 6 Kalimas (Arabic + transliteration + translation) + 13 everyday Duas (eating, bathroom, sleep, wudu, travel, etc.)
-- **Prayer Tracker**: Auto prayer times with **13 regional calculation methods**
+- **Prayer Tracker**: Auto prayer times with regional methods and Sunni/Shia-aware setup (including Jafari)
 - **Qibla**: Compass showing direction to Kaaba (Mecca), with live device heading when available (Karachi, Muslim World League, Umm Al-Qura, etc.) + Hanafi/Shafi madhab, mark prayed/missed, weekly consistency dots, 5-min-before notifications
+- **Hajj Guide**: Complete step-by-step Hajj al-Tamattu' flow
+- **Umrah Guide**: Structured journey with duas and practical notes
+- **Janaza Guide**: Emergency guidance for ghusl, kafan, prayer, and burial
 - **Mood + AI Coach**: 5-point mood scale, Claude-powered motivation based on streak & mood
 - **Stats**: Prayer consistency %, goals completed, mood trend, longest streak
 
@@ -45,11 +48,16 @@ npx expo start
 
 ## Folder Structure
 
-```
+```text
 src/
-  screens/     Home, Prayers, Mood, Stats
+  screens/     Home, Prayers, Quran, Hajj, Umrah, Janaza, Mood, Stats
   components/  StreakRing, PrayerRow, GoalItem, MoodButton, ChatBubble
   hooks/       usePrayerTimes, useLocation, useStreak
   services/    ai.ts, notifications.ts, storage.ts
-  constants/   theme.ts, quotes.ts
+  constants/   theme.ts, quotes.ts, hajjGuide.ts, janazaGuide.ts
+MARKETING/
+  PLAY_STORE_COPY.md
+  SCREENSHOT_SCRIPT.md
+  CONTENT_CALENDAR_30D.md
+  LAUNCH_KPI_CHECKLIST.md
 ```
