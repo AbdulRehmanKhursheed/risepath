@@ -1,17 +1,17 @@
-# Privacy Policy — RisePath
+# Privacy Policy — Noor: Muslim Companion
 
-**Last updated: March 2026**
+**Last updated: April 2026**
 
 ## Overview
 
-RisePath ("the App") is an Islamic lifestyle tracker developed to help Muslim users maintain their daily prayers, read Quran, and track spiritual habits. We take your privacy seriously.
+Noor ("the App") is an Islamic lifestyle companion developed to help Muslim users maintain their daily prayers, read Quran, and track spiritual habits. We take your privacy seriously.
 
 ---
 
 ## Data We Collect
 
 ### Data stored only on your device (local)
-RisePath stores all personal data **locally on your device only** using AsyncStorage. We never upload, sell, or share this data. This includes:
+Noor stores all personal data **locally on your device only** using AsyncStorage. We never upload, sell, or share this data. This includes:
 
 - **Prayer records** — which of the 5 daily prayers you marked as prayed or missed
 - **Mood entries** — your mood ratings and the motivational responses you received
@@ -34,7 +34,7 @@ Quran text is fetched from the public, open-source API at [alquran.cloud](https:
 
 - We do **not** collect your name, email, phone number, or any account information
 - We do **not** use analytics or crash-reporting SDKs
-- We do **not** display advertising or share data with advertisers
+- We do **not** share personal data with advertisers
 - We do **not** have servers that store your data
 - We do **not** track you across apps or websites
 
@@ -42,7 +42,7 @@ Quran text is fetched from the public, open-source API at [alquran.cloud](https:
 
 ## Advertising
 
-RisePath displays banner advertisements on the Home screen and Stats screen using **Google AdMob**.
+Noor displays banner advertisements on the Home screen and Stats screen using **Google AdMob**.
 
 - Ads are configured with the strictest **G-rated content filter** — adult, dating, alcohol, gambling and other inappropriate categories are blocked at the SDK level.
 - We use keywords (`islamic, muslim, prayer, family, education`) to encourage contextually appropriate ads.
@@ -84,4 +84,4 @@ We may update this policy. Any updates will be reflected with a new "Last update
 ## Contact
 
 For questions about this privacy policy, contact us at:
-**risepath.app@gmail.com** *(update with your actual contact address)*
+**noorapp.contact@gmail.com** *(update with your actual contact address before publishing)*

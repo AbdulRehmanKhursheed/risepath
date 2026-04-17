@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(file *)",
+      "Bash(identify -verbose /Users/malikabdul/risepath/assets/icon.png)",
+      "Bash(git -C /Users/malikabdul/risepath log --oneline --all)",
+      "Bash(grep -E \"\\\\.tsx$\")",
+      "Bash(python3 -c \"from PIL import Image; print\\('PIL available'\\)\")",
+      "Bash(pip3 install *)",
+      "Bash(python3 *)"
+    ]
+  }
+}

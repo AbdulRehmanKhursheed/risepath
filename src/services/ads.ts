@@ -53,14 +53,18 @@ const TEST_IDS = {
   }) as string,
 };
 
-export const AD_UNITS = {
-  bannerHome: IS_PRODUCTION
-    ? (process.env.EXPO_PUBLIC_ADMOB_BANNER_HOME ?? TEST_IDS.banner)
-    : TEST_IDS.banner,
+const PROD_IDS = {
+  banner: Platform.select({
+    android: 'ca-app-pub-6562347670701476/1464122496',
+    ios: 'ca-app-pub-3940256099942544/2934735716', // replace with real iOS unit ID when available
+    default: 'ca-app-pub-6562347670701476/1464122496',
+  }) as string,
+};
 
-  bannerStats: IS_PRODUCTION
-    ? (process.env.EXPO_PUBLIC_ADMOB_BANNER_STATS ?? TEST_IDS.banner)
-    : TEST_IDS.banner,
+export const AD_UNITS = {
+  bannerHome: IS_PRODUCTION ? PROD_IDS.banner : TEST_IDS.banner,
+
+  bannerStats: IS_PRODUCTION ? PROD_IDS.banner : TEST_IDS.banner,
 };
 
 // ─── Initialisation ─────────────────────────────────────────────────────────
