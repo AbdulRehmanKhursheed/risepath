@@ -42,6 +42,9 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
 
   const json = await res.json();
   const editions: ApiEditionData[] = json.data;
+  if (!Array.isArray(editions) || editions.length < 3) {
+    throw new Error(`Unexpected API response for surah ${surahNumber}`);
+  }
 
   const arabic = editions[0];
   const english = editions[1];

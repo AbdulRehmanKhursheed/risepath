@@ -84,4 +84,4 @@ We may update this policy. Any updates will be reflected with a new "Last update
 ## Contact
 
 For questions about this privacy policy, contact us at:
-**noorapp.contact@gmail.com** *(update with your actual contact address before publishing)*
+**malik.ali5560@gmail.com**

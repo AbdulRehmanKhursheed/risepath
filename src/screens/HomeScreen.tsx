@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
 import { AdBanner } from '../components/AdBanner';
+import { HadithOfDay } from '../components/HadithOfDay';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
@@ -11,6 +13,7 @@ import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
+import { formatHijri } from '../utils/hijri';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   const hour = new Date().getHours();
@@ -26,8 +29,10 @@ const DEFAULT_GOALS = [
 ];
 
 export function HomeScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const navigation = useNavigation();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
+  const hijri = formatHijri(new Date(), language);
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
   const [goals, setGoals] = useState(DEFAULT_GOALS);
@@ -73,6 +78,7 @@ export function HomeScreen() {
       <View style={styles.topRow}>
         <View style={styles.greetingBlock}>
           <Text style={[styles.greeting, { fontSize: fs(32) }]}>{t.greeting}</Text>
+          <Text style={[styles.hijriBadge, { fontSize: fs(12) }]}>{hijri}</Text>
           <Text style={[styles.subGreeting, { fontSize: fs(15) }]}>{getSubGreeting(t)}</Text>
         </View>
         <MenuButton />
@@ -86,6 +92,27 @@ export function HomeScreen() {
           </Text>
         </View>
       </View>
+
+      <TouchableOpacity
+        style={styles.tasbihShortcut}
+        onPress={() => (navigation as any).navigate('Tasbih')}
+        activeOpacity={0.85}
+      >
+        <View style={styles.tasbihIconCircle}>
+          <Text style={styles.tasbihIcon}>📿</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.tasbihTitle, { fontSize: fs(14) }]}>
+            {language === 'ur' ? 'تسبیح کاؤنٹر' : language === 'ar' ? 'عدّاد التسبيح' : 'Tasbih Counter'}
+          </Text>
+          <Text style={[styles.tasbihSub, { fontSize: fs(12) }]}>
+            {language === 'ur' ? 'ذکر کی گنتی رکھیں' : language === 'ar' ? 'احتسب أذكارك' : 'Track your dhikr'}
+          </Text>
+        </View>
+        <Text style={styles.tasbihArrow}>›</Text>
+      </TouchableOpacity>
+
+      <HadithOfDay />
 
       <View style={styles.quoteCard}>
         <Text style={styles.quoteMark}>"</Text>
@@ -155,6 +182,54 @@ const styles = StyleSheet.create({
     marginTop: 6,
     fontFamily: theme.typography.fontBody,
     lineHeight: 22,
+  },
+  hijriBadge: {
+    marginTop: 6,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+    letterSpacing: 0.3,
+  },
+  tasbihShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.xl,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: theme.spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#7A5A40',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  tasbihIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.accentMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tasbihIcon: { fontSize: 22 },
+  tasbihTitle: {
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  tasbihSub: {
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  tasbihArrow: {
+    fontSize: 24,
+    color: theme.colors.textMuted,
   },
   streakSection: {
     alignItems: 'center',

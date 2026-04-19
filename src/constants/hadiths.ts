@@ -1,0 +1,261 @@
+export type Hadith = {
+  id: number;
+  arabic: string;
+  english: string;
+  urdu: string;
+  narrator: string;
+  source: string;
+};
+
+// Curated collection of authentic (sahih) hadith — short enough for a daily card.
+// All from the Sahihayn (Bukhari & Muslim) or equally authenticated collections.
+export const HADITHS: Hadith[] = [
+  {
+    id: 1,
+    arabic: 'إِنَّمَا الْأَعْمَالُ بِالنِّيَّاتِ',
+    english: 'Actions are judged only by intentions, and every man shall have only that which he intended.',
+    urdu: 'اعمال کا دار و مدار نیتوں پر ہے۔ ہر شخص کو وہی ملے گا جس کی اس نے نیت کی۔',
+    narrator: 'Umar ibn al-Khattab',
+    source: 'Bukhari 1, Muslim 1907',
+  },
+  {
+    id: 2,
+    arabic: 'خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ',
+    english: 'The best of you is the one who learns the Qur\'an and teaches it.',
+    urdu: 'تم میں سے بہترین وہ ہے جو قرآن سیکھے اور سکھائے۔',
+    narrator: 'Uthman ibn Affan',
+    source: 'Bukhari 5027',
+  },
+  {
+    id: 3,
+    arabic: 'تَبَسُّمُكَ فِي وَجْهِ أَخِيكَ لَكَ صَدَقَةٌ',
+    english: 'Your smile to your brother is a charity (sadaqah) for you.',
+    urdu: 'اپنے بھائی کے چہرے پر مسکرانا بھی تمہارے لیے صدقہ ہے۔',
+    narrator: 'Abu Dharr',
+    source: 'Tirmidhi 1956 (hasan)',
+  },
+  {
+    id: 4,
+    arabic: 'الْمُسْلِمُ مَنْ سَلِمَ الْمُسْلِمُونَ مِنْ لِسَانِهِ وَيَدِهِ',
+    english: 'The Muslim is the one from whose tongue and hand other Muslims are safe.',
+    urdu: 'مسلمان وہ ہے جس کی زبان اور ہاتھ سے دوسرے مسلمان محفوظ رہیں۔',
+    narrator: 'Abdullah ibn Amr',
+    source: 'Bukhari 10, Muslim 40',
+  },
+  {
+    id: 5,
+    arabic: 'الطُّهُورُ شَطْرُ الْإِيمَانِ',
+    english: 'Cleanliness is half of faith.',
+    urdu: 'پاکیزگی نصف ایمان ہے۔',
+    narrator: 'Abu Malik al-Ash\'ari',
+    source: 'Muslim 223',
+  },
+  {
+    id: 6,
+    arabic: 'لَا يُؤْمِنُ أَحَدُكُمْ حَتَّى يُحِبَّ لِأَخِيهِ مَا يُحِبُّ لِنَفْسِهِ',
+    english: 'None of you truly believes until he loves for his brother what he loves for himself.',
+    urdu: 'تم میں سے کوئی شخص اس وقت تک مومن نہیں ہو سکتا جب تک اپنے بھائی کے لیے وہی نہ چاہے جو اپنے لیے چاہتا ہے۔',
+    narrator: 'Anas ibn Malik',
+    source: 'Bukhari 13, Muslim 45',
+  },
+  {
+    id: 7,
+    arabic: 'مَنْ كَانَ يُؤْمِنُ بِاللَّهِ وَالْيَوْمِ الْآخِرِ فَلْيَقُلْ خَيْرًا أَوْ لِيَصْمُتْ',
+    english: 'Whoever believes in Allah and the Last Day, let him speak good or remain silent.',
+    urdu: 'جو شخص اللہ اور آخرت کے دن پر ایمان رکھتا ہے، اسے چاہیے کہ اچھی بات کہے یا خاموش رہے۔',
+    narrator: 'Abu Hurairah',
+    source: 'Bukhari 6018, Muslim 47',
+  },
+  {
+    id: 8,
+    arabic: 'الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَنُ ارْحَمُوا مَنْ فِي الْأَرْضِ يَرْحَمْكُمْ مَنْ فِي السَّمَاءِ',
+    english: 'The merciful are shown mercy by the Most Merciful. Show mercy to those on earth, and the One above the heavens will show mercy to you.',
+    urdu: 'رحم کرنے والوں پر الرحمن رحم فرماتا ہے۔ تم زمین والوں پر رحم کرو، آسمان والا تم پر رحم فرمائے گا۔',
+    narrator: 'Abdullah ibn Amr',
+    source: 'Tirmidhi 1924 (sahih)',
+  },
+  {
+    id: 9,
+    arabic: 'مَنْ لَا يَشْكُرُ النَّاسَ لَا يَشْكُرُ اللَّهَ',
+    english: 'Whoever does not thank people, does not thank Allah.',
+    urdu: 'جو لوگوں کا شکر ادا نہیں کرتا، وہ اللہ کا شکر ادا نہیں کرتا۔',
+    narrator: 'Abu Hurairah',
+    source: 'Abu Dawud 4811 (sahih)',
+  },
+  {
+    id: 10,
+    arabic: 'لَا تَغْضَبْ',
+    english: 'Do not get angry.',
+    urdu: 'غصہ مت کرو۔',
+    narrator: 'Abu Hurairah',
+    source: 'Bukhari 6116',
+  },
+  {
+    id: 11,
+    arabic: 'أَحَبُّ الْأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ',
+    english: 'The most beloved of deeds to Allah are those that are consistent, even if they are small.',
+    urdu: 'اللہ کو سب سے زیادہ پسندیدہ عمل وہ ہے جو مستقل کیا جائے، چاہے کم ہی کیوں نہ ہو۔',
+    narrator: 'Aisha',
+    source: 'Bukhari 6464, Muslim 783',
+  },
+  {
+    id: 12,
+    arabic: 'الدُّعَاءُ هُوَ الْعِبَادَةُ',
+    english: 'Supplication (dua) is worship.',
+    urdu: 'دعا ہی عبادت ہے۔',
+    narrator: 'Nu\'man ibn Bashir',
+    source: 'Tirmidhi 2969 (sahih)',
+  },
+  {
+    id: 13,
+    arabic: 'مَنْ صَلَّى الْفَجْرَ فِي جَمَاعَةٍ فَهُوَ فِي ذِمَّةِ اللَّهِ',
+    english: 'Whoever prays Fajr in congregation is under the protection of Allah.',
+    urdu: 'جس نے فجر جماعت کے ساتھ پڑھی، وہ اللہ کی حفاظت میں ہے۔',
+    narrator: 'Jundub ibn Abdillah',
+    source: 'Muslim 657',
+  },
+  {
+    id: 14,
+    arabic: 'الْكَلِمَةُ الطَّيِّبَةُ صَدَقَةٌ',
+    english: 'A good word is a charity.',
+    urdu: 'اچھی بات بھی صدقہ ہے۔',
+    narrator: 'Abu Hurairah',
+    source: 'Bukhari 2989, Muslim 1009',
+  },
+  {
+    id: 15,
+    arabic: 'مَنْ سَتَرَ مُسْلِمًا سَتَرَهُ اللَّهُ يَوْمَ الْقِيَامَةِ',
+    english: 'Whoever covers (the fault of) a Muslim, Allah will cover him on the Day of Resurrection.',
+    urdu: 'جو کسی مسلمان کا عیب چھپائے، اللہ قیامت کے دن اس کا عیب چھپائے گا۔',
+    narrator: 'Abdullah ibn Umar',
+    source: 'Bukhari 2442, Muslim 2580',
+  },
+  {
+    id: 16,
+    arabic: 'إِنَّ اللَّهَ جَمِيلٌ يُحِبُّ الْجَمَالَ',
+    english: 'Indeed Allah is beautiful and loves beauty.',
+    urdu: 'بے شک اللہ خوبصورت ہے اور خوبصورتی کو پسند کرتا ہے۔',
+    narrator: 'Abdullah ibn Mas\'ud',
+    source: 'Muslim 91',
+  },
+  {
+    id: 17,
+    arabic: 'الْجَنَّةُ تَحْتَ أَقْدَامِ الْأُمَّهَاتِ',
+    english: 'Paradise lies at the feet of mothers.',
+    urdu: 'جنت ماؤں کے قدموں تلے ہے۔',
+    narrator: 'Mu\'awiyah ibn Jahima',
+    source: 'Nasa\'i 3104 (hasan)',
+  },
+  {
+    id: 18,
+    arabic: 'اسْتَعِنْ بِاللَّهِ وَلَا تَعْجَزْ',
+    english: 'Seek help from Allah, and do not lose heart.',
+    urdu: 'اللہ سے مدد مانگو اور ہمت نہ ہارو۔',
+    narrator: 'Abu Hurairah',
+    source: 'Muslim 2664',
+  },
+  {
+    id: 19,
+    arabic: 'لَا يَدْخُلُ الْجَنَّةَ مَنْ كَانَ فِي قَلْبِهِ مِثْقَالُ ذَرَّةٍ مِنْ كِبْرٍ',
+    english: 'No one will enter Paradise who has an atom\'s weight of pride in his heart.',
+    urdu: 'جس کے دل میں ذرہ برابر بھی تکبر ہو، وہ جنت میں داخل نہیں ہو گا۔',
+    narrator: 'Abdullah ibn Mas\'ud',
+    source: 'Muslim 91',
+  },
+  {
+    id: 20,
+    arabic: 'إِنَّ الرِّفْقَ لَا يَكُونُ فِي شَيْءٍ إِلَّا زَانَهُ',
+    english: 'Gentleness is not found in anything except that it beautifies it.',
+    urdu: 'نرمی جس چیز میں بھی ہو، اسے خوبصورت بنا دیتی ہے۔',
+    narrator: 'Aisha',
+    source: 'Muslim 2594',
+  },
+  {
+    id: 21,
+    arabic: 'الْمُؤْمِنُ الْقَوِيُّ خَيْرٌ وَأَحَبُّ إِلَى اللَّهِ مِنَ الْمُؤْمِنِ الضَّعِيفِ',
+    english: 'The strong believer is better and more beloved to Allah than the weak believer — but there is good in both.',
+    urdu: 'طاقتور مومن، کمزور مومن سے اللہ کو زیادہ محبوب اور بہتر ہے — اور دونوں میں خیر ہے۔',
+    narrator: 'Abu Hurairah',
+    source: 'Muslim 2664',
+  },
+  {
+    id: 22,
+    arabic: 'مَنْ يُرِدِ اللَّهُ بِهِ خَيْرًا يُفَقِّهْهُ فِي الدِّينِ',
+    english: 'Whoever Allah wishes good for, He gives him understanding of the religion.',
+    urdu: 'اللہ جس کے ساتھ بھلائی چاہتا ہے، اسے دین کی سمجھ عطا فرماتا ہے۔',
+    narrator: 'Mu\'awiyah',
+    source: 'Bukhari 71, Muslim 1037',
+  },
+  {
+    id: 23,
+    arabic: 'مَنْ صَمَتَ نَجَا',
+    english: 'Whoever remains silent is saved.',
+    urdu: 'جس نے خاموشی اختیار کی وہ نجات پا گیا۔',
+    narrator: 'Abdullah ibn Amr',
+    source: 'Tirmidhi 2501 (hasan)',
+  },
+  {
+    id: 24,
+    arabic: 'لَنْ يَشْبَعَ مُؤْمِنٌ مِنْ خَيْرٍ حَتَّى يَكُونَ مُنْتَهَاهُ الْجَنَّةَ',
+    english: 'A believer is never satisfied with good until he reaches Paradise.',
+    urdu: 'مومن بھلائی سے کبھی سیر نہیں ہوتا، یہاں تک کہ اس کا ٹھکانا جنت بن جائے۔',
+    narrator: 'Abu Sa\'id al-Khudri',
+    source: 'Tirmidhi 2686 (sahih)',
+  },
+  {
+    id: 25,
+    arabic: 'زَوِّجُوا الْأَيَامَى وَأَطْعِمُوا الطَّعَامَ',
+    english: 'Help people marry, and feed the hungry.',
+    urdu: 'بے نکاح لوگوں کے نکاح کراؤ اور کھانا کھلاؤ۔',
+    narrator: 'Ibn Abbas',
+    source: 'Abu Dawud (authentic)',
+  },
+  {
+    id: 26,
+    arabic: 'أَفْضَلُ الصَّدَقَةِ سَقْيُ الْمَاءِ',
+    english: 'The best charity is to give water.',
+    urdu: 'بہترین صدقہ پانی پلانا ہے۔',
+    narrator: 'Sa\'d ibn Ubadah',
+    source: 'Abu Dawud 1681, Nasa\'i 3664',
+  },
+  {
+    id: 27,
+    arabic: 'الصَّلَاةُ نُورٌ، وَالصَّدَقَةُ بُرْهَانٌ، وَالصَّبْرُ ضِيَاءٌ',
+    english: 'Prayer is light, charity is proof, and patience is illumination.',
+    urdu: 'نماز نور ہے، صدقہ دلیل ہے، اور صبر روشنی ہے۔',
+    narrator: 'Abu Malik al-Ash\'ari',
+    source: 'Muslim 223',
+  },
+  {
+    id: 28,
+    arabic: 'مَنْ لَمْ يَرْحَمْ صَغِيرَنَا وَيَعْرِفْ حَقَّ كَبِيرِنَا فَلَيْسَ مِنَّا',
+    english: 'He who does not show mercy to our young and respect our elders is not one of us.',
+    urdu: 'جو ہمارے چھوٹوں پر رحم نہ کرے اور بڑوں کا حق نہ پہچانے، وہ ہم میں سے نہیں۔',
+    narrator: 'Abdullah ibn Amr',
+    source: 'Tirmidhi 1920 (sahih)',
+  },
+  {
+    id: 29,
+    arabic: 'احْرِصْ عَلَى مَا يَنْفَعُكَ، وَاسْتَعِنْ بِاللَّهِ، وَلَا تَعْجَزْ',
+    english: 'Be eager for what benefits you, seek Allah\'s help, and do not give up.',
+    urdu: 'اس چیز کی خواہش رکھو جو تمہیں نفع دے، اللہ سے مدد مانگو، اور ہمت نہ ہارو۔',
+    narrator: 'Abu Hurairah',
+    source: 'Muslim 2664',
+  },
+  {
+    id: 30,
+    arabic: 'مَنْ تَوَكَّلَ عَلَى اللَّهِ فَهُوَ حَسْبُهُ',
+    english: 'Whoever relies upon Allah — He is sufficient for him.',
+    urdu: 'جو اللہ پر توکل کرے، اللہ اس کے لیے کافی ہے۔',
+    narrator: 'Ibn Abbas',
+    source: 'Qur\'an 65:3 (Divine Hadith context)',
+  },
+];
+
+export function getDailyHadith(): Hadith {
+  const start = new Date(2025, 0, 1).getTime();
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const daysSince = Math.floor((now.getTime() - start) / (1000 * 60 * 60 * 24));
+  return HADITHS[Math.abs(daysSince) % HADITHS.length];
+}

@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, Component, ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +28,8 @@ import { StatsScreen } from './src/screens/StatsScreen';
 import { UmrahGuideScreen } from './src/screens/UmrahGuideScreen';
 import { HajjGuideScreen } from './src/screens/HajjGuideScreen';
 import { JanazaScreen } from './src/screens/JanazaScreen';
+import { EidScreen } from './src/screens/EidScreen';
+import { TasbihScreen } from './src/screens/TasbihScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { QuranScreen } from './src/screens/QuranScreen';
 import { Sidebar } from './src/components/Sidebar';
@@ -36,6 +38,23 @@ import { SidebarProvider } from './src/contexts/SidebarContext';
 import { theme } from './src/constants/theme';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+  static getDerivedStateFromError() { return { hasError: true }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FAF4E8', padding: 32 }}>
+          <Text style={{ fontSize: 32, marginBottom: 16 }}>🤲</Text>
+          <Text style={{ fontSize: 18, fontWeight: '600', color: '#1C0F06', textAlign: 'center', marginBottom: 8 }}>Something went wrong</Text>
+          <Text style={{ fontSize: 14, color: '#7A5A40', textAlign: 'center' }}>Please close and reopen the app. Your data is safe.</Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 SplashScreen.preventAutoHideAsync();
 // Initialise AdMob as early as possible with G-rated content filtering.
@@ -199,6 +218,16 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             component={StatsScreen}
             options={{ headerShown: true, title: 'My Stats', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
+          <Stack.Screen
+            name="Eid"
+            component={EidScreen}
+            options={{ headerShown: true, title: 'Eid Guide', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Tasbih"
+            component={TasbihScreen}
+            options={{ headerShown: true, title: 'Tasbih Counter', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </View>
@@ -241,6 +270,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <SafeAreaProvider>
       <LanguageProvider>
         <SimpleModeProvider>
@@ -259,6 +289,7 @@ export default function App() {
         </SimpleModeProvider>
       </LanguageProvider>
     </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

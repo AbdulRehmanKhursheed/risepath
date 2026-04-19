@@ -30,16 +30,19 @@ type NavItem = {
   icon: string;
   labelEn: string;
   labelUr: string;
+  labelAr: string;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { name: 'Learn',  icon: '✎', labelEn: 'Kalimas & Duas',  labelUr: 'کلمے اور دعائیں' },
-  { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',      labelUr: 'حج گائیڈ' },
-  { name: 'Umrah',  icon: '✪', labelEn: 'Umrah Guide',     labelUr: 'عمرہ گائیڈ' },
-  { name: 'Janaza', icon: '☪', labelEn: 'Janaza Guide',    labelUr: 'جنازہ گائیڈ' },
-  { name: 'Qibla',  icon: '◎', labelEn: 'Qibla Direction', labelUr: 'قبلہ سمت' },
-  { name: 'Mood',   icon: '☺', labelEn: 'Mood Coach',      labelUr: 'موڈ کوچ' },
-  { name: 'Stats',  icon: '▦', labelEn: 'My Stats',        labelUr: 'میرے اعداد' },
+  { name: 'Tasbih', icon: '📿', labelEn: 'Tasbih Counter',   labelUr: 'تسبیح کاؤنٹر',  labelAr: 'عدّاد التسبيح' },
+  { name: 'Learn',  icon: '✎', labelEn: 'Kalimas & Duas',   labelUr: 'کلمے اور دعائیں', labelAr: 'الكلمات والأدعية' },
+  { name: 'Eid',    icon: '🌙', labelEn: 'Eid Guide',        labelUr: 'عید گائیڈ',     labelAr: 'دليل العيد' },
+  { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',       labelUr: 'حج گائیڈ',     labelAr: 'دليل الحج' },
+  { name: 'Umrah',  icon: '✪', labelEn: 'Umrah Guide',      labelUr: 'عمرہ گائیڈ',   labelAr: 'دليل العمرة' },
+  { name: 'Janaza', icon: '☪', labelEn: 'Janaza Guide',     labelUr: 'جنازہ گائیڈ',   labelAr: 'دليل الجنازة' },
+  { name: 'Qibla',  icon: '◎', labelEn: 'Qibla Direction',  labelUr: 'قبلہ سمت',     labelAr: 'اتجاه القبلة' },
+  { name: 'Mood',   icon: '☺', labelEn: 'Mood Coach',       labelUr: 'موڈ کوچ',      labelAr: 'مرشد المزاج' },
+  { name: 'Stats',  icon: '▦', labelEn: 'My Stats',         labelUr: 'میرے اعداد',    labelAr: 'إحصائياتي' },
 ];
 
 export function Sidebar() {
@@ -49,6 +52,20 @@ export function Sidebar() {
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const isUrdu = language === 'ur';
+  const isArabic = language === 'ar';
+  const navLabel = (item: NavItem) =>
+    isUrdu ? item.labelUr : isArabic ? item.labelAr : item.labelEn;
+  const nextLanguage = (): 'en' | 'ur' | 'ar' => {
+    if (language === 'en') return 'ur';
+    if (language === 'ur') return 'ar';
+    return 'en';
+  };
+  const nextLangLabel = () => {
+    const n = nextLanguage();
+    if (n === 'en') return 'English';
+    if (n === 'ur') return 'اردو';
+    return 'العربية';
+  };
 
   // Keep mounted so animation can play out on close
   const [mounted, setMounted] = useState(false);
@@ -218,7 +235,7 @@ export function Sidebar() {
                 <Text style={styles.itemIcon}>{item.icon}</Text>
               </View>
               <Text style={[styles.itemLabel, { fontSize: fs(15) }]}>
-                {isUrdu ? item.labelUr : item.labelEn}
+                {navLabel(item)}
               </Text>
               <Text style={styles.itemArrow}>›</Text>
             </TouchableOpacity>
@@ -252,12 +269,12 @@ export function Sidebar() {
           <View style={styles.footerRow}>
             <TouchableOpacity
               style={styles.footerBtn}
-              onPress={() => setLanguage(isUrdu ? 'en' : 'ur')}
+              onPress={() => setLanguage(nextLanguage())}
               activeOpacity={0.8}
             >
               <Text style={styles.footerBtnIcon}>🌐</Text>
               <Text style={[styles.footerBtnText, { fontSize: fs(12) }]}>
-                {isUrdu ? 'English' : 'اردو'}
+                {nextLangLabel()}
               </Text>
             </TouchableOpacity>
 

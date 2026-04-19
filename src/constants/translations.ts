@@ -1,8 +1,9 @@
-export type Language = 'en' | 'ur';
+export type Language = 'en' | 'ur' | 'ar';
 
 export const LANGUAGES: { id: Language; label: string; nativeLabel: string }[] = [
   { id: 'en', label: 'English', nativeLabel: 'English' },
   { id: 'ur', label: 'Urdu', nativeLabel: 'اردو' },
+  { id: 'ar', label: 'Arabic', nativeLabel: 'العربية' },
 ];
 
 export type Translations = {
@@ -264,4 +265,90 @@ const ur: Translations = {
   cancel: 'منسوخ',
 };
 
-export const translations: Record<Language, Translations> = { en, ur };
+const ar: Translations = {
+  greeting: 'السلام عليكم',
+  morningGreeting: 'صباح الخير. ابدأ يومك بالنية.',
+  afternoonGreeting: 'طاب نهارك. واصل المسيرة.',
+  eveningGreeting: 'مساء الخير. تأمّل في يومك.',
+
+  bestStreak: 'أفضل سلسلة',
+  dayStreak: 'يوم متتالي',
+  days: 'أيام',
+  todaysGoals: 'أهداف اليوم',
+  tapToComplete: 'اضغط للإكمال',
+
+  weekDays: ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'],
+
+  fajr: 'الفجر',
+  dhuhr: 'الظهر',
+  asr: 'العصر',
+  maghrib: 'المغرب',
+  isha: 'العشاء',
+
+  prayed: 'صَلَّيْت',
+  missed: 'فاتتني',
+  upcoming: 'قادمة',
+
+  prayerTracker: 'متتبع الصلاة',
+  timesForLocation: 'أوقات موقعك',
+  usingDefault: 'كراتشي (افتراضي)',
+  thisWeek: 'هذا الأسبوع',
+  loadingPrayerTimes: 'جارٍ تحميل أوقات الصلاة...',
+  tapToMarkReminders: 'اضغط للتسجيل • تذكير قبل كل صلاة بـ٥ دقائق',
+
+  learn: 'تعلّم',
+  kalimasAndDuas: 'الكلمات الست والأدعية اليومية',
+  kalimas: 'الكلمات الست',
+  duas: 'الأدعية',
+  tapDuaToExpand: 'اضغط على دعاء للاطلاع. استخدمها في حياتك اليومية.',
+
+  qiblaDirection: 'اتجاه القبلة',
+  qiblaSubtitle: 'استقبل الكعبة في مكة عند الصلاة',
+  fromNorth: 'من الشمال',
+  gettingLocation: 'جارٍ تحديد الموقع...',
+  holdPhoneFlat: 'امسك الهاتف مستوياً وقم بتدويره حتى يشير السهم الأخضر للأعلى',
+  you: 'أنت',
+  qiblaLabel: 'القبلة',
+  turnLeft: 'انعطف يساراً',
+  turnRight: 'انعطف يميناً',
+  pointPhoneNorth: 'وجّه الهاتف شمالاً ثم در مع عقارب الساعة باتجاه القبلة',
+
+  moodCoach: 'المزاج والمرشد',
+  moodSubtitle: 'كيف تشعر؟ احصل على تحفيز شخصي.',
+  low: 'منخفض',
+  great: 'ممتاز',
+  coachThinking: 'المرشد يفكر...',
+  moodPlaceholder: 'اختر مزاجاً أعلاه لتحصل على تحفيزك الشخصي.',
+
+  stats: 'إحصائيات',
+  statsSubtitle: 'رحلتك الروحية في لمحة',
+  currentStreak: 'السلسلة الحالية',
+  longestStreak: 'أطول سلسلة',
+  prayerConsistency7: 'انتظام الصلاة (٧ أيام)',
+  goalsThisWeek: 'أهداف هذا الأسبوع',
+  moodAverage: 'متوسط المزاج',
+  soulReport: 'تقرير الروح',
+  soulReportText: 'الملخص الأسبوعي قادم قريباً. واصل بناء سلسلتك!',
+
+  homeTab: 'الرئيسية',
+  prayersTab: 'الصلوات',
+  quranTab: 'القرآن',
+  learnTab: 'تعلّم',
+  umrahTab: 'العمرة',
+  hajjTab: 'الحج',
+  janazaTab: 'الجنازة',
+  qiblaTab: 'القبلة',
+  moodTab: 'المزاج',
+  statsTab: 'إحصائيات',
+
+  prayerSettings: 'إعدادات الصلاة',
+  chooseCalcMethod: 'اختر طريقة حساب منطقتك',
+  calculationMethod: 'طريقة الحساب',
+  selectRegionMethod: 'تستخدم المناطق المختلفة طرقاً مختلفة. اختر الطريقة المعتمدة في بلدك.',
+  asrCalculation: 'حساب العصر (المذهب)',
+  hanafiBasis: 'يؤثر على وقت صلاة العصر. الحنفي يعتمد وقتاً متأخراً.',
+  save: 'حفظ',
+  cancel: 'إلغاء',
+};
+
+export const translations: Record<Language, Translations> = { en, ur, ar };
