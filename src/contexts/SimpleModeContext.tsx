@@ -6,7 +6,7 @@ const STORAGE_KEY = 'simple_mode';
 type SimpleModeContextType = {
   simpleMode: boolean;
   toggleSimpleMode: () => Promise<void>;
-  fs: (base: number) => number; // font scale helper
+  fs: (base: number) => number;
 };
 
 const SimpleModeContext = createContext<SimpleModeContextType>({
@@ -30,7 +30,6 @@ export function SimpleModeProvider({ children }: { children: ReactNode }) {
     await AsyncStorage.setItem(STORAGE_KEY, String(next));
   };
 
-  // In simple mode, scale up font sizes by 25%
   const fs = (base: number) => (simpleMode ? Math.round(base * 1.25) : base);
 
   return (

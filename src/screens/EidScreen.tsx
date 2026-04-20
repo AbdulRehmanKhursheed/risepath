@@ -145,7 +145,6 @@ export function EidScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Hero banner */}
       <LinearGradient
         colors={['rgba(200,120,10,0.14)', 'rgba(26,122,60,0.10)', 'transparent']}
         style={styles.hero}
@@ -159,7 +158,6 @@ export function EidScreen() {
         </Text>
       </LinearGradient>
 
-      {/* Next Eid countdown */}
       {nextEid && days !== null && (
         <View style={styles.countdownCard}>
           <View>
@@ -184,7 +182,6 @@ export function EidScreen() {
         </View>
       )}
 
-      {/* Tab switcher */}
       <View style={styles.tabs}>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'fitr' && styles.tabActive]}
@@ -206,7 +203,6 @@ export function EidScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Sections */}
       {sections.map((section) => (
         <SectionBlock key={section.id} section={section} isUrdu={isUrdu} fs={fs} />
       ))}

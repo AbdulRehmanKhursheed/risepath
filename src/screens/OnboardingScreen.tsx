@@ -49,7 +49,6 @@ export function OnboardingScreen({ onComplete }: Props) {
     onComplete();
   };
 
-  /* ── Step 1: Language ── */
   if (step === 'language') {
     return (
       <View style={styles.container}>
@@ -58,7 +57,6 @@ export function OnboardingScreen({ onComplete }: Props) {
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        {/* Content centered in remaining space above the fixed button */}
         <View style={styles.center}>
           <Text style={styles.appName}>Noor</Text>
           <Text style={styles.appTagline}>بِسْمِ اللَّهِ الرَّحْمٰنِ الرَّحِيْمِ</Text>
@@ -89,7 +87,6 @@ export function OnboardingScreen({ onComplete }: Props) {
           </TouchableOpacity>
         </View>
 
-        {/* Fixed absolute button at bottom — always visible without scrolling */}
         <View style={styles.fixedBottom}>
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('school')}>
             <Text style={styles.nextBtnText}>
@@ -101,7 +98,6 @@ export function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  /* ── Step 1.5: School of Thought (Sunni / Shia) ── */
   if (step === 'school') {
     return (
       <View style={styles.container}>
@@ -121,7 +117,6 @@ export function OnboardingScreen({ onComplete }: Props) {
               : 'Prayer times will be calculated accordingly. Can be changed later.'}
           </Text>
 
-          {/* Sunni card */}
           <TouchableOpacity
             style={[styles.langCard, selectedSchool === 'sunni' && styles.langCardActive]}
             onPress={() => selectSchool('sunni')}
@@ -140,7 +135,6 @@ export function OnboardingScreen({ onComplete }: Props) {
             {selectedSchool === 'sunni' && <Text style={styles.checkmark}>✓</Text>}
           </TouchableOpacity>
 
-          {/* Shia card */}
           <TouchableOpacity
             style={[styles.langCard, selectedSchool === 'shia' && styles.langCardActive]}
             onPress={() => selectSchool('shia')}
@@ -174,7 +168,6 @@ export function OnboardingScreen({ onComplete }: Props) {
     );
   }
 
-  /* ── Step 2: Prayer Method ── */
   if (step === 'method') {
     return (
       <View style={styles.container}>
@@ -183,7 +176,6 @@ export function OnboardingScreen({ onComplete }: Props) {
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
-        {/* Scrollable options list — ends before fixed buttons */}
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 }]}
           showsVerticalScrollIndicator={false}
@@ -217,7 +209,6 @@ export function OnboardingScreen({ onComplete }: Props) {
               </TouchableOpacity>
             ))}
 
-          {/* Madhab selector is only relevant for Sunni users */}
           {selectedSchool === 'sunni' && (
             <>
               <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
@@ -243,7 +234,6 @@ export function OnboardingScreen({ onComplete }: Props) {
           )}
         </ScrollView>
 
-        {/* Fixed absolute buttons — always visible */}
         <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('school')}>
@@ -273,7 +263,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
-    paddingBottom: 110, // leave room for the fixed bottom button
+    paddingBottom: 110, // fixed-bottom button reserves this space
   },
   fixedBottom: {
     position: 'absolute',

@@ -43,7 +43,6 @@ export function HajjGuideScreen() {
         pointerEvents="none"
       />
 
-      {/* Header */}
       <Text style={styles.title}>{isUrdu ? 'حج گائیڈ' : 'Hajj Guide'}</Text>
       <Text style={styles.subtitle}>
         {isUrdu
@@ -51,7 +50,6 @@ export function HajjGuideScreen() {
           : 'Hajj al-Tamattu\' — Complete step-by-step with duas & instructions'}
       </Text>
 
-      {/* Progress bar */}
       <View style={styles.progressCard}>
         <View style={styles.progressRow}>
           <Text style={styles.progressLabel}>
@@ -73,7 +71,6 @@ export function HajjGuideScreen() {
         )}
       </View>
 
-      {/* Steps */}
       {HAJJ_STEPS.map((step, idx) => {
         const isExpanded = expandedId === step.id;
         const isDone = completedIds.has(step.id);
@@ -91,7 +88,6 @@ export function HajjGuideScreen() {
               onPress={() => setExpandedId(isExpanded ? null : step.id)}
               activeOpacity={0.85}
             >
-              {/* Step header */}
               <View style={styles.cardHeader}>
                 <View style={[styles.stepBubble, isDone && styles.stepBubbleDone]}>
                   {isDone ? (
@@ -111,7 +107,6 @@ export function HajjGuideScreen() {
                 <Text style={styles.chevron}>{isExpanded ? '▲' : '▼'}</Text>
               </View>
 
-              {/* Expanded body */}
               {isExpanded && (
                 <View style={styles.cardBody}>
                   <Text style={styles.description}>{description}</Text>
@@ -164,7 +159,6 @@ export function HajjGuideScreen() {
         );
       })}
 
-      {/* Footer note */}
       <View style={styles.footerNote}>
         <Text style={styles.footerText}>
           {isUrdu

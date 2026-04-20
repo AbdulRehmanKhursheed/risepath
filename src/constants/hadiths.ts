@@ -7,8 +7,6 @@ export type Hadith = {
   source: string;
 };
 
-// Curated collection of authentic (sahih) hadith — short enough for a daily card.
-// All from the Sahihayn (Bukhari & Muslim) or equally authenticated collections.
 export const HADITHS: Hadith[] = [
   {
     id: 1,

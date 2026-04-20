@@ -53,7 +53,6 @@ export function TasbihScreen() {
   const [customTarget, setCustomTarget] = useState('');
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate saved state
   useEffect(() => {
     (async () => {
       const [rawState, rawLife, rawToday] = await Promise.all([
@@ -80,7 +79,6 @@ export function TasbihScreen() {
     })();
   }, []);
 
-  // Persist on change (after hydration)
   useEffect(() => {
     if (!hydrated) return;
     AsyncStorage.setItem(
@@ -101,7 +99,6 @@ export function TasbihScreen() {
     setTodayCount(newToday);
     AsyncStorage.setItem(STORAGE_KEY_TODAY, JSON.stringify({ date: tk, count: newToday }));
 
-    // Haptic: short tick on every tap, longer pulse on target hit
     if (next === target) {
       Vibration.vibrate(Platform.OS === 'ios' ? [0, 50, 100, 200] : 400);
     } else {
@@ -145,7 +142,6 @@ export function TasbihScreen() {
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Preset selector */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -170,7 +166,6 @@ export function TasbihScreen() {
           })}
         </ScrollView>
 
-        {/* Dhikr display */}
         <View style={styles.dhikrCard}>
           <Text style={styles.dhikrArabic}>{preset.arabic}</Text>
           <Text style={[styles.dhikrTranslit, { fontSize: fs(14) }]}>{preset.transliteration}</Text>
@@ -179,7 +174,6 @@ export function TasbihScreen() {
           </Text>
         </View>
 
-        {/* Counter */}
         <TouchableOpacity
           activeOpacity={0.88}
           onPress={increment}
@@ -200,7 +194,6 @@ export function TasbihScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* Quick stats */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={[styles.statLabel, { fontSize: fs(10) }]}>{label.today}</Text>
@@ -212,7 +205,6 @@ export function TasbihScreen() {
           </View>
         </View>
 
-        {/* Action buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={reset} activeOpacity={0.8}>
             <Text style={[styles.actionBtnText, { fontSize: fs(13) }]}>↺ {label.reset}</Text>
@@ -226,7 +218,6 @@ export function TasbihScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Virtue note */}
         <View style={styles.virtueCard}>
           <Text style={[styles.virtueText, { fontSize: fs(12), textAlign: isRtl ? 'right' : 'left' }]}>
             {virtueText}
@@ -234,7 +225,6 @@ export function TasbihScreen() {
         </View>
       </ScrollView>
 
-      {/* Target picker modal */}
       <Modal
         visible={targetModalOpen}
         transparent

@@ -1,21 +1,5 @@
-/**
- * Hajj Guide — complete step-by-step for all five days of Hajj.
- *
- * NOTE: This covers Hajj al-Tamattu' (most common for international pilgrims)
- * where Umrah is performed first, then Hajj. For Hajj al-Ifrad and Hajj al-Qiran,
- * consult a local scholar.
- *
- * Sources:
- *  • Sahih Bukhari & Sahih Muslim (primary hadith)
- *  • Sunan Abu Dawud, Tirmidhi, Nasa'i
- *  • Al-Mughni (Ibn Qudamah) — Hanbali
- *  • Radd al-Muhtar (Ibn Abidin) — Hanafi
- *  • Al-Majmu (Imam Nawawi) — Shafi'i
- *
- * ⚠️  DISCLAIMER: This guide is for educational purposes. Consult a qualified
- *  scholar or your Hajj group leader for specific rulings.
- */
-
+// Covers Hajj al-Tamattu' (most common for international pilgrims). For Hajj
+// al-Ifrad and Hajj al-Qiran, consult a local scholar.
 export type HajjStep = {
   id: number;
   day: string;
@@ -38,7 +22,6 @@ export type HajjStep = {
 };
 
 export const HAJJ_STEPS: HajjStep[] = [
-  /* ─── BEFORE HAJJ ─── */
   {
     id: 1,
     day: 'Before Hajj',
@@ -104,7 +87,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     ],
   },
 
-  /* ─── 8TH DHUL HIJJAH: MINA ─── */
   {
     id: 3,
     day: '8th Dhul Hijjah — Mina',
@@ -133,7 +115,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     ],
   },
 
-  /* ─── 9TH DHUL HIJJAH: ARAFAH ─── */
   {
     id: 4,
     day: '9th Dhul Hijjah — Arafah',
@@ -171,7 +152,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     womenNote: 'Women make the same duas as men. There is no restriction on dua at Arafah for women. The key is sincerity.',
   },
 
-  /* ─── 9TH NIGHT: MUZDALIFAH ─── */
   {
     id: 5,
     day: '9th Night — Muzdalifah',
@@ -201,7 +181,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     womenNote: 'Elderly women and those with difficulty may leave Muzdalifah after midnight — this is permitted.',
   },
 
-  /* ─── 10TH DHUL HIJJAH: EID DAY ─── */
   {
     id: 6,
     day: '10th Dhul Hijjah — Eid',
@@ -283,7 +262,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     womenNote: 'Women who are menstruating may delay Tawaf al-Ifadah until they are pure. They should consult their Hajj group leader.',
   },
 
-  /* ─── 11th–12th (13th): AYYAM AL-TASHREEQ ─── */
   {
     id: 9,
     day: '11th–12th Dhul Hijjah',
@@ -320,7 +298,6 @@ export const HAJJ_STEPS: HajjStep[] = [
     ],
   },
 
-  /* ─── FAREWELL ─── */
   {
     id: 10,
     day: 'Before Leaving Makkah',

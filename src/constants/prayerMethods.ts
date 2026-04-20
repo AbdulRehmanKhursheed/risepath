@@ -1,8 +1,4 @@
-/**
- * Prayer calculation methods by region/country.
- * Different Muslim communities worldwide use different calculation methods.
- * @see https://github.com/batoulapps/adhan-js#calculation-parameters
- */
+// See: https://github.com/batoulapps/adhan-js#calculation-parameters
 export type CalculationMethodId =
   | 'MuslimWorldLeague'
   | 'Egyptian'
@@ -21,10 +17,7 @@ export type CalculationMethodId =
 
 export type MadhabId = 'Shafi' | 'Hanafi';
 
-/**
- * The broad school of Islamic jurisprudence.
- * Determines which prayer method / fiqh-aware content is shown.
- */
+// Broad school of Islamic jurisprudence — determines fiqh-aware content.
 export type FiqhSchool = 'sunni' | 'shia';
 
 export const CALCULATION_METHODS: {

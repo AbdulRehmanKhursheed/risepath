@@ -24,17 +24,8 @@ type Props = {
   unitId: string;
 };
 
-/**
- * Themed AdMob banner for RisePath.
- *
- * • Renders nothing if the native AdMob module is unavailable (e.g., Expo Go).
- * • Shows nothing while the ad is loading — no empty grey box.
- * • Shows nothing if the ad fails to load — better UX than a broken frame.
- * • Wraps the native banner in a warm parchment container so it blends
- *   with the app's Islamic manuscript palette.
- * • Only used on Home and Stats screens. Sacred screens (Quran, Prayer,
- *   Qibla, Learn, Umrah, Janaza) intentionally have zero ads.
- */
+// Sacred screens (Quran, Prayer, Qibla, Learn, Umrah, Janaza) intentionally
+// have zero ads — only used on Home and Stats.
 export function AdBanner({ unitId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);

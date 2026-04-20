@@ -1,26 +1,9 @@
-/**
- * Islamic Janaza (Funeral) Guide — Scholar-verified step-by-step instructions.
- *
- * Sources:
- *  • Sahih Bukhari & Sahih Muslim (primary hadith)
- *  • Sunan Abu Dawud (duas and specific rulings)
- *  • Sunan Tirmidhi (funeral rewards hadith)
- *  • Al-Mughni (Ibn Qudamah) — Hanbali fiqh reference
- *  • Radd al-Muhtar (Ibn Abidin) — Hanafi fiqh reference
- *  • Al-Majmu (Imam Nawawi) — Shafi'i fiqh reference
- *  • Al-Mudawwana (Imam Malik) — Maliki fiqh reference
- *  • Notes on Shia (Jafari) differences are clearly marked.
- *
- * ⚠️  DISCLAIMER: This guide provides general educational guidance based on the
- *  mainstream Sunni position with noted Shia differences. Consult a qualified
- *  local scholar (imam) for specific rulings in your situation.
- */
-
+// Mainstream Sunni with noted Shia (Jafari) differences marked in shiaNote.
 export type JanazaPhase = {
   id: number;
-  phase: string;             // Short phase name
+  phase: string;
   phaseUr: string;
-  phaseAr: string;           // Arabic phase name
+  phaseAr: string;
   title: string;
   titleUr: string;
   steps: JanazaStep[];
@@ -32,21 +15,18 @@ export type JanazaStep = {
   titleUr: string;
   description: string;
   descriptionUr: string;
-  arabic?: string;           // Arabic text (dua / dhikr)
+  arabic?: string;
   transliteration?: string;
   translation?: string;
   translationUr?: string;
-  source?: string;           // Hadith / Quran reference
-  shiaNote?: string;         // Shia (Jafari) difference if any
+  source?: string;
+  shiaNote?: string;
   shianoteUr?: string;
-  important?: boolean;       // Highlight as critical step
-  checkable?: boolean;       // Can be ticked off in UI
+  important?: boolean;
+  checkable?: boolean;
 };
 
 export const JANAZA_PHASES: JanazaPhase[] = [
-  /* ───────────────────────────────────────────────
-   *  PHASE 1 — At the Time of Death
-   * ─────────────────────────────────────────────── */
   {
     id: 1,
     phase: 'At Death',
@@ -113,9 +93,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 2 — Preparation
-   * ─────────────────────────────────────────────── */
   {
     id: 2,
     phase: 'Preparation',
@@ -162,9 +139,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 3 — Ghusl (Ritual Washing)
-   * ─────────────────────────────────────────────── */
   {
     id: 3,
     phase: 'Ghusl',
@@ -253,9 +227,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 4 — Kafan (Shrouding)
-   * ─────────────────────────────────────────────── */
   {
     id: 4,
     phase: 'Kafan',
@@ -290,9 +261,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 5 — Salat al-Janazah (Funeral Prayer)
-   * ─────────────────────────────────────────────── */
   {
     id: 5,
     phase: 'Janaza Prayer',
@@ -416,9 +384,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 6 — Burial
-   * ─────────────────────────────────────────────── */
   {
     id: 6,
     phase: 'Burial',
@@ -475,9 +440,6 @@ export const JANAZA_PHASES: JanazaPhase[] = [
     ],
   },
 
-  /* ───────────────────────────────────────────────
-   *  PHASE 7 — After Burial
-   * ─────────────────────────────────────────────── */
   {
     id: 7,
     phase: 'After Burial',

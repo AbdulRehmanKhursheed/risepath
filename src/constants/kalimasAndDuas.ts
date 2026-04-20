@@ -1,8 +1,3 @@
-/**
- * 6 Kalimas and basic everyday Duas
- * Arabic, transliteration, and English translation
- */
-
 export type Kalima = {
   id: number;
   name: string;

@@ -1,10 +1,5 @@
-// Islamic calendar events — the "Sacred Countdown" feature data layer.
-//
-// Dates here are *base anchors*. Because moonsighting differs by region
-// (Saudi / Gulf, South Asia, UK, North America, etc.), each event can
-// declare per-region day offsets. The effective date for a given user is
-// computed as baseDate + regionOffset. This lets one Pakistani, one
-// Emirati and one American see the correct date for *their* community.
+// Dates are *base anchors*. Since moonsighting differs by region, each event
+// can declare per-region day offsets — effective date = baseDate + regionOffset.
 
 export type EventType =
   | 'ramadan_start'
@@ -50,12 +45,8 @@ export const CALENDAR_REGIONS: {
 ];
 
 // Per-event, per-region day offset relative to the base date.
-// Empty record means "same day for all regions".
-// Typical rule of thumb: Saudi/UAE is the base; South Asia lags by 1 day
-// on Ramadan/Eid due to later moonsighting; UK follows Saudi for Ramadan but
-// may lag by 1 on Eid al-Fitr; North America follows ISNA's astronomical
-// calculation, usually matching Saudi. These are reasonable defaults — a
-// user can override by switching region.
+// Saudi/UAE is the base; South Asia typically lags by 1 day on Ramadan/Eid
+// due to later moonsighting. User can override region in Settings.
 export type RegionOffsets = Partial<Record<CalendarRegion, number>>;
 
 export type IslamicEvent = {
@@ -78,18 +69,13 @@ export type SacredQuote = {
   source: string;
 };
 
-// ───────────────────────────────────────────────────────────────────────────
-// EVENT CATALOG — 2026–2028
-// Base dates are anchored to Saudi/Umm al-Qura; regional offsets adjust.
-// ───────────────────────────────────────────────────────────────────────────
-
+// Event catalog 2026–2028. Base dates anchored to Saudi/Umm al-Qura.
 const d = (y: number, m: number, day: number) => new Date(y, m - 1, day);
 
-// Most moon-sighted events — South Asia runs 1 day behind Saudi
+// Most moon-sighted events: South Asia runs 1 day behind Saudi.
 const MOONSIGHT_OFFSET: RegionOffsets = { southasia: 1, africa: 0 };
 
 export const ISLAMIC_EVENTS: IslamicEvent[] = [
-  // ─── 1447 AH → 1448 AH transition ───
   { id: 'dhj-1447', type: 'dhul_hijjah_start',
     baseDate: d(2026, 5, 28), endDate: d(2026, 6, 6),
     nameEn: 'First 10 Days of Dhul Hijjah', nameUr: 'ذوالحجہ کے پہلے ۱۰ دن', nameAr: 'العشر الأوائل من ذي الحجة',
@@ -134,13 +120,12 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     nameEn: 'Shab-e-Barat', nameUr: 'شب برات', nameAr: 'ليلة البراءة',
     icon: '🕯️', regionOffsets: MOONSIGHT_OFFSET },
 
-  // Ramadan 1448 — South Asia typically +1 day
   { id: 'ramadan-1448', type: 'ramadan_start',
     baseDate: d(2027, 2, 18), endDate: d(2027, 3, 19),
     nameEn: 'Ramadan', nameUr: 'رمضان المبارک', nameAr: 'شهر رمضان',
     icon: '🌙', regionOffsets: MOONSIGHT_OFFSET },
 
-  // Laylat al-Qadr odd nights (21, 23, 25, 27, 29) — shift with Ramadan
+  // Laylat al-Qadr odd nights (21, 23, 25, 27, 29) — shift with Ramadan.
   { id: 'qadr-21-1448', type: 'laylat_al_qadr', baseDate: d(2027, 3, 10),
     nameEn: 'Laylat al-Qadr — 21st Night', nameUr: 'شب قدر — ۲۱ ویں رات', nameAr: 'ليلة القدر ــ ليلة ٢١',
     icon: '✨', regionOffsets: MOONSIGHT_OFFSET },
@@ -162,7 +147,6 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     nameEn: 'Eid al-Fitr', nameUr: 'عیدالفطر', nameAr: 'عيد الفطر',
     icon: '🌟', regionOffsets: MOONSIGHT_OFFSET },
 
-  // ─── 1448 AH → 1449 AH ───
   { id: 'dhj-1448', type: 'dhul_hijjah_start',
     baseDate: d(2027, 5, 18), endDate: d(2027, 5, 27),
     nameEn: 'First 10 Days of Dhul Hijjah', nameUr: 'ذوالحجہ کے پہلے ۱۰ دن', nameAr: 'العشر الأوائل من ذي الحجة',
@@ -194,35 +178,20 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     icon: '🌟', regionOffsets: MOONSIGHT_OFFSET },
 ];
 
-// ───────────────────────────────────────────────────────────────────────────
-// REGION AUTO-DETECT from latitude/longitude (rough country-level boxes)
-// Used when the user has granted location — they can override in Settings.
-// ───────────────────────────────────────────────────────────────────────────
-
+// Rough country-level bounding boxes — user can override in Settings.
 export function detectRegionFromCoords(
   lat: number,
   lon: number
 ): CalendarRegion {
-  // South Asia — Pakistan, India, Bangladesh, Sri Lanka, Nepal
   if (lat >= 5 && lat <= 38 && lon >= 60 && lon <= 98) return 'southasia';
-  // Saudi / Gulf / Yemen — Arabian peninsula
   if (lat >= 12 && lat <= 33 && lon >= 34 && lon <= 60) return 'saudi';
-  // UK & Ireland
   if (lat >= 49 && lat <= 61 && lon >= -11 && lon <= 2) return 'uk';
-  // North America (continental USA + Canada)
   if (lat >= 15 && lat <= 72 && lon >= -168 && lon <= -52) return 'northamerica';
-  // Southeast Asia — Indonesia, Malaysia, Singapore, Philippines, Brunei
   if (lat >= -11 && lat <= 21 && lon >= 94 && lon <= 141) return 'southeastasia';
-  // Africa (broad)
   if (lat >= -35 && lat <= 37 && lon >= -18 && lon <= 52) return 'africa';
-  // Turkey + continental Europe
   if (lat >= 35 && lat <= 71 && lon >= -10 && lon <= 45) return 'europe';
   return 'global';
 }
-
-// ───────────────────────────────────────────────────────────────────────────
-// HELPERS — effective dates, filtering, upcoming list
-// ───────────────────────────────────────────────────────────────────────────
 
 export function applyRegionOffset(
   baseDate: Date,
@@ -301,8 +270,7 @@ export function daysBetween(date: Date, now: Date = new Date()): number {
   return Math.round((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// Which milestones fire for a given event type? Bigger events get a longer
-// anticipation ladder. Multi-notification cap to avoid fatigue.
+// Bigger events get a longer anticipation ladder; capped to avoid fatigue.
 export function getMilestonesFor(type: EventType): number[] {
   switch (type) {
     case 'ramadan_start':           return [30, 14, 7, 3, 1, 0];
@@ -320,10 +288,6 @@ export function getMilestonesFor(type: EventType): number[] {
     default:                        return [1, 0];
   }
 }
-
-// ───────────────────────────────────────────────────────────────────────────
-// QUOTE LIBRARY — Quranic verses & Hadith keyed per event
-// ───────────────────────────────────────────────────────────────────────────
 
 export const SACRED_QUOTES: Record<EventType, SacredQuote[]> = {
   ramadan_start: [

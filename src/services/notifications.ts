@@ -83,19 +83,8 @@ export async function setupNotificationChannel(): Promise<void> {
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// Sacred Countdown — schedules anticipation-building notifications for
-// each upcoming Islamic event (Ramadan, Laylat al-Qadr, Eid, Hajj, etc.)
-// honoring the user's region (moonsighting offset) and sect.
-//
-// Called alongside schedulePrayerNotifications. Because scheduling runs
-// through expo-notifications and prayer-reminders are cancelled/recreated
-// daily in schedulePrayerNotifications, we expose a separate function that
-// does NOT cancel everything — we only cancel & recreate the sacred ones
-// using a stable identifier prefix (`sc:…`). That way prayer and sacred
-// schedules stay independent.
-// ───────────────────────────────────────────────────────────────────────────
-
+// Sacred Countdown notifications use a stable `sc:` prefix so prayer and
+// sacred schedules can be cancelled/recreated independently.
 const SACRED_ID_PREFIX = 'sc:';
 
 type MilestoneCopy = {
@@ -113,10 +102,8 @@ function buildMilestoneCopy(
   const quote = getQuoteForEvent(event.type, daysAway);
   const verse = language === 'ur' ? quote.ur : quote.en;
 
-  // Event-type specific hooks make the copy feel personal rather than generic.
   const hook = hookFor(event.type, daysAway, language);
 
-  // Day-of (daysAway === 0) uses celebratory title. Otherwise countdown title.
   if (daysAway === 0) {
     const celebratoryTitle =
       language === 'ur'
@@ -246,7 +233,7 @@ function hookLocalized(type: EventType, d: number, lang: Language): string | nul
         return '';
     }
   }
-  // Arabic copy kept short — lean on the Qur'an quote for weight.
+  // Arabic falls through to the Qur'an quote alone — intentionally short.
   return null;
 }
 
@@ -264,7 +251,7 @@ export async function scheduleSacredCountdownNotifications(
     }
   }
 
-  const events = getUpcomingEvents(sect, region).slice(0, 12); // cap to avoid notification spam
+  const events = getUpcomingEvents(sect, region).slice(0, 12); // cap to avoid spam
   const now = new Date();
   let scheduled = 0;
 
@@ -274,10 +261,7 @@ export async function scheduleSacredCountdownNotifications(
     const milestones = getMilestonesFor(event.type);
 
     for (const daysAway of milestones) {
-      // Compute trigger timestamp:
-      //   day-of (daysAway=0) → 6am local
-      //   night-before (daysAway=1) → 8pm previous night
-      //   others → 9am `daysAway` days before
+      // Trigger: day-of → 6:30am, night-before → 8pm prev night, else 9am.
       const trigger = new Date(event.effectiveDate);
       if (daysAway === 0) {
         trigger.setHours(6, 30, 0, 0);

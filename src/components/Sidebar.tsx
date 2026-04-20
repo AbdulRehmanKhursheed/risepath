@@ -68,7 +68,7 @@ export function Sidebar() {
     return 'العربية';
   };
 
-  // Keep mounted so animation can play out on close
+  // Keep mounted until close animation finishes.
   const [mounted, setMounted] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(false);
 
@@ -142,7 +142,6 @@ export function Sidebar() {
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      {/* Content Disclaimer Modal */}
       <Modal
         visible={disclaimerVisible}
         transparent
@@ -174,7 +173,6 @@ export function Sidebar() {
         </View>
       </Modal>
 
-      {/* Dim overlay — tap to close */}
       <TouchableWithoutFeedback onPress={closeSidebar}>
         <Animated.View
           style={[styles.overlay, { opacity: overlayOpacity }]}
@@ -182,7 +180,6 @@ export function Sidebar() {
         />
       </TouchableWithoutFeedback>
 
-      {/* Sliding panel */}
       <Animated.View
         style={[
           styles.panel,
@@ -199,7 +196,6 @@ export function Sidebar() {
           pointerEvents="none"
         />
 
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <View style={styles.logoBadge}>
@@ -223,7 +219,6 @@ export function Sidebar() {
           {isUrdu ? 'مزید خصوصیات' : 'MORE FEATURES'}
         </Text>
 
-        {/* Nav items */}
         <ScrollView style={styles.itemsScroll} showsVerticalScrollIndicator={false}>
           {NAV_ITEMS.map((item) => (
             <TouchableOpacity
@@ -243,7 +238,6 @@ export function Sidebar() {
           ))}
         </ScrollView>
 
-        {/* About & Disclaimer */}
         <TouchableOpacity
           style={styles.aboutBtn}
           onPress={() => setDisclaimerVisible(true)}
@@ -254,7 +248,6 @@ export function Sidebar() {
           </Text>
         </TouchableOpacity>
 
-        {/* Growth actions */}
         <View style={styles.growthRow}>
           <TouchableOpacity style={styles.growthBtn} onPress={onShareApp} activeOpacity={0.85}>
             <Text style={styles.growthBtnText}>{isUrdu ? '📤 ایپ شیئر کریں' : '📤 Share App'}</Text>
@@ -264,7 +257,6 @@ export function Sidebar() {
           </TouchableOpacity>
         </View>
 
-        {/* Footer: language + simple mode toggles */}
         <View style={styles.footer}>
           <View style={styles.divider} />
           <View style={styles.footerRow}>

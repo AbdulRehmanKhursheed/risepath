@@ -59,7 +59,6 @@ export function PrayerTrackerScreen() {
   const today = useMemo(() => new Date(), [getDateString(new Date())]);
   const prayerTimes = usePrayerTimes(lat, lng, today, calculationMethod, madhab);
 
-  // Translated prayer display names keyed by PrayerName
   const prayerDisplayNames: Record<PrayerName, string> = {
     fajr: t.fajr,
     dhuhr: t.dhuhr,
@@ -119,7 +118,7 @@ export function PrayerTrackerScreen() {
           prayerTimes.map((p) => ({ name: p.name, time: p.time }))
         );
 
-        // Sacred Countdown — region-aware, sect-aware, with per-event mute.
+        // Sacred Countdown: region-aware, sect-aware, per-event mute.
         const [fiqh, savedRegion, prefs, loc] = await Promise.all([
           storage.getFiqhSchool(),
           storage.getCalendarRegion(),

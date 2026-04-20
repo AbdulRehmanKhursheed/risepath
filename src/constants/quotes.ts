@@ -1,5 +1,4 @@
 export const MOTIVATIONAL_QUOTES = [
-  // Quran
   { text: 'Verily, with hardship comes ease.', source: 'Quran 94:6' },
   { text: 'Do not lose hope, nor be sad.', source: 'Quran 3:139' },
   { text: 'And whoever relies upon Allah — then He is sufficient for him.', source: 'Quran 65:3' },
@@ -18,7 +17,6 @@ export const MOTIVATIONAL_QUOTES = [
   { text: 'He is with you wherever you are.', source: 'Quran 57:4' },
   { text: 'Allah is the ally of those who believe.', source: 'Quran 2:257' },
   { text: 'After every darkness there is light.', source: 'Islamic wisdom' },
-  // Hadith
   { text: 'The strong person is not the one who can overpower others. The strong person is the one who controls themselves when angry.', source: 'Prophet ﷺ' },
   { text: 'Make things easy, do not make them hard. Give good news and do not drive people away.', source: 'Prophet ﷺ' },
   { text: 'The best among you is the one who learns the Quran and teaches it.', source: 'Prophet ﷺ' },
@@ -31,7 +29,6 @@ export const MOTIVATIONAL_QUOTES = [
   { text: 'Smiling at your brother is charity.', source: 'Prophet ﷺ' },
   { text: 'The worldly life is a prison for the believer and a paradise for the disbeliever.', source: 'Prophet ﷺ' },
   { text: 'Whoever is kind, Allah will be kind to him.', source: 'Prophet ﷺ' },
-  // Islamic wisdom
   { text: 'Dua is the weapon of the believer.', source: 'Prophet ﷺ (reported in Mustadrak al-Hakim)' },
   { text: 'Patience is a pillar of faith.', source: 'Islamic wisdom' },
   { text: 'The heart that beats for Allah is always in a state of peace.', source: 'Islamic wisdom' },

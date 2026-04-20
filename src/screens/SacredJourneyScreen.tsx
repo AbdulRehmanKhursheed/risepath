@@ -50,22 +50,21 @@ function computeCountdown(target: Date, now: Date = new Date()): CountdownParts 
 }
 
 function eventGradient(type: EventType): [string, string] {
-  // Festive events → warm gold; reflective events → deeper amber→green
   switch (type) {
     case 'ramadan_start':
     case 'laylat_al_qadr':
     case 'shab_e_barat':
-      return ['#4A3B1A', '#1F2B1C']; // night-sky parchment
+      return ['#4A3B1A', '#1F2B1C'];
     case 'eid_fitr':
     case 'eid_adha':
-      return ['#C8780A', '#8A4F05']; // festive gold
+      return ['#C8780A', '#8A4F05'];
     case 'arafah':
     case 'dhul_hijjah_start':
-      return ['#8A4F05', '#1A5A2C']; // amber → deep green
+      return ['#8A4F05', '#1A5A2C'];
     case 'mawlid':
-      return ['#A83E5B', '#4A1D29']; // rose
+      return ['#A83E5B', '#4A1D29'];
     default:
-      return ['#7A5A40', '#3C2510']; // warm brown
+      return ['#7A5A40', '#3C2510'];
   }
 }
 
@@ -84,7 +83,7 @@ export function SacredJourneyScreen() {
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
 
-  // Load persisted prefs + fiqh school + region (auto-detect from location if missing).
+  // Region auto-detected from last known location if not yet persisted.
   useEffect(() => {
     (async () => {
       const [fiqh, savedRegion, prefs, loc] = await Promise.all([
@@ -107,7 +106,6 @@ export function SacredJourneyScreen() {
     })();
   }, []);
 
-  // Tick every minute so live countdown updates.
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), TICK_INTERVAL_MS);
     return () => clearInterval(id);
@@ -121,7 +119,6 @@ export function SacredJourneyScreen() {
   const next = upcoming[0] ?? null;
   const upcomingRest = upcoming.slice(1, 10);
 
-  // Persist mute / enabled changes AND reschedule notifications.
   const persistAndReschedule = useCallback(
     async (next: { mutedEventIds: string[]; enabled: boolean }) => {
       if (!region) return;
@@ -160,7 +157,7 @@ export function SacredJourneyScreen() {
     setRegion(r);
     setRegionPickerOpen(false);
     await storage.setCalendarRegion(r);
-    // Reschedule because effective dates changed.
+    // Changing region changes effective dates → must reschedule.
     if (masterEnabled) {
       const granted = await requestNotificationPermissions();
       if (granted) {
@@ -210,7 +207,6 @@ export function SacredJourneyScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Region + master toggle row */}
         <View style={styles.topRow}>
           <TouchableOpacity
             style={styles.regionPill}
@@ -240,7 +236,6 @@ export function SacredJourneyScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Hero: next event */}
         {next ? (
           <HeroCard
             event={next}
@@ -262,7 +257,6 @@ export function SacredJourneyScreen() {
           </View>
         )}
 
-        {/* Timeline */}
         {upcomingRest.length > 0 && (
           <View style={styles.timelineSection}>
             <Text style={[styles.sectionTitle, { fontSize: fs(18) }]}>
@@ -303,7 +297,6 @@ export function SacredJourneyScreen() {
         </View>
       </ScrollView>
 
-      {/* Region picker modal */}
       <Modal
         visible={regionPickerOpen}
         transparent
@@ -360,10 +353,6 @@ export function SacredJourneyScreen() {
   );
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// HERO CARD — gradient, live countdown, quote, share
-// ───────────────────────────────────────────────────────────────────────────
-
 function HeroCard({
   event,
   now,
@@ -410,7 +399,6 @@ function HeroCard({
         <Text style={[styles.heroTitle, { fontSize: fs(28) }]}>{eventName}</Text>
         <Text style={[styles.heroDate, { fontSize: fs(12) }]}>{dateStr}</Text>
 
-        {/* Live countdown */}
         <View style={styles.countdownRow}>
           <CountdownBlock value={countdown.days} label={isUrdu ? 'دن' : isArabic ? 'يوم' : 'days'} fs={fs} />
           <View style={styles.countdownDivider} />
@@ -419,7 +407,6 @@ function HeroCard({
           <CountdownBlock value={countdown.minutes} label={isUrdu ? 'منٹ' : isArabic ? 'دقيقة' : 'mins'} fs={fs} />
         </View>
 
-        {/* Quote */}
         <View style={styles.quoteBox}>
           {quote.arabic ? (
             <Text style={styles.quoteArabic}>{quote.arabic}</Text>
@@ -458,10 +445,6 @@ function CountdownBlock({
     </View>
   );
 }
-
-// ───────────────────────────────────────────────────────────────────────────
-// TIMELINE ITEM
-// ───────────────────────────────────────────────────────────────────────────
 
 function TimelineItem({
   event,
@@ -533,10 +516,6 @@ function TimelineItem({
   );
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// STYLES
-// ───────────────────────────────────────────────────────────────────────────
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.background },
   container: { flex: 1 },
@@ -546,7 +525,6 @@ const styles = StyleSheet.create({
     paddingBottom: theme.spacing.xxxl,
   },
 
-  // Top row: region + bell
   topRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
@@ -597,7 +575,6 @@ const styles = StyleSheet.create({
   bellIcon: { fontSize: 20 },
   bellIconMuted: { opacity: 0.45 },
 
-  // Hero card
   heroWrap: {
     marginBottom: theme.spacing.xxl,
     borderRadius: theme.borderRadius.xl,
@@ -649,7 +626,6 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.xl,
   },
 
-  // Countdown
   countdownRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -685,7 +661,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
 
-  // Quote
   quoteBox: {
     backgroundColor: 'rgba(255,255,255,0.08)',
     padding: theme.spacing.lg,
@@ -716,7 +691,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Share
   shareBtn: {
     alignSelf: 'flex-start',
     paddingVertical: 10,
@@ -732,7 +706,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Empty state
   emptyCard: {
     backgroundColor: theme.colors.surface,
     borderRadius: theme.borderRadius.lg,
@@ -745,7 +718,6 @@ const styles = StyleSheet.create({
   emptyEmoji: { fontSize: 48, marginBottom: theme.spacing.md },
   emptyText: { color: theme.colors.textMuted, fontFamily: theme.typography.fontBody },
 
-  // Timeline
   timelineSection: {
     marginTop: theme.spacing.md,
   },
@@ -838,7 +810,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Footer note
   footerNote: {
     marginTop: theme.spacing.xl,
     padding: theme.spacing.md,
@@ -852,7 +823,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Modal
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(28,15,6,0.55)',

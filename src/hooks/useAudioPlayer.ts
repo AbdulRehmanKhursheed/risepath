@@ -10,6 +10,7 @@ export type ReciterConfig = {
   folder: string; // EveryAyah.com folder name
 };
 
+
 export const RECITERS: ReciterConfig[] = [
   {
     id: 'alafasy',
@@ -41,6 +42,24 @@ export const RECITERS: ReciterConfig[] = [
   },
 ];
 
+// Translation audio reciters hosted on EveryAyah. Coverage is not 100% —
+// on 404 we gracefully skip to the next step.
+export const TRANSLATION_RECITERS = {
+  urdu: {
+    folder: 'Urdu_Shamshad_Ali_Khan_46kbps',
+    nameEn: 'Shamshad Ali Khan',
+    nameUr: 'شمشاد علی خان',
+  },
+  english: {
+    folder: 'English_Ibrahim_Walk_128kbps',
+    nameEn: 'Ibrahim Walk',
+    nameUr: 'ابراہیم واک',
+  },
+} as const;
+
+export type TranslationPlaybackMode = 'off' | 'urdu' | 'english' | 'both';
+export type PlayingLang = 'arabic' | 'urdu' | 'english';
+
 export type AudioPlaybackStatus = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
 function buildUrl(folder: string, surahNumber: number, ayahNumber: number): string {
@@ -49,41 +68,65 @@ function buildUrl(folder: string, surahNumber: number, ayahNumber: number): stri
   return `https://everyayah.com/data/${folder}/${s}${a}.mp3`;
 }
 
-export function useAudioPlayer(surahNumber: number | null, ayahs: Ayah[]) {
+function buildStepList(mode: TranslationPlaybackMode): PlayingLang[] {
+  const list: PlayingLang[] = ['arabic'];
+  if (mode === 'urdu' || mode === 'both') list.push('urdu');
+  if (mode === 'english' || mode === 'both') list.push('english');
+  return list;
+}
+
+export function useAudioPlayer(
+  surahNumber: number | null,
+  ayahs: Ayah[],
+  translationPlayback: TranslationPlaybackMode = 'off'
+) {
   const soundRef = useRef<Audio.Sound | null>(null);
   // Refs let the onPlaybackStatusUpdate callback always read latest state
   // without being recreated on every render — avoids stale closures.
   const currentIndexRef = useRef<number | null>(null);
+  const currentStepRef = useRef<number>(0);
   const ayahsRef = useRef<Ayah[]>(ayahs);
   const surahRef = useRef<number | null>(surahNumber);
   const reciterIdRef = useRef<string>('alafasy');
+  const translationPlaybackRef = useRef<TranslationPlaybackMode>(translationPlayback);
 
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const [playingLang, setPlayingLang] = useState<PlayingLang>('arabic');
   const [pbStatus, setPbStatus] = useState<AudioPlaybackStatus>('idle');
   const [reciterId, setReciterId] = useState<string>('alafasy');
 
-  // Keep refs in sync with latest render values.
   useEffect(() => { ayahsRef.current = ayahs; }, [ayahs]);
   useEffect(() => { surahRef.current = surahNumber; }, [surahNumber]);
   useEffect(() => { reciterIdRef.current = reciterId; }, [reciterId]);
+  useEffect(() => { translationPlaybackRef.current = translationPlayback; }, [translationPlayback]);
 
-  // Unload audio when surah changes or component unmounts.
   useEffect(() => {
     return () => {
       soundRef.current?.unloadAsync().catch(() => {});
     };
   }, [surahNumber]);
 
-  // playAtIndex — stable ref-based function, called both externally and
-  // recursively from the playback callback for auto-advance.
-  const playAtIndex = useCallback(async (index: number) => {
+  const playStepAt = useCallback(async (index: number, step: number) => {
     const sNumber = surahRef.current;
     const theAyahs = ayahsRef.current;
     const reciter = RECITERS.find((r) => r.id === reciterIdRef.current) ?? RECITERS[0];
 
     if (!sNumber || index < 0 || index >= theAyahs.length) return;
 
-    // Unload previous before loading new.
+    const steps = buildStepList(translationPlaybackRef.current);
+
+    if (step >= steps.length) {
+      const next = index + 1;
+      if (next < theAyahs.length) {
+        setTimeout(() => playStepAt(next, 0), 400);
+      } else {
+        setPbStatus('idle');
+        setCurrentIndex(null);
+        currentIndexRef.current = null;
+      }
+      return;
+    }
+
     if (soundRef.current) {
       await soundRef.current.unloadAsync().catch(() => {});
       soundRef.current = null;
@@ -91,48 +134,66 @@ export function useAudioPlayer(surahNumber: number | null, ayahs: Ayah[]) {
 
     setCurrentIndex(index);
     currentIndexRef.current = index;
+    currentStepRef.current = step;
+    const lang = steps[step];
+    setPlayingLang(lang);
     setPbStatus('loading');
 
     try {
+      // staysActiveInBackground keeps recitation playing when app is
+      // backgrounded or screen is off. Requires UIBackgroundModes=audio on
+      // iOS and WAKE_LOCK/FOREGROUND_SERVICE on Android (set in app.json).
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
+        staysActiveInBackground: true,
         shouldDuckAndroid: true,
       });
     } catch { /* non-fatal */ }
 
     const ayah = theAyahs[index];
-    const url = buildUrl(reciter.folder, sNumber, ayah.numberInSurah);
+    const folder =
+      lang === 'arabic'
+        ? reciter.folder
+        : lang === 'urdu'
+        ? TRANSLATION_RECITERS.urdu.folder
+        : TRANSLATION_RECITERS.english.folder;
+    const url = buildUrl(folder, sNumber, ayah.numberInSurah);
 
     try {
       const { sound } = await Audio.Sound.createAsync(
         { uri: url },
         { shouldPlay: true },
         (status: AVPlaybackStatus) => {
-          if (!status.isLoaded) return;
+          if (!status.isLoaded) {
+            // Skip translation steps on load error (coverage gaps); Arabic
+            // errors fall through to the outer catch and surface as real errors.
+            return;
+          }
           if (status.isPlaying) {
             setPbStatus('playing');
           } else if (status.didJustFinish) {
-            const next = (currentIndexRef.current ?? index) + 1;
-            if (next < ayahsRef.current.length) {
-              // Short delay between ayahs feels more natural.
-              setTimeout(() => playAtIndex(next), 400);
-            } else {
-              // End of surah.
-              setPbStatus('idle');
-              setCurrentIndex(null);
-              currentIndexRef.current = null;
-            }
+            const curIdx = currentIndexRef.current ?? index;
+            const curStep = currentStepRef.current;
+            setTimeout(() => playStepAt(curIdx, curStep + 1), 200);
           }
         }
       );
       soundRef.current = sound;
     } catch {
+      // Translation file missing (common for some ayahs) — skip to next step.
+      if (lang !== 'arabic') {
+        setTimeout(() => playStepAt(index, step + 1), 100);
+        return;
+      }
       setPbStatus('error');
       setCurrentIndex(null);
       currentIndexRef.current = null;
     }
-  }, []); // stable — all state accessed via refs
+  }, []);
+
+  const playAtIndex = useCallback((index: number) => {
+    return playStepAt(index, 0);
+  }, [playStepAt]);
 
   const togglePlayPause = useCallback(async () => {
     if (!soundRef.current) return;
@@ -164,6 +225,8 @@ export function useAudioPlayer(surahNumber: number | null, ayahs: Ayah[]) {
     setPbStatus('idle');
     setCurrentIndex(null);
     currentIndexRef.current = null;
+    currentStepRef.current = 0;
+    setPlayingLang('arabic');
   }, []);
 
   const changeReciter = useCallback(async (id: string) => {
@@ -171,7 +234,6 @@ export function useAudioPlayer(surahNumber: number | null, ayahs: Ayah[]) {
     await stop();
     setReciterId(id);
     reciterIdRef.current = id;
-    // Resume at same ayah with new reciter if was playing.
     if (wasPlayingIndex !== null) {
       setTimeout(() => playAtIndex(wasPlayingIndex), 100);
     }
@@ -181,6 +243,7 @@ export function useAudioPlayer(surahNumber: number | null, ayahs: Ayah[]) {
 
   return {
     currentIndex,
+    playingLang,
     pbStatus,
     reciterId,
     currentReciter,

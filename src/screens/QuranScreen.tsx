@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   StyleSheet,
   Platform,
   Modal,
+  BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SURAH_LIST, SurahMeta } from '../constants/surahList';
@@ -18,7 +19,8 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
-import { useAudioPlayer, RECITERS } from '../hooks/useAudioPlayer';
+import { useAudioPlayer, RECITERS, TranslationPlaybackMode } from '../hooks/useAudioPlayer';
+import { matchesSurah } from '../utils/surahSearch';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
 
@@ -37,9 +39,18 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [error, setError] = useState<string | null>(null);
   const [translationMode, setTranslationMode] = useState<TranslationMode>('urdu');
   const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
+  const [translationAudioEnabled, setTranslationAudioEnabled] = useState(false);
+
+  const translationPlayback: TranslationPlaybackMode = translationAudioEnabled
+    ? translationMode
+    : 'off';
+
+  const scrollRef = useRef<ScrollView>(null);
+  const ayahYRef = useRef<Record<number, number>>({});
 
   const {
     currentIndex: playingIndex,
+    playingLang,
     pbStatus,
     currentReciter,
     playAtIndex,
@@ -48,7 +59,11 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     prevAyah,
     stop,
     changeReciter,
-  } = useAudioPlayer(selectedSurah?.number ?? null, surahContent?.ayahs ?? []);
+  } = useAudioPlayer(
+    selectedSurah?.number ?? null,
+    surahContent?.ayahs ?? [],
+    translationPlayback
+  );
 
   const openSurah = useCallback(async (surah: SurahMeta) => {
     await stop();
@@ -56,6 +71,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     setSurahContent(null);
     setError(null);
     setLoading(true);
+    ayahYRef.current = {};
     try {
       const content = await fetchSurah(surah.number);
       setSurahContent(content);
@@ -74,21 +90,34 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filtered = SURAH_LIST.filter((s) => {
-    const q = search.toLowerCase();
-    return (
-      s.nameEnglish.toLowerCase().includes(q) ||
-      s.nameArabic.includes(q) ||
-      s.nameUrdu.includes(q) ||
-      s.meaning.toLowerCase().includes(q) ||
-      String(s.number).includes(q)
-    );
-  });
+  const filtered = SURAH_LIST.filter((s) => matchesSurah(s, search));
 
   const isPlayerActive = playingIndex !== null;
   const playLabel = isUrdu ? 'ص' : isArabic ? 'قراءة' : 'Play';
 
-  /* ── Surah Reader View ── */
+  useEffect(() => {
+    if (playingIndex === null) return;
+    const y = ayahYRef.current[playingIndex];
+    if (y === undefined) return;
+    // Offset so the playing card sits below the sticky header.
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+  }, [playingIndex]);
+
+  // Hardware back on the reader view returns to the surah list instead of
+  // exiting the screen entirely — matches standard Android navigation.
+  useEffect(() => {
+    if (!selectedSurah) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      (async () => {
+        await stop();
+        setSelectedSurah(null);
+        setSurahContent(null);
+      })();
+      return true;
+    });
+    return () => sub.remove();
+  }, [selectedSurah, stop]);
+
   if (selectedSurah) {
     return (
       <View style={styles.container}>
@@ -98,7 +127,6 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           pointerEvents="none"
         />
 
-        {/* Back + header */}
         <View style={styles.readerHeader}>
           <TouchableOpacity
             style={styles.backBtn}
@@ -115,7 +143,6 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           </View>
         </View>
 
-        {/* Translation toggle */}
         <View style={styles.toggleRow}>
           {(['urdu', 'english', 'both'] as TranslationMode[]).map((mode) => (
             <TouchableOpacity
@@ -129,6 +156,39 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </TouchableOpacity>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={[styles.transAudioRow, translationAudioEnabled && styles.transAudioRowOn]}
+          onPress={() => setTranslationAudioEnabled((v) => !v)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.transAudioIcon}>{translationAudioEnabled ? '🔊' : '🔇'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.transAudioTitle, { fontSize: fs(13) }, translationAudioEnabled && styles.transAudioTitleOn]}>
+              {isUrdu
+                ? 'ترجمہ بھی سنیں'
+                : isArabic
+                ? 'تشغيل ترجمة صوتية'
+                : 'Recite translation too'}
+            </Text>
+            <Text style={[styles.transAudioSub, { fontSize: fs(11) }]}>
+              {translationAudioEnabled
+                ? (isUrdu
+                    ? `عربی کے بعد ${translationMode === 'both' ? 'اردو + انگریزی' : translationMode === 'english' ? 'انگریزی' : 'اردو'}`
+                    : isArabic
+                    ? 'بعد العربية'
+                    : `After Arabic · ${translationMode === 'both' ? 'Urdu + English' : translationMode === 'english' ? 'English' : 'Urdu'}`)
+                : (isUrdu
+                    ? 'صرف عربی تلاوت'
+                    : isArabic
+                    ? 'عربي فقط'
+                    : 'Arabic only')}
+            </Text>
+          </View>
+          <View style={[styles.toggleSwitch, translationAudioEnabled && styles.toggleSwitchOn]}>
+            <View style={[styles.toggleKnob, translationAudioEnabled && styles.toggleKnobOn]} />
+          </View>
+        </TouchableOpacity>
 
         {loading && (
           <View style={styles.loadingWrap}>
@@ -151,6 +211,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         {surahContent && (
           <View style={{ flex: 1 }}>
             <ScrollView
+              ref={scrollRef}
               style={styles.ayahList}
               contentContainerStyle={[
                 styles.ayahListContent,
@@ -158,7 +219,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               ]}
               showsVerticalScrollIndicator={false}
             >
-              {/* Bismillah (except Surah 9) */}
+              {/* Bismillah omitted for Surah 9 (At-Tawbah) by convention. */}
               {selectedSurah.number !== 9 && (
                 <Text style={[styles.bismillah, { fontSize: fs(22) }]}>
                   بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
@@ -171,8 +232,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                   <View
                     key={ayah.numberInSurah}
                     style={[styles.ayahCard, isPlaying && styles.ayahCardPlaying]}
+                    onLayout={(e) => { ayahYRef.current[idx] = e.nativeEvent.layout.y; }}
                   >
-                    {/* Top row: number badge + play button */}
                     <View style={styles.ayahTopRow}>
                       <TouchableOpacity
                         style={[styles.ayahPlayBtn, isPlaying && styles.ayahPlayBtnActive]}
@@ -195,10 +256,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                       </View>
                     </View>
 
-                    {/* Arabic */}
                     <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
 
-                    {/* Translation(s) */}
                     {(translationMode === 'urdu' || translationMode === 'both') && (
                       <Text style={[styles.ayahUrdu, { fontSize: fs(14) }]}>{ayah.urdu}</Text>
                     )}
@@ -210,14 +269,26 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               })}
             </ScrollView>
 
-            {/* Floating audio player bar */}
             {isPlayerActive && surahContent && (
               <View style={styles.playerBar}>
                 <View style={styles.playerInfo}>
-                  <Text style={[styles.playerAyahNum, { fontSize: fs(11) }]}>
-                    {isUrdu ? 'آیت' : isArabic ? 'آية' : 'Ayah'}{' '}
-                    {surahContent.ayahs[playingIndex]?.numberInSurah ?? ''}
-                  </Text>
+                  <View style={styles.playerAyahLine}>
+                    <Text style={[styles.playerAyahNum, { fontSize: fs(11) }]}>
+                      {isUrdu ? 'آیت' : isArabic ? 'آية' : 'Ayah'}{' '}
+                      {surahContent.ayahs[playingIndex]?.numberInSurah ?? ''}
+                    </Text>
+                    {translationAudioEnabled && (
+                      <View style={styles.langPill}>
+                        <Text style={styles.langPillText}>
+                          {playingLang === 'arabic'
+                            ? (isUrdu ? 'عربی' : 'AR')
+                            : playingLang === 'urdu'
+                            ? 'UR'
+                            : 'EN'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                   <TouchableOpacity onPress={() => setReciterPickerOpen(true)}>
                     <Text style={[styles.playerReciterName, { fontSize: fs(12) }]} numberOfLines={1}>
                       {isUrdu ? currentReciter.nameAr : currentReciter.nameEn}
@@ -253,7 +324,6 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           </View>
         )}
 
-        {/* Reciter picker modal */}
         <Modal
           visible={reciterPickerOpen}
           transparent
@@ -299,7 +369,6 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     );
   }
 
-  /* ── Surah Browser View ── */
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -394,7 +463,6 @@ const styles = StyleSheet.create({
     top: 0, left: 0, right: 0,
     height: 200,
   },
-  // Browser
   browserHeader: {
     paddingHorizontal: theme.spacing.xl,
     paddingTop: theme.spacing.xxl,
@@ -503,7 +571,6 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
-  // Reader
   readerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -564,6 +631,38 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
   toggleBtnTextActive: { color: '#fff' },
+  transAudioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    gap: theme.spacing.md,
+  },
+  transAudioRowOn: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.successMuted,
+  },
+  transAudioIcon: {
+    fontSize: 18,
+  },
+  transAudioTitle: {
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  transAudioTitleOn: {
+    color: theme.colors.success,
+  },
+  transAudioSub: {
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 1,
+  },
   loadingWrap: {
     flex: 1,
     justifyContent: 'center',
@@ -692,7 +791,6 @@ const styles = StyleSheet.create({
     borderTopColor: theme.colors.borderSoft,
   },
 
-  // ── Floating audio player bar ──
   playerBar: {
     position: 'absolute',
     bottom: 0,
@@ -715,11 +813,29 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  playerAyahLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   playerAyahNum: {
     color: 'rgba(255,255,255,0.6)',
     fontFamily: theme.typography.fontBodyMedium,
     letterSpacing: 0.5,
     textTransform: 'uppercase',
+  },
+  langPill: {
+    backgroundColor: theme.colors.success,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  langPillText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    fontFamily: theme.typography.fontBodyBold,
+    letterSpacing: 0.5,
   },
   playerReciterName: {
     color: '#FFFFFF',
@@ -769,7 +885,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
   },
 
-  // ── Reciter picker modal ──
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(28,15,6,0.55)',
@@ -793,6 +908,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: theme.colors.text,
     marginBottom: theme.spacing.lg,
+  },
+  toggleSwitch: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchOn: {
+    backgroundColor: theme.colors.success,
+  },
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+  toggleKnobOn: {
+    transform: [{ translateX: 16 }],
   },
   reciterOption: {
     flexDirection: 'row',

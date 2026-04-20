@@ -43,7 +43,6 @@ export function UmrahGuideScreen() {
         pointerEvents="none"
       />
 
-      {/* Header */}
       <Text style={styles.title}>{isUrdu ? 'عمرہ گائیڈ' : 'Umrah Guide'}</Text>
       <Text style={styles.subtitle}>
         {isUrdu
@@ -51,7 +50,6 @@ export function UmrahGuideScreen() {
           : 'Complete step-by-step guide with duas & instructions'}
       </Text>
 
-      {/* Progress bar */}
       <View style={styles.progressCard}>
         <View style={styles.progressRow}>
           <Text style={styles.progressLabel}>
@@ -71,7 +69,6 @@ export function UmrahGuideScreen() {
         )}
       </View>
 
-      {/* Steps */}
       {UMRAH_STEPS.map((step, idx) => {
         const isExpanded = expandedId === step.id;
         const isDone = completedIds.has(step.id);
@@ -80,18 +77,15 @@ export function UmrahGuideScreen() {
 
         return (
           <View key={step.id} style={styles.stepWrapper}>
-            {/* Connector line */}
             {idx < UMRAH_STEPS.length - 1 && (
               <View style={[styles.connector, isDone && styles.connectorDone]} />
             )}
 
-            {/* Step card */}
             <TouchableOpacity
               style={[styles.card, isDone && styles.cardDone, isExpanded && styles.cardExpanded]}
               onPress={() => setExpandedId(isExpanded ? null : step.id)}
               activeOpacity={0.85}
             >
-              {/* Step header */}
               <View style={styles.cardHeader}>
                 <View style={[styles.stepBubble, isDone && styles.stepBubbleDone]}>
                   {isDone ? (
@@ -111,12 +105,10 @@ export function UmrahGuideScreen() {
                 <Text style={styles.chevron}>{isExpanded ? '▲' : '▼'}</Text>
               </View>
 
-              {/* Expanded body */}
               {isExpanded && (
                 <View style={styles.cardBody}>
                   <Text style={styles.description}>{description}</Text>
 
-                  {/* Dua */}
                   {step.dua && (
                     <View style={styles.duaCard}>
                       <Text style={styles.duaLabel}>{isUrdu ? 'دعا' : 'Dua'}</Text>
@@ -128,7 +120,6 @@ export function UmrahGuideScreen() {
                     </View>
                   )}
 
-                  {/* Tips */}
                   <View style={styles.tipsSection}>
                     <Text style={styles.tipsLabel}>{isUrdu ? 'اہم باتیں' : 'Key Points'}</Text>
                     {(isUrdu ? step.tipsUr : step.tips).map((tip, i) => (
@@ -139,7 +130,6 @@ export function UmrahGuideScreen() {
                     ))}
                   </View>
 
-                  {/* Women's note */}
                   {step.womenNote && (
                     <View style={styles.womenNote}>
                       <Text style={styles.womenNoteIcon}>🌸</Text>
@@ -150,7 +140,6 @@ export function UmrahGuideScreen() {
                     </View>
                   )}
 
-                  {/* Mark done button */}
                   <TouchableOpacity
                     style={[styles.doneBtn, isDone && styles.doneBtnActive]}
                     onPress={() => toggleComplete(step.id)}
@@ -168,7 +157,6 @@ export function UmrahGuideScreen() {
         );
       })}
 
-      {/* Footer note */}
       <View style={styles.footerNote}>
         <Text style={styles.footerText}>
           {isUrdu
@@ -263,7 +251,7 @@ const styles = StyleSheet.create({
   },
   connector: {
     position: 'absolute',
-    // cardHeader padding (16) + stepBubble width/2 (18) - connector width/2 (1) = 33
+    // 33 = cardHeader padding (16) + stepBubble radius (18) - connector half-width (1)
     left: 33,
     top: 54,
     width: 2,

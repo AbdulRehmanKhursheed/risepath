@@ -1,10 +1,6 @@
 import { useMemo } from 'react';
 import { Coordinates, Qibla } from 'adhan';
 
-/**
- * Get Qibla direction in degrees from North (0-360).
- * 0 = North, 90 = East, 180 = South, 270 = West.
- */
 export function useQibla(latitude: number, longitude: number): number {
   return useMemo(() => {
     const coords = new Coordinates(latitude, longitude);

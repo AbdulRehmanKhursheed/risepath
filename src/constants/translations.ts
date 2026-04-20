@@ -7,43 +7,35 @@ export const LANGUAGES: { id: Language; label: string; nativeLabel: string }[] =
 ];
 
 export type Translations = {
-  // Greetings
   greeting: string;
   morningGreeting: string;
   afternoonGreeting: string;
   eveningGreeting: string;
-  // Home
   bestStreak: string;
   dayStreak: string;
   days: string;
   todaysGoals: string;
   tapToComplete: string;
-  // Days of week (Mon-Sun)
   weekDays: string[];
-  // Prayer names
   fajr: string;
   dhuhr: string;
   asr: string;
   maghrib: string;
   isha: string;
-  // Prayer status
   prayed: string;
   missed: string;
   upcoming: string;
-  // Prayer Tracker screen
   prayerTracker: string;
   timesForLocation: string;
   usingDefault: string;
   thisWeek: string;
   loadingPrayerTimes: string;
   tapToMarkReminders: string;
-  // Learn screen
   learn: string;
   kalimasAndDuas: string;
   kalimas: string;
   duas: string;
   tapDuaToExpand: string;
-  // Qibla screen
   qiblaDirection: string;
   qiblaSubtitle: string;
   fromNorth: string;
@@ -54,14 +46,12 @@ export type Translations = {
   turnLeft: string;
   turnRight: string;
   pointPhoneNorth: string;
-  // Mood screen
   moodCoach: string;
   moodSubtitle: string;
   low: string;
   great: string;
   coachThinking: string;
   moodPlaceholder: string;
-  // Stats screen
   stats: string;
   statsSubtitle: string;
   currentStreak: string;
@@ -71,7 +61,6 @@ export type Translations = {
   moodAverage: string;
   soulReport: string;
   soulReportText: string;
-  // Navigation tabs
   homeTab: string;
   prayersTab: string;
   quranTab: string;
@@ -82,7 +71,6 @@ export type Translations = {
   qiblaTab: string;
   moodTab: string;
   statsTab: string;
-  // Prayer Settings modal
   prayerSettings: string;
   chooseCalcMethod: string;
   calculationMethod: string;

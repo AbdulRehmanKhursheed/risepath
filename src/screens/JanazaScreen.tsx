@@ -13,7 +13,7 @@ import type { JanazaStep } from '../constants/janazaGuide';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 
-type CompletedKey = string; // step.id
+type CompletedKey = string;
 
 export function JanazaScreen() {
   const { language } = useLanguage();
@@ -51,7 +51,6 @@ export function JanazaScreen() {
         pointerEvents="none"
       />
 
-      {/* Header */}
       <Text style={styles.title}>{isUrdu ? 'جنازہ گائیڈ' : 'Janaza Guide'}</Text>
       <Text style={styles.subtitle}>
         {isUrdu
@@ -59,7 +58,6 @@ export function JanazaScreen() {
           : 'Complete step-by-step guide with sources'}
       </Text>
 
-      {/* Disclaimer */}
       <View style={styles.disclaimerCard}>
         <Text style={styles.disclaimerIcon}>📚</Text>
         <Text style={styles.disclaimerText}>
@@ -69,7 +67,6 @@ export function JanazaScreen() {
         </Text>
       </View>
 
-      {/* Progress */}
       <View style={styles.progressCard}>
         <View style={styles.progressRow}>
           <Text style={styles.progressLabel}>
@@ -91,7 +88,6 @@ export function JanazaScreen() {
         )}
       </View>
 
-      {/* Phases */}
       {JANAZA_PHASES.map((phase) => {
         const isPhaseDone = phase.steps
           .filter((s) => s.checkable)
@@ -100,7 +96,6 @@ export function JanazaScreen() {
 
         return (
           <View key={phase.id} style={styles.phaseBlock}>
-            {/* Phase Header */}
             <TouchableOpacity
               style={[styles.phaseHeader, isPhaseDone && styles.phaseHeaderDone]}
               onPress={() =>
@@ -126,7 +121,6 @@ export function JanazaScreen() {
               </Text>
             </TouchableOpacity>
 
-            {/* Steps */}
             {expandedPhase === phase.id &&
               phase.steps.map((step) => (
                 <StepCard
@@ -145,7 +139,6 @@ export function JanazaScreen() {
         );
       })}
 
-      {/* Footer */}
       <View style={styles.footerNote}>
         <Text style={styles.footerText}>
           {isUrdu
@@ -157,7 +150,6 @@ export function JanazaScreen() {
   );
 }
 
-/* ── Step Card component ── */
 type StepCardProps = {
   step: JanazaStep;
   isUrdu: boolean;
@@ -189,7 +181,6 @@ function StepCard({
       onPress={onToggleExpand}
       activeOpacity={0.85}
     >
-      {/* Step header row */}
       <View style={styles.stepHeader}>
         <View style={styles.stepLeft}>
           <View style={[styles.stepDot, isDone && styles.stepDotDone, step.important && styles.stepDotImportant]}>
@@ -211,12 +202,10 @@ function StepCard({
         <Text style={styles.chevronSm}>{isExpanded ? '▲' : '▼'}</Text>
       </View>
 
-      {/* Expanded body */}
       {isExpanded && (
         <View style={styles.stepBody}>
           <Text style={styles.description}>{description}</Text>
 
-          {/* Arabic / Dua block */}
           {step.arabic && (
             <View style={styles.arabicCard}>
               <Text style={styles.arabicLabel}>
@@ -234,7 +223,6 @@ function StepCard({
             </View>
           )}
 
-          {/* Source */}
           {step.source && (
             <View style={styles.sourceRow}>
               <Text style={styles.sourceIcon}>📖</Text>
@@ -242,7 +230,6 @@ function StepCard({
             </View>
           )}
 
-          {/* Shia / Jafari note */}
           {step.shiaNote && (
             <View style={styles.shiaNote}>
               <Text style={styles.shiaIcon}>🌙</Text>
@@ -255,7 +242,6 @@ function StepCard({
             </View>
           )}
 
-          {/* Mark done button — only for checkable steps */}
           {step.checkable && (
             <TouchableOpacity
               style={[styles.doneBtn, isDone && styles.doneBtnActive]}

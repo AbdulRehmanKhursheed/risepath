@@ -16,7 +16,7 @@ export type SurahContent = {
   fetchedAt: number;
 };
 
-// Cache for 7 days — Quran content never changes
+// 7 days — Quran content never changes.
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 type ApiEditionData = {
@@ -26,7 +26,6 @@ type ApiEditionData = {
 export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   const cacheKey = `${CACHE_PREFIX}${surahNumber}`;
 
-  // Try cache first
   const cached = await AsyncStorage.getItem(cacheKey);
   if (cached) {
     const parsed: SurahContent = JSON.parse(cached);
@@ -35,7 +34,6 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
     }
   }
 
-  // Fetch Arabic + English + Urdu in one request
   const url = `${BASE}/surah/${surahNumber}/editions/quran-uthmani,en.sahih,ur.maududi`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch surah ${surahNumber}`);
@@ -63,7 +61,6 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
     fetchedAt: Date.now(),
   };
 
-  // Save to cache
   await AsyncStorage.setItem(cacheKey, JSON.stringify(content));
   return content;
 }

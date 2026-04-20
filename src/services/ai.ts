@@ -1,7 +1,3 @@
-// Local Islamic motivation engine — no API key or internet required.
-// Responses drawn from Quran, Hadith, and Islamic wisdom,
-// tailored to the user's current mood level and prayer consistency.
-
 const RESPONSES: Record<number, string[]> = {
   1: [
     `SubhanAllah. Even in your lowest moment, Allah sees you. "No fatigue, anxiety, or sorrow befalls a believer, even the prick of a thorn, except that Allah expiates some of his sins." (Bukhari). Your pain is not wasted. 🤲`,

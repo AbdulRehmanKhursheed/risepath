@@ -1,26 +1,24 @@
 import { Platform } from 'react-native';
 
-// Warm Islamic manuscript palette — parchment, amber-gold, deep green
-// High contrast for elders, warm & inviting for children
 export const theme = {
   colors: {
-    background: '#FAF4E8',        // aged parchment — easy on aging eyes
-    backgroundSoft: '#F2EAD6',    // slightly deeper parchment
-    surface: '#FFFFFF',            // clean white cards — sharp contrast
-    surfaceElevated: '#FFF9F0',    // warm white elevated surface
-    accent: '#C8780A',             // rich amber-gold — warm, not harsh orange
-    accentLight: '#E08A1A',        // lighter gold for highlights
+    background: '#FAF4E8',
+    backgroundSoft: '#F2EAD6',
+    surface: '#FFFFFF',
+    surfaceElevated: '#FFF9F0',
+    accent: '#C8780A',
+    accentLight: '#E08A1A',
     accentGlow: 'rgba(200, 120, 10, 0.3)',
     accentMuted: 'rgba(200, 120, 10, 0.12)',
-    text: '#1C0F06',               // dark warm brown — never cold black
-    textSecondary: '#3C2510',      // medium warm brown
-    textMuted: '#7A5A40',          // muted warm brown — readable for elders
-    success: '#1A7A3C',            // deep Islamic green
+    text: '#1C0F06',
+    textSecondary: '#3C2510',
+    textMuted: '#7A5A40',
+    success: '#1A7A3C',
     successMuted: 'rgba(26, 122, 60, 0.14)',
-    error: '#B83025',              // warm deep red
+    error: '#B83025',
     errorMuted: 'rgba(184, 48, 37, 0.13)',
-    border: '#DCCAAA',             // warm beige border
-    borderSoft: '#EAD9BF',         // softer warm border
+    border: '#DCCAAA',
+    borderSoft: '#EAD9BF',
   },
   spacing: {
     xs: 4,

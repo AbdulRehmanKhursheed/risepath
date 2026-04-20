@@ -74,8 +74,8 @@ export function usePrayerTimes(
     ];
 
     return prayers;
-  // Use day-level key so recalculation only happens when the calendar date changes,
-  // not on every render (which would thrash notification scheduling).
+  // Day-level key: recalc only on calendar-day change, to avoid thrashing
+  // notification scheduling on every render.
   }, [latitude, longitude, date.getFullYear(), date.getMonth(), date.getDate(), calculationMethod, madhab]);
 }
 

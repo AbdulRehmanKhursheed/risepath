@@ -25,12 +25,11 @@ import { useLanguage } from '../contexts/LanguageContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIZE = SCREEN_WIDTH * 0.82;
-const C = SIZE / 2;           // center
-const OUTER_R = C - 4;        // outer ring radius
-const INNER_R = C - 28;       // inner ring (degree labels)
-const FACE_R  = C - 48;       // compass face radius
+const C = SIZE / 2;
+const OUTER_R = C - 4;
+const INNER_R = C - 28;
+const FACE_R  = C - 48;
 
-// Pre-compute degree tick positions
 const TICKS = Array.from({ length: 72 }, (_, i) => i * 5); // every 5°
 const CARDINAL = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
 const CARDINAL_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -40,7 +39,8 @@ function degToRad(deg: number) {
 }
 
 function polarToXY(angleDeg: number, r: number) {
-  const rad = degToRad(angleDeg - 90); // 0° at top
+  // 0° at top, clockwise (compass convention).
+  const rad = degToRad(angleDeg - 90);
   return { x: C + r * Math.cos(rad), y: C + r * Math.sin(rad) };
 }
 
@@ -52,13 +52,11 @@ export function QiblaScreen() {
   const lng = location?.longitude ?? 67.0011;
   const qiblaAngle = useQibla(lat, lng);
 
-  // How many degrees to turn to face Qibla from current heading
   const angleToQibla = heading != null
     ? (qiblaAngle - heading + 360) % 360
     : null;
 
-  // Accept ±5° tolerance and correctly handle the 360/0 wrap-around
-  // (e.g. angleToQibla of 357° means only 3° off — the user IS aligned).
+  // ±5° tolerance — handle the 0/360 wrap (357° = 3° off).
   const isFacingQibla = angleToQibla != null && (angleToQibla < 5 || angleToQibla > 355);
 
   const turnDirection = angleToQibla != null
@@ -68,8 +66,7 @@ export function QiblaScreen() {
     ? (angleToQibla > 180 ? 360 - angleToQibla : angleToQibla)
     : null;
 
-  // The compass RING rotates opposite to device heading
-  // so that North on the ring always points to real North
+  // Ring rotates opposite to device heading so North always points to real North.
   const ringRotation = heading != null ? -heading : 0;
 
   if (loading) {
@@ -95,7 +92,6 @@ export function QiblaScreen() {
       <Text style={styles.title}>{t.qiblaDirection}</Text>
       <Text style={styles.subtitle}>{t.qiblaSubtitle}</Text>
 
-      {/* Compass */}
       <View style={styles.compassContainer}>
         <Svg width={SIZE} height={SIZE}>
           <Defs>
@@ -105,16 +101,13 @@ export function QiblaScreen() {
             </RadialGradient>
           </Defs>
 
-          {/* Outer bezel ring */}
           <Circle cx={C} cy={C} r={OUTER_R} fill={theme.colors.text} />
           <Circle cx={C} cy={C} r={OUTER_R - 3} fill="#2A1A08" />
 
-          {/* Compass face — this rotates with device heading */}
+          {/* Face rotates with device heading. */}
           <G transform={`rotate(${ringRotation} ${C} ${C})`}>
-            {/* Face background */}
             <Circle cx={C} cy={C} r={INNER_R} fill="url(#faceBg)" />
 
-            {/* Degree ticks */}
             {TICKS.map((deg) => {
               const isMajor = deg % 45 === 0;
               const isMid   = deg % 10 === 0;
@@ -133,7 +126,6 @@ export function QiblaScreen() {
               );
             })}
 
-            {/* Cardinal + intercardinal labels */}
             {CARDINAL.map((label, i) => {
               const angle = CARDINAL_ANGLES[i];
               const isNorth = label === 'N';
@@ -154,7 +146,6 @@ export function QiblaScreen() {
               );
             })}
 
-            {/* Degree numbers at 30° intervals */}
             {[30, 60, 120, 150, 210, 240, 300, 330].map((deg) => {
               const pos = polarToXY(deg, INNER_R - 22);
               return (
@@ -172,13 +163,11 @@ export function QiblaScreen() {
             })}
           </G>
 
-          {/* Center pivot dot */}
           <Circle cx={C} cy={C} r={8} fill={theme.colors.accent} />
           <Circle cx={C} cy={C} r={4} fill="#fff" />
 
-          {/* Qibla indicator — fixed, always points to Qibla bearing from North */}
+          {/* Qibla arrow: fixed bearing from North. */}
           <G transform={`rotate(${qiblaAngle + ringRotation} ${C} ${C})`}>
-            {/* Kaaba emoji positioned at tip of Qibla arrow */}
             <SvgText
               x={C}
               y={C - FACE_R + 4}
@@ -187,7 +176,6 @@ export function QiblaScreen() {
             >
               🕋
             </SvgText>
-            {/* Qibla arrow shaft */}
             <Line
               x1={C} y1={C - 18}
               x2={C} y2={C - FACE_R + 36}
@@ -196,7 +184,6 @@ export function QiblaScreen() {
               strokeLinecap="round"
               opacity={0.9}
             />
-            {/* Arrowhead */}
             <Path
               d={`M ${C} ${C - FACE_R + 36} L ${C - 7} ${C - FACE_R + 50} L ${C + 7} ${C - FACE_R + 50} Z`}
               fill={theme.colors.success}
@@ -204,13 +191,11 @@ export function QiblaScreen() {
           </G>
         </Svg>
 
-        {/* Qibla facing indicator ring — glows green when aligned */}
         {isFacingQibla && (
           <View style={styles.alignedRing} />
         )}
       </View>
 
-      {/* Status card */}
       {isFacingQibla ? (
         <View style={[styles.statusCard, styles.statusCardAligned]}>
           <Text style={styles.statusEmoji}>🕋</Text>
