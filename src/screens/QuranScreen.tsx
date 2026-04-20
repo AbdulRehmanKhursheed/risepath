@@ -9,14 +9,16 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SURAH_LIST, SurahMeta } from '../constants/surahList';
-import { fetchSurah, SurahContent } from '../services/quran';
+import { fetchSurah, SurahContent, Ayah } from '../services/quran';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
+import { useAudioPlayer, RECITERS } from '../hooks/useAudioPlayer';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
 
@@ -24,6 +26,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const isUrdu = language === 'ur';
+  const isArabic = language === 'ar';
 
   const [search, setSearch] = useState('');
   const [selectedSurah, setSelectedSurah] = useState<SurahMeta | null>(
@@ -33,8 +36,22 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [translationMode, setTranslationMode] = useState<TranslationMode>('urdu');
+  const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
+
+  const {
+    currentIndex: playingIndex,
+    pbStatus,
+    currentReciter,
+    playAtIndex,
+    togglePlayPause,
+    nextAyah,
+    prevAyah,
+    stop,
+    changeReciter,
+  } = useAudioPlayer(selectedSurah?.number ?? null, surahContent?.ayahs ?? []);
 
   const openSurah = useCallback(async (surah: SurahMeta) => {
+    await stop();
     setSelectedSurah(surah);
     setSurahContent(null);
     setError(null);
@@ -47,10 +64,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     } finally {
       setLoading(false);
     }
-  }, [isUrdu]);
+  }, [isUrdu, stop]);
 
-  // When mounted via deep-link (initialSurah prop), the surah meta is set
-  // directly in useState but the fetch hasn't been triggered yet — do it now.
   useEffect(() => {
     if (initialSurah) {
       const surah = SURAH_LIST.find((s) => s.number === initialSurah);
@@ -70,6 +85,9 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     );
   });
 
+  const isPlayerActive = playingIndex !== null;
+  const playLabel = isUrdu ? 'ص' : isArabic ? 'قراءة' : 'Play';
+
   /* ── Surah Reader View ── */
   if (selectedSurah) {
     return (
@@ -79,9 +97,13 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           style={styles.heroGradient}
           pointerEvents="none"
         />
+
         {/* Back + header */}
         <View style={styles.readerHeader}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedSurah(null); setSurahContent(null); }}>
+          <TouchableOpacity
+            style={styles.backBtn}
+            onPress={async () => { await stop(); setSelectedSurah(null); setSurahContent(null); }}
+          >
             <Text style={styles.backBtnText}>← {isUrdu ? 'فہرست' : 'List'}</Text>
           </TouchableOpacity>
           <View style={styles.readerTitleWrap}>
@@ -127,39 +149,152 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         )}
 
         {surahContent && (
-          <ScrollView
-            style={styles.ayahList}
-            contentContainerStyle={styles.ayahListContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Bismillah (except Surah 9) */}
-            {selectedSurah.number !== 9 && (
-              <Text style={[styles.bismillah, { fontSize: fs(22) }]}>
-                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-              </Text>
-            )}
+          <View style={{ flex: 1 }}>
+            <ScrollView
+              style={styles.ayahList}
+              contentContainerStyle={[
+                styles.ayahListContent,
+                { paddingBottom: isPlayerActive ? 112 : theme.spacing.xxxl },
+              ]}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Bismillah (except Surah 9) */}
+              {selectedSurah.number !== 9 && (
+                <Text style={[styles.bismillah, { fontSize: fs(22) }]}>
+                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                </Text>
+              )}
 
-            {surahContent.ayahs.map((ayah) => (
-              <View key={ayah.numberInSurah} style={styles.ayahCard}>
-                {/* Ayah number badge */}
-                <View style={styles.ayahNumBadge}>
-                  <Text style={styles.ayahNumText}>{ayah.numberInSurah}</Text>
+              {surahContent.ayahs.map((ayah, idx) => {
+                const isPlaying = playingIndex === idx;
+                return (
+                  <View
+                    key={ayah.numberInSurah}
+                    style={[styles.ayahCard, isPlaying && styles.ayahCardPlaying]}
+                  >
+                    {/* Top row: number badge + play button */}
+                    <View style={styles.ayahTopRow}>
+                      <TouchableOpacity
+                        style={[styles.ayahPlayBtn, isPlaying && styles.ayahPlayBtnActive]}
+                        onPress={() => {
+                          if (isPlaying) {
+                            togglePlayPause();
+                          } else {
+                            playAtIndex(idx);
+                          }
+                        }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Text style={[styles.ayahPlayBtnIcon, isPlaying && styles.ayahPlayBtnIconActive]}>
+                          {isPlaying && pbStatus === 'playing' ? '⏸' : isPlaying && pbStatus === 'loading' ? '…' : '▶'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <View style={styles.ayahNumBadge}>
+                        <Text style={styles.ayahNumText}>{ayah.numberInSurah}</Text>
+                      </View>
+                    </View>
+
+                    {/* Arabic */}
+                    <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
+
+                    {/* Translation(s) */}
+                    {(translationMode === 'urdu' || translationMode === 'both') && (
+                      <Text style={[styles.ayahUrdu, { fontSize: fs(14) }]}>{ayah.urdu}</Text>
+                    )}
+                    {(translationMode === 'english' || translationMode === 'both') && (
+                      <Text style={[styles.ayahEnglish, { fontSize: fs(13) }]}>{ayah.english}</Text>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            {/* Floating audio player bar */}
+            {isPlayerActive && surahContent && (
+              <View style={styles.playerBar}>
+                <View style={styles.playerInfo}>
+                  <Text style={[styles.playerAyahNum, { fontSize: fs(11) }]}>
+                    {isUrdu ? 'آیت' : isArabic ? 'آية' : 'Ayah'}{' '}
+                    {surahContent.ayahs[playingIndex]?.numberInSurah ?? ''}
+                  </Text>
+                  <TouchableOpacity onPress={() => setReciterPickerOpen(true)}>
+                    <Text style={[styles.playerReciterName, { fontSize: fs(12) }]} numberOfLines={1}>
+                      {isUrdu ? currentReciter.nameAr : currentReciter.nameEn}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
-                {/* Arabic */}
-                <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
+                <View style={styles.playerControls}>
+                  <TouchableOpacity style={styles.playerBtn} onPress={prevAyah}>
+                    <Text style={styles.playerBtnIcon}>⏮</Text>
+                  </TouchableOpacity>
 
-                {/* Translation(s) */}
-                {(translationMode === 'urdu' || translationMode === 'both') && (
-                  <Text style={[styles.ayahUrdu, { fontSize: fs(14) }]}>{ayah.urdu}</Text>
-                )}
-                {(translationMode === 'english' || translationMode === 'both') && (
-                  <Text style={[styles.ayahEnglish, { fontSize: fs(13) }]}>{ayah.english}</Text>
-                )}
+                  <TouchableOpacity style={styles.playerPlayPauseBtn} onPress={togglePlayPause}>
+                    {pbStatus === 'loading' ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={styles.playerPlayPauseIcon}>
+                        {pbStatus === 'playing' ? '⏸' : '▶'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.playerBtn} onPress={nextAyah}>
+                    <Text style={styles.playerBtnIcon}>⏭</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity style={styles.playerStopBtn} onPress={stop}>
+                  <Text style={styles.playerStopIcon}>✕</Text>
+                </TouchableOpacity>
               </View>
-            ))}
-          </ScrollView>
+            )}
+          </View>
         )}
+
+        {/* Reciter picker modal */}
+        <Modal
+          visible={reciterPickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setReciterPickerOpen(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <Text style={[styles.modalTitle, { fontSize: fs(17) }]}>
+                {isUrdu ? 'قاری منتخب کریں' : isArabic ? 'اختر القارئ' : 'Choose Reciter'}
+              </Text>
+              {RECITERS.map((r) => {
+                const selected = r.id === currentReciter.id;
+                return (
+                  <TouchableOpacity
+                    key={r.id}
+                    style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
+                    onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); }}
+                    activeOpacity={0.8}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
+                        {isUrdu ? r.nameUr : r.nameEn}
+                      </Text>
+                      <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
+                    </View>
+                    {selected && <Text style={styles.reciterCheck}>✓</Text>}
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setReciterPickerOpen(false)}
+              >
+                <Text style={styles.modalCloseBtnText}>
+                  {isUrdu ? 'بند کریں' : isArabic ? 'إغلاق' : 'Close'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </View>
     );
   }
@@ -177,22 +312,23 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         <View style={styles.browserTitleRow}>
           <View style={styles.browserTitleBlock}>
             <Text style={[styles.browserTitle, { fontSize: fs(28) }]}>
-              {isUrdu ? 'قرآن مجید' : 'Quran'}
+              {isUrdu ? 'قرآن مجید' : isArabic ? 'القرآن الكريم' : 'Quran'}
             </Text>
             <Text style={[styles.browserSubtitle, { fontSize: fs(13) }]}>
               {isUrdu
-                ? '۱۱۴ سورتیں — عربی + اردو + انگریزی ترجمہ'
-                : '114 Surahs · Arabic + Urdu + English translation'}
+                ? '۱۱۴ سورتیں — عربی + اردو + انگریزی + تلاوت'
+                : isArabic
+                ? '١١٤ سورة · عربي + ترجمة + تلاوة'
+                : '114 Surahs · Arabic + Urdu + English + Audio'}
             </Text>
           </View>
           <MenuButton />
         </View>
-        {/* Search */}
         <View style={styles.searchWrap}>
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={[styles.searchInput, { fontSize: fs(14) }]}
-            placeholder={isUrdu ? 'سورہ تلاش کریں...' : 'Search surah...'}
+            placeholder={isUrdu ? 'سورہ تلاش کریں...' : isArabic ? 'ابحث عن سورة...' : 'Search surah...'}
             placeholderTextColor={theme.colors.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -340,9 +476,7 @@ const styles = StyleSheet.create({
     color: theme.colors.success,
     fontFamily: theme.typography.fontBodyBold,
   },
-  surahInfo: {
-    flex: 1,
-  },
+  surahInfo: { flex: 1 },
   surahNameAr: {
     color: theme.colors.text,
     fontFamily: theme.typography.fontBody,
@@ -423,17 +557,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: theme.borderRadius.sm,
   },
-  toggleBtnActive: {
-    backgroundColor: theme.colors.success,
-  },
+  toggleBtnActive: { backgroundColor: theme.colors.success },
   toggleBtnText: {
     fontSize: 13,
     fontFamily: theme.typography.fontBodyMedium,
     color: theme.colors.textMuted,
   },
-  toggleBtnTextActive: {
-    color: '#fff',
-  },
+  toggleBtnTextActive: { color: '#fff' },
   loadingWrap: {
     flex: 1,
     justifyContent: 'center',
@@ -470,9 +600,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 14,
   },
-  ayahList: {
-    flex: 1,
-  },
+  ayahList: { flex: 1 },
   ayahListContent: {
     paddingHorizontal: theme.spacing.xl,
     paddingBottom: theme.spacing.xxxl,
@@ -495,15 +623,41 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
+  ayahCardPlaying: {
+    borderColor: theme.colors.success,
+    backgroundColor: 'rgba(26, 122, 60, 0.04)',
+  },
+  ayahTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ayahPlayBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.successMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ayahPlayBtnActive: {
+    backgroundColor: theme.colors.success,
+  },
+  ayahPlayBtnIcon: {
+    fontSize: 11,
+    color: theme.colors.success,
+  },
+  ayahPlayBtnIconActive: {
+    color: '#fff',
+  },
   ayahNumBadge: {
-    alignSelf: 'flex-end',
     width: 28,
     height: 28,
     borderRadius: 14,
     backgroundColor: theme.colors.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
   },
   ayahNumText: {
     fontSize: 11,
@@ -536,5 +690,153 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: theme.colors.borderSoft,
+  },
+
+  // ── Floating audio player bar ──
+  playerBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 10,
+    backgroundColor: '#1C2E1A',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26,122,60,0.3)',
+    gap: theme.spacing.sm,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 12 },
+      android: { elevation: 12 },
+    }),
+  },
+  playerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  playerAyahNum: {
+    color: 'rgba(255,255,255,0.6)',
+    fontFamily: theme.typography.fontBodyMedium,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  playerReciterName: {
+    color: '#FFFFFF',
+    fontFamily: theme.typography.fontBodyBold,
+  },
+  playerControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+  },
+  playerBtn: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playerBtnIcon: {
+    fontSize: 18,
+    color: 'rgba(255,255,255,0.85)',
+  },
+  playerPlayPauseBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: theme.colors.success,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#1A7A3C', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.5, shadowRadius: 6 },
+      android: { elevation: 4 },
+    }),
+  },
+  playerPlayPauseIcon: {
+    fontSize: 17,
+    color: '#FFFFFF',
+  },
+  playerStopBtn: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  playerStopIcon: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.7)',
+  },
+
+  // ── Reciter picker modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(28,15,6,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalBox: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    padding: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxxl,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: -8 }, shadowOpacity: 0.18, shadowRadius: 20 },
+      android: { elevation: 16 },
+    }),
+  },
+  modalTitle: {
+    fontFamily: theme.typography.fontHeadingBold,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
+  },
+  reciterOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    marginBottom: 8,
+    gap: theme.spacing.sm,
+  },
+  reciterOptionSelected: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.successMuted,
+  },
+  reciterNameEn: {
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  reciterNameSelected: {
+    color: theme.colors.success,
+  },
+  reciterNameAr: {
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+  reciterCheck: {
+    fontSize: 20,
+    color: theme.colors.success,
+    fontWeight: '700',
+  },
+  modalCloseBtn: {
+    marginTop: theme.spacing.md,
+    backgroundColor: theme.colors.success,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  modalCloseBtnText: {
+    color: '#fff',
+    fontFamily: theme.typography.fontBodyBold,
+    fontSize: 15,
   },
 });
