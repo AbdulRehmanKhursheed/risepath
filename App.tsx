@@ -20,11 +20,9 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
 import { prefetchAllSurahs } from './src/services/quran';
-import { initSentry, captureError, wrap } from './src/services/sentry';
+import { captureError, wrap } from './src/services/sentry';
 import { requestAdsConsent } from './src/services/consent';
 import { trackAppOpen, maybePromptReview } from './src/services/review';
-
-initSentry();
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PrayerTrackerScreen } from './src/screens/PrayerTrackerScreen';
 import { LearnScreen } from './src/screens/LearnScreen';
@@ -45,6 +43,14 @@ import { SidebarProvider } from './src/contexts/SidebarContext';
 import { theme } from './src/constants/theme';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  enableLogs: true,
+  tracesSampleRate: 0.2,
+  sendDefaultPii: false,
+});
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
@@ -313,7 +319,7 @@ function AppInner() {
   );
 }
 
-export default wrap(AppInner);
+export default Sentry.wrap(wrap(AppInner));
 
 const styles = StyleSheet.create({
   root: {
