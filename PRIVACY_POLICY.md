@@ -33,7 +33,7 @@ Quran text is fetched from the public, open-source API at [alquran.cloud](https:
 ## Data We Do NOT Collect
 
 - We do **not** collect your name, email, phone number, or any account information
-- We do **not** use analytics or crash-reporting SDKs
+- We do **not** use behavioral analytics or ad-tracking SDKs
 - We do **not** share personal data with advertisers
 - We do **not** have servers that store your data
 - We do **not** track you across apps or websites
@@ -49,6 +49,18 @@ Noor displays banner advertisements on the Home screen and Stats screen using **
 - Sacred screens — Quran reader, Prayer Tracker, Learn (duas & kalimas), Qibla direction, and the Umrah Guide — contain **zero advertisements** by design.
 - Google may collect advertising identifiers (GAID/IDFA) and usage data to serve personalised ads. See [Google's Privacy Policy](https://policies.google.com/privacy) for details.
 - To opt out of personalised ads, users can reset their advertising ID in their device settings.
+
+## Crash Reporting
+
+Noor uses **Sentry** to collect anonymous crash reports when the app unexpectedly closes. This helps us fix bugs quickly. Sentry receives:
+
+- The error message and stack trace (code location of the crash)
+- Device type, OS version, and app version
+- No personal data, no location, no prayer records, no user identifiers
+
+Sentry's privacy policy: [sentry.io/privacy](https://sentry.io/privacy/)
+
+---
 
 ## Notifications
 
