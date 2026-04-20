@@ -218,7 +218,7 @@ export function SacredJourneyScreen() {
               <Text style={[styles.regionLabel, { fontSize: fs(10) }]}>
                 {isUrdu ? 'دن کی بنیاد' : isArabic ? 'المنطقة' : 'Dates based on'}
               </Text>
-              <Text style={[styles.regionValue, { fontSize: fs(13) }]} numberOfLines={1}>
+              <Text style={[styles.regionValue, { fontSize: fs(13) }]} numberOfLines={1} ellipsizeMode="tail">
                 {regionLabel(region)}
               </Text>
             </View>
@@ -329,7 +329,7 @@ export function SacredJourneyScreen() {
                       <Text style={[styles.regionOptionLabel, { fontSize: fs(15) }, selected && styles.regionOptionLabelSelected]}>
                         {isUrdu ? r.labelUr : isArabic ? r.labelAr : r.labelEn}
                       </Text>
-                      <Text style={[styles.regionOptionSub, { fontSize: fs(11) }]} numberOfLines={1}>
+                      <Text style={[styles.regionOptionSub, { fontSize: fs(11) }]} numberOfLines={1} ellipsizeMode="tail">
                         {r.sample}
                       </Text>
                     </View>
@@ -492,7 +492,7 @@ function TimelineItem({
       </View>
       <View style={styles.timelineBody}>
         <View style={styles.timelineHeader}>
-          <Text style={[styles.timelineName, { fontSize: fs(15) }]} numberOfLines={1}>
+          <Text style={[styles.timelineName, { fontSize: fs(15) }]} numberOfLines={1} ellipsizeMode="tail">
             {eventName}
           </Text>
           <TouchableOpacity

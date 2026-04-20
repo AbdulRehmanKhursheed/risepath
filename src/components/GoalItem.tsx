@@ -18,7 +18,7 @@ export function GoalItem({ text, completed, onToggle }: Props) {
       <View style={[styles.checkbox, completed && styles.checkboxCompleted]}>
         {completed && <Text style={styles.check}>✓</Text>}
       </View>
-      <Text style={[styles.text, completed && styles.textCompleted]} numberOfLines={2}>
+      <Text style={[styles.text, completed && styles.textCompleted]} numberOfLines={2} ellipsizeMode="tail">
         {text}
       </Text>
     </TouchableOpacity>

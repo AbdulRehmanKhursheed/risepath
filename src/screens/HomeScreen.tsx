@@ -78,7 +78,7 @@ export function HomeScreen() {
 
       <View style={styles.topRow}>
         <View style={styles.greetingBlock}>
-          <Text style={[styles.greeting, { fontSize: fs(32) }]}>{t.greeting}</Text>
+          <Text style={[styles.greeting, { fontSize: fs(26) }]} numberOfLines={1} adjustsFontSizeToFit>{t.greeting}</Text>
           <Text style={[styles.hijriBadge, { fontSize: fs(12) }]}>{hijri}</Text>
           <Text style={[styles.subGreeting, { fontSize: fs(15) }]}>{getSubGreeting(t)}</Text>
         </View>
@@ -86,7 +86,7 @@ export function HomeScreen() {
       </View>
 
       <View style={styles.streakSection}>
-        <StreakRing current={streak} target={7} size={140} />
+        <StreakRing current={streak} target={7} size={140} label={t.dayStreak} />
         <View style={styles.longestBadge}>
           <Text style={styles.longestText}>
             {t.bestStreak}: {longest} {t.days}

@@ -1,22 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet, Platform, NativeModules } from 'react-native';
 import { theme } from '../constants/theme';
 
-// Lazy-require keeps Expo Go builds from crashing when the native module is absent.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAd: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAdSize: any = null;
-let adsAvailable = false;
 
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const m = require('react-native-google-mobile-ads');
-  BannerAd = m.BannerAd;
-  BannerAdSize = m.BannerAdSize;
-  adsAvailable = true;
-} catch {
-  adsAvailable = false;
+// TurboModules (RN 0.71+) throw before JS try/catch can intercept if the native
+// module isn't registered. Guard with NativeModules presence check first.
+const adsAvailable = !!NativeModules.RNGoogleMobileAdsModule;
+
+if (adsAvailable) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const m = require('react-native-google-mobile-ads');
+    BannerAd = m.BannerAd;
+    BannerAdSize = m.BannerAdSize;
+  } catch {
+    // no-op
+  }
 }
 
 type Props = {

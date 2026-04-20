@@ -21,6 +21,7 @@ import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
+import * as Clipboard from 'expo-clipboard';
 import { PLAY_STORE_URL } from '../constants/appLinks';
 
 const SIDEBAR_WIDTH = 290;
@@ -151,6 +152,20 @@ export function Sidebar() {
     }
   };
 
+  const EASYPAISA_NUMBER = '03045919454';
+
+  const onEasypaisa = async () => {
+    await Clipboard.setStringAsync(EASYPAISA_NUMBER);
+    Alert.alert(
+      isUrdu ? 'نمبر کاپی ہو گیا' : isArabic ? 'تم النسخ' : 'Copied!',
+      isUrdu
+        ? `EasyPaisa نمبر کاپی ہو گیا:\n${EASYPAISA_NUMBER}`
+        : isArabic
+        ? `تم نسخ رقم EasyPaisa:\n${EASYPAISA_NUMBER}`
+        : `EasyPaisa number copied:\n${EASYPAISA_NUMBER}`,
+    );
+  };
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <Modal
@@ -256,6 +271,16 @@ export function Sidebar() {
         >
           <Text style={styles.aboutBtnText}>
             {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : 'ℹ  About & Content Disclaimer'}
+          </Text>
+        </TouchableOpacity>
+
+        <Text style={[styles.sectionLabel, { fontSize: fs(11), marginTop: theme.spacing.sm }]}>
+          {isUrdu ? 'سپورٹ / عطیہ' : isArabic ? 'الدعم / التبرعات' : 'SUPPORT / DONATIONS'}
+        </Text>
+        <TouchableOpacity style={styles.sadaqahBtn} onPress={onEasypaisa} activeOpacity={0.85}>
+          <Text style={styles.sadaqahBtnText}>📲 EasyPaisa — Tap to copy number</Text>
+          <Text style={styles.sadaqahBtnSub}>
+            {isUrdu ? '03045919454 — نمبر کاپی کریں' : isArabic ? '03045919454 — انسخ الرقم' : '03045919454'}
           </Text>
         </TouchableOpacity>
 
@@ -474,6 +499,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: theme.typography.fontBodyMedium,
     color: theme.colors.textMuted,
+  },
+  sadaqahBtn: {
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    paddingVertical: 11,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.accentMuted,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1.5,
+    borderColor: theme.colors.accent,
+    alignItems: 'center',
+  },
+  sadaqahBtnText: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.accent,
+  },
+  sadaqahBtnSub: {
+    fontSize: 10,
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 2,
   },
   growthRow: {
     flexDirection: 'row',

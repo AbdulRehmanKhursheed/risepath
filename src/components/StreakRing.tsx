@@ -7,9 +7,10 @@ type Props = {
   current: number;
   target?: number;
   size?: number;
+  label?: string;
 };
 
-export function StreakRing({ current, target = 7, size = 140 }: Props) {
+export function StreakRing({ current, target = 7, size = 140, label = 'day streak' }: Props) {
   const progress = Math.min(current / target, 1);
   const strokeWidth = size * 0.1;
   const radius = (size - strokeWidth) / 2;
@@ -18,7 +19,6 @@ export function StreakRing({ current, target = 7, size = 140 }: Props) {
 
   return (
     <View style={[styles.container, { width: size, height: size }]}>
-      <View style={[styles.glowRing, { width: size + 24, height: size + 24, borderRadius: (size + 24) / 2 }]} />
       <Svg width={size} height={size} style={styles.svg}>
         <Defs>
           <LinearGradient id="streakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -34,22 +34,24 @@ export function StreakRing({ current, target = 7, size = 140 }: Props) {
           strokeWidth={strokeWidth}
           fill="none"
         />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="url(#streakGradient)"
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
+        {progress > 0 && (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            stroke="url(#streakGradient)"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        )}
       </Svg>
       <View style={styles.center}>
         <Text style={[styles.number, { fontSize: size * 0.32 }]}>{current}</Text>
-        <Text style={styles.label}>day streak</Text>
+        <Text style={styles.label}>{label}</Text>
       </View>
     </View>
   );
@@ -59,11 +61,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  glowRing: {
-    position: 'absolute',
-    backgroundColor: theme.colors.accentGlow,
-    opacity: 0.15,
   },
   svg: {
     position: 'absolute',

@@ -91,7 +91,7 @@ export function NextEventCard() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.label, { fontSize: fs(10) }]}>{label}</Text>
-          <Text style={[styles.title, { fontSize: fs(16) }]} numberOfLines={1}>
+          <Text style={[styles.title, { fontSize: fs(16) }]} numberOfLines={1} ellipsizeMode="tail">
             {name}
           </Text>
           <Text style={[styles.countdown, { fontSize: fs(13) }]}>{countdownTxt}</Text>
