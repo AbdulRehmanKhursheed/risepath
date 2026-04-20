@@ -18,12 +18,14 @@ import { storage, PrayerRecord } from '../services/storage';
 import {
   requestNotificationPermissions,
   schedulePrayerNotifications,
+  scheduleSacredCountdownNotifications,
   setupNotificationChannel,
 } from '../services/notifications';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { MenuButton } from '../components/MenuButton';
 import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
+import { detectRegionFromCoords } from '../constants/islamicCalendar';
 
 function getDateString(d: Date): string {
   return d.toISOString().split('T')[0];
@@ -43,7 +45,7 @@ function getWeekDates(): Date[] {
 }
 
 export function PrayerTrackerScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { location, loading: locationLoading } = useLocation();
   const [prayers, setPrayers] = useState<Record<string, PrayerRecord>>({});
   const [loading, setLoading] = useState(true);
@@ -116,10 +118,35 @@ export function PrayerTrackerScreen() {
         await schedulePrayerNotifications(
           prayerTimes.map((p) => ({ name: p.name, time: p.time }))
         );
+
+        // Sacred Countdown — region-aware, sect-aware, with per-event mute.
+        const [fiqh, savedRegion, prefs, loc] = await Promise.all([
+          storage.getFiqhSchool(),
+          storage.getCalendarRegion(),
+          storage.getSacredCountdownPrefs(),
+          storage.getLocation(),
+        ]);
+        const region =
+          savedRegion ??
+          (loc ? detectRegionFromCoords(loc.latitude, loc.longitude) : 'global');
+        if (!savedRegion) await storage.setCalendarRegion(region);
+        if (prefs.enabled) {
+          await scheduleSacredCountdownNotifications(
+            fiqh,
+            region,
+            prefs.mutedEventIds,
+            language
+          );
+        }
+        await storage.setSacredCountdownPrefs({
+          ...prefs,
+          lastScheduledAt: todayKey,
+        });
+
         lastScheduledDate.current = todayKey;
       }
     })();
-  }, [prayerTimes, today]);
+  }, [prayerTimes, today, language]);
 
   const getStatus = (key: PrayerName, prayerTime: Date): 'prayed' | 'missed' | 'upcoming' => {
     if (todayRecord[key]) return 'prayed';

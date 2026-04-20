@@ -6,6 +6,7 @@ import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
 import { AdBanner } from '../components/AdBanner';
 import { HadithOfDay } from '../components/HadithOfDay';
+import { NextEventCard } from '../components/NextEventCard';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
@@ -92,6 +93,8 @@ export function HomeScreen() {
           </Text>
         </View>
       </View>
+
+      <NextEventCard />
 
       <TouchableOpacity
         style={styles.tasbihShortcut}

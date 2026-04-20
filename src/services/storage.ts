@@ -8,6 +8,8 @@ const KEYS = {
   LOCATION: 'location',
   PRAYER_SETTINGS: 'prayerSettings',
   FIQH_SCHOOL: 'fiqhSchool',
+  CALENDAR_REGION: 'calendarRegion',
+  SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
 } as const;
 
 export type StreakData = {
@@ -46,6 +48,17 @@ export type PrayerSettings = {
   calculationMethod: string;
   madhab: string;
   fiqhSchool?: 'sunni' | 'shia';
+};
+
+import type { CalendarRegion } from '../constants/islamicCalendar';
+
+export type SacredCountdownPrefs = {
+  // Per-event mute list. Empty = all events enabled.
+  mutedEventIds: string[];
+  // Date-string of the last time notifications were scheduled, YYYY-MM-DD.
+  lastScheduledAt: string;
+  // Master toggle — if false, no Sacred Countdown notifications fire.
+  enabled: boolean;
 };
 
 export const storage = {
@@ -110,5 +123,24 @@ export const storage = {
 
   async setFiqhSchool(school: 'sunni' | 'shia'): Promise<void> {
     await AsyncStorage.setItem(KEYS.FIQH_SCHOOL, school);
+  },
+
+  async getCalendarRegion(): Promise<CalendarRegion | null> {
+    const raw = await AsyncStorage.getItem(KEYS.CALENDAR_REGION);
+    return (raw as CalendarRegion) ?? null;
+  },
+
+  async setCalendarRegion(region: CalendarRegion): Promise<void> {
+    await AsyncStorage.setItem(KEYS.CALENDAR_REGION, region);
+  },
+
+  async getSacredCountdownPrefs(): Promise<SacredCountdownPrefs> {
+    const raw = await AsyncStorage.getItem(KEYS.SACRED_COUNTDOWN_PREFS);
+    if (!raw) return { mutedEventIds: [], lastScheduledAt: '', enabled: true };
+    return JSON.parse(raw);
+  },
+
+  async setSacredCountdownPrefs(prefs: SacredCountdownPrefs): Promise<void> {
+    await AsyncStorage.setItem(KEYS.SACRED_COUNTDOWN_PREFS, JSON.stringify(prefs));
   },
 };

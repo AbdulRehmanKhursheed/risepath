@@ -30,6 +30,7 @@ import { HajjGuideScreen } from './src/screens/HajjGuideScreen';
 import { JanazaScreen } from './src/screens/JanazaScreen';
 import { EidScreen } from './src/screens/EidScreen';
 import { TasbihScreen } from './src/screens/TasbihScreen';
+import { SacredJourneyScreen } from './src/screens/SacredJourneyScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { QuranScreen } from './src/screens/QuranScreen';
 import { Sidebar } from './src/components/Sidebar';
@@ -227,6 +228,11 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             name="Tasbih"
             component={TasbihScreen}
             options={{ headerShown: true, title: 'Tasbih Counter', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="SacredJourney"
+            component={SacredJourneyScreen}
+            options={{ headerShown: true, title: 'Sacred Journey', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
         </Stack.Navigator>
       </NavigationContainer>

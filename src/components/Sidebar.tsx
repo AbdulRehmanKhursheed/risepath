@@ -34,9 +34,10 @@ type NavItem = {
 };
 
 const NAV_ITEMS: NavItem[] = [
+  { name: 'SacredJourney', icon: '🌙', labelEn: 'Sacred Journey',    labelUr: 'مقدس سفر',        labelAr: 'الرحلة المقدسة' },
   { name: 'Tasbih', icon: '📿', labelEn: 'Tasbih Counter',   labelUr: 'تسبیح کاؤنٹر',  labelAr: 'عدّاد التسبيح' },
   { name: 'Learn',  icon: '✎', labelEn: 'Kalimas & Duas',   labelUr: 'کلمے اور دعائیں', labelAr: 'الكلمات والأدعية' },
-  { name: 'Eid',    icon: '🌙', labelEn: 'Eid Guide',        labelUr: 'عید گائیڈ',     labelAr: 'دليل العيد' },
+  { name: 'Eid',    icon: '🕌', labelEn: 'Eid Guide',        labelUr: 'عید گائیڈ',     labelAr: 'دليل العيد' },
   { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',       labelUr: 'حج گائیڈ',     labelAr: 'دليل الحج' },
   { name: 'Umrah',  icon: '✪', labelEn: 'Umrah Guide',      labelUr: 'عمرہ گائیڈ',   labelAr: 'دليل العمرة' },
   { name: 'Janaza', icon: '☪', labelEn: 'Janaza Guide',     labelUr: 'جنازہ گائیڈ',   labelAr: 'دليل الجنازة' },
