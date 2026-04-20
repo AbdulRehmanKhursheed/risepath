@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Noor \u2014 Muslim Companion",
+    "name": "Noor — Muslim Companion",
     "slug": "risepath",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.risepath.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -60,7 +62,8 @@
           "androidAppId": "ca-app-pub-6562347670701476~3428152881",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "extra": {
       "eas": {

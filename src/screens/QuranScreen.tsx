@@ -20,6 +20,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { useAudioPlayer, RECITERS, TranslationPlaybackMode } from '../hooks/useAudioPlayer';
+import { prefetchAdjacent } from '../services/quran';
 import { matchesSurah } from '../utils/surahSearch';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
@@ -58,6 +59,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     nextAyah,
     prevAyah,
     stop,
+    retry,
     changeReciter,
   } = useAudioPlayer(
     selectedSurah?.number ?? null,
@@ -75,6 +77,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     try {
       const content = await fetchSurah(surah.number);
       setSurahContent(content);
+      prefetchAdjacent(surah.number);
     } catch {
       setError(isUrdu ? 'لوڈ نہیں ہو سکا۔ انٹرنیٹ چیک کریں۔' : 'Could not load. Check your internet connection.');
     } finally {
@@ -93,18 +96,14 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const filtered = SURAH_LIST.filter((s) => matchesSurah(s, search));
 
   const isPlayerActive = playingIndex !== null;
-  const playLabel = isUrdu ? 'ص' : isArabic ? 'قراءة' : 'Play';
 
   useEffect(() => {
     if (playingIndex === null) return;
     const y = ayahYRef.current[playingIndex];
     if (y === undefined) return;
-    // Offset so the playing card sits below the sticky header.
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
   }, [playingIndex]);
 
-  // Hardware back on the reader view returns to the surah list instead of
-  // exiting the screen entirely — matches standard Android navigation.
   useEffect(() => {
     if (!selectedSurah) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -291,7 +290,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                   </View>
                   <TouchableOpacity onPress={() => setReciterPickerOpen(true)}>
                     <Text style={[styles.playerReciterName, { fontSize: fs(12) }]} numberOfLines={1}>
-                      {isUrdu ? currentReciter.nameAr : currentReciter.nameEn}
+                      {isUrdu ? currentReciter.nameUr : isArabic ? currentReciter.nameAr : currentReciter.nameEn}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -301,12 +300,15 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                     <Text style={styles.playerBtnIcon}>⏮</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity style={styles.playerPlayPauseBtn} onPress={togglePlayPause}>
+                  <TouchableOpacity
+                    style={styles.playerPlayPauseBtn}
+                    onPress={pbStatus === 'error' ? retry : togglePlayPause}
+                  >
                     {pbStatus === 'loading' ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <Text style={styles.playerPlayPauseIcon}>
-                        {pbStatus === 'playing' ? '⏸' : '▶'}
+                        {pbStatus === 'error' ? '↻' : pbStatus === 'playing' ? '⏸' : '▶'}
                       </Text>
                     )}
                   </TouchableOpacity>

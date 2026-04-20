@@ -12,6 +12,7 @@ import {
   Share,
   Alert,
   Linking,
+  BackHandler,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -105,6 +106,16 @@ export function Sidebar() {
       ]).start(() => setMounted(false));
     }
   }, [isOpen]);
+
+  // Hardware back closes the sidebar instead of exiting the app.
+  useEffect(() => {
+    if (!isOpen) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      closeSidebar();
+      return true;
+    });
+    return () => sub.remove();
+  }, [isOpen, closeSidebar]);
 
   if (!mounted) return null;
 

@@ -19,6 +19,12 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
+import { prefetchAllSurahs } from './src/services/quran';
+import { initSentry, captureError, wrap } from './src/services/sentry';
+import { requestAdsConsent } from './src/services/consent';
+import { trackAppOpen, maybePromptReview } from './src/services/review';
+
+initSentry();
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PrayerTrackerScreen } from './src/screens/PrayerTrackerScreen';
 import { LearnScreen } from './src/screens/LearnScreen';
@@ -43,6 +49,9 @@ import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: Error, info: { componentStack?: string }) {
+    captureError(error, { componentStack: info.componentStack });
+  }
   render() {
     if (this.state.hasError) {
       return (
@@ -58,13 +67,15 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 }
 
 SplashScreen.preventAutoHideAsync();
-// Initialise AdMob as early as possible with G-rated content filtering.
-initAds().catch(() => { /* non-fatal — app works without ads */ });
+
+(async () => {
+  await requestAdsConsent();
+  await initAds();
+})().catch(() => {});
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Force light theme — prevents device dark mode overriding tab bar
 const NAV_THEME = {
   ...DefaultTheme,
   colors: {
@@ -95,7 +106,6 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   );
 }
 
-// Quran tab — remounts QuranScreen on deep-link from PrayerRow
 function QuranTab() {
   const { pendingSurah, clearPending } = useQuranNav();
 
@@ -115,7 +125,6 @@ function QuranTab() {
   return <QuranScreen key={mountKey} initialSurah={activeSurah} />;
 }
 
-// The three primary tabs
 function MainTabs() {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
@@ -124,7 +133,6 @@ function MainTabs() {
   const tabBarHeight = 28 + 14 + 4 + tabBarPaddingBottom;
 
   return (
-    // The Sidebar sits INSIDE MainTabs so it overlays the tab bar correctly
     <View style={{ flex: 1 }}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -153,18 +161,15 @@ function MainTabs() {
         <Tab.Screen name="Prayers" component={PrayerTrackerScreen} options={{ tabBarLabel: t.prayersTab }} />
         <Tab.Screen name="Quran"   component={QuranTab}            options={{ tabBarLabel: t.quranTab ?? 'Quran' }} />
       </Tab.Navigator>
-      {/* Sidebar overlay rendered on top of everything inside MainTabs */}
       <Sidebar />
     </View>
   );
 }
 
-// Root stack — MainTabs + secondary screens pushed on top
 function AppStack({ onLayout }: { onLayout: () => void }) {
   const { pendingSurah } = useQuranNav();
   const navRef = useNavigationContainerRef();
 
-  // Deep-link from PrayerRow: navigate to MainTabs → Quran tab
   useEffect(() => {
     if (pendingSurah !== null && navRef.isReady()) {
       navRef.dispatch(
@@ -181,9 +186,7 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
       <NavigationContainer ref={navRef} theme={NAV_THEME}>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
-          {/* Primary — contains bottom tabs + sidebar overlay */}
           <Stack.Screen name="MainTabs" component={MainTabs} />
-          {/* Secondary screens — slide in from right, have back button */}
           <Stack.Screen
             name="Learn"
             component={LearnScreen}
@@ -240,7 +243,7 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
   );
 }
 
-export default function App() {
+function AppInner() {
   const [fontsLoaded] = useFonts({
     Syne_600SemiBold,
     Syne_700Bold,
@@ -260,6 +263,17 @@ export default function App() {
     if (fontsLoaded && onboardingDone !== null) {
       await SplashScreen.hideAsync();
     }
+  }, [fontsLoaded, onboardingDone]);
+
+  useEffect(() => {
+    if (!fontsLoaded || onboardingDone !== true) return;
+    // Delay trickle-prefetch so first-paint network stays clear. Runs once
+    // per app-install and is a no-op when surahs are already cached.
+    const t = setTimeout(() => { prefetchAllSurahs().catch(() => {}); }, 4000);
+    trackAppOpen().then(() => {
+      setTimeout(() => { maybePromptReview().catch(() => {}); }, 20000);
+    });
+    return () => clearTimeout(t);
   }, [fontsLoaded, onboardingDone]);
 
   const completeOnboarding = async () => {
@@ -298,6 +312,8 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+
+export default wrap(AppInner);
 
 const styles = StyleSheet.create({
   root: {

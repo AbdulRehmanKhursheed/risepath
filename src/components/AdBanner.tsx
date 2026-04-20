@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { theme } from '../constants/theme';
 
-// Lazy-load the native BannerAd so the bundle does NOT crash in Expo Go.
-// react-native-google-mobile-ads is a native module — it doesn't exist in Expo Go.
+// Lazy-require keeps Expo Go builds from crashing when the native module is absent.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAd: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -24,8 +23,6 @@ type Props = {
   unitId: string;
 };
 
-// Sacred screens (Quran, Prayer, Qibla, Learn, Umrah, Janaza) intentionally
-// have zero ads — only used on Home and Stats.
 export function AdBanner({ unitId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
