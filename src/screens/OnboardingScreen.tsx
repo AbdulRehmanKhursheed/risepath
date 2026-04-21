@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CALCULATION_METHODS, MADHABS } from '../constants/prayerMethods';
@@ -21,6 +22,8 @@ type Props = {
 type Step = 'language' | 'school' | 'method' | 'done';
 
 export function OnboardingScreen({ onComplete }: Props) {
+  const insets = useSafeAreaInsets();
+  const bottomPad = Math.max(theme.spacing.xl, insets.bottom + theme.spacing.md);
   const { language, setLanguage } = useLanguage();
   const [step, setStep] = useState<Step>('language');
   const [selectedSchool, setSelectedSchool] = useState<FiqhSchool>('sunni');
@@ -87,7 +90,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.fixedBottom}>
+        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('school')}>
             <Text style={styles.nextBtnText}>
               {isUrdu ? 'آگے بڑھیں ←' : 'Continue →'}
@@ -154,7 +157,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.fixedBottom}>
+        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('language')}>
               <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
@@ -177,7 +180,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           pointerEvents="none"
         />
         <ScrollView
-          contentContainerStyle={[styles.scrollContent, { paddingBottom: 110 }]}
+          contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۲ از ۲' : 'Step 2 of 2'}</Text>
@@ -234,7 +237,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           )}
         </ScrollView>
 
-        <View style={styles.fixedBottom}>
+        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('school')}>
               <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
@@ -263,17 +266,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: theme.spacing.xl,
-    paddingBottom: 110, // fixed-bottom button reserves this space
   },
   fixedBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.xl,
     paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.xl,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
@@ -337,7 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#7A5A40', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
@@ -405,7 +402,6 @@ const styles = StyleSheet.create({
   btnRow: {
     flexDirection: 'row',
     gap: theme.spacing.md,
-    marginTop: theme.spacing.xl,
   },
   backBtn: {
     flex: 1,

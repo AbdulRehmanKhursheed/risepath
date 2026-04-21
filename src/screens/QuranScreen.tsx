@@ -13,6 +13,7 @@ import {
   BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SURAH_LIST, SurahMeta } from '../constants/surahList';
 import { fetchSurah, SurahContent, Ayah } from '../services/quran';
 import { theme } from '../constants/theme';
@@ -26,6 +27,7 @@ import { matchesSurah } from '../utils/surahSearch';
 type TranslationMode = 'english' | 'urdu' | 'both';
 
 export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
+  const insets = useSafeAreaInsets();
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const isUrdu = language === 'ur';
@@ -269,7 +271,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </ScrollView>
 
             {isPlayerActive && surahContent && (
-              <View style={styles.playerBar}>
+              <View style={[styles.playerBar, { paddingBottom: Math.max(10, insets.bottom + 10) }]}>
                 <View style={styles.playerInfo}>
                   <View style={styles.playerAyahLine}>
                     <Text style={[styles.playerAyahNum, { fontSize: fs(11) }]}>
