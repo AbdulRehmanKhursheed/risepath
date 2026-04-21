@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CALCULATION_METHODS, MADHABS } from '../constants/prayerMethods';
@@ -22,8 +22,6 @@ type Props = {
 type Step = 'language' | 'school' | 'method' | 'done';
 
 export function OnboardingScreen({ onComplete }: Props) {
-  const insets = useSafeAreaInsets();
-  const bottomPad = Math.max(theme.spacing.xl, insets.bottom + theme.spacing.md);
   const { language, setLanguage } = useLanguage();
   const [step, setStep] = useState<Step>('language');
   const [selectedSchool, setSelectedSchool] = useState<FiqhSchool>('sunni');
@@ -54,7 +52,7 @@ export function OnboardingScreen({ onComplete }: Props) {
 
   if (step === 'language') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView edges={['bottom']} style={styles.container}>
         <LinearGradient
           colors={['rgba(200, 120, 10, 0.12)', 'rgba(26, 122, 60, 0.06)', 'transparent']}
           style={StyleSheet.absoluteFill}
@@ -90,20 +88,20 @@ export function OnboardingScreen({ onComplete }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
+        <View style={styles.fixedBottom}>
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('school')}>
             <Text style={styles.nextBtnText}>
               {isUrdu ? 'آگے بڑھیں ←' : 'Continue →'}
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (step === 'school') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView edges={['bottom']} style={styles.container}>
         <LinearGradient
           colors={['rgba(26, 122, 60, 0.10)', 'rgba(200, 120, 10, 0.06)', 'transparent']}
           style={StyleSheet.absoluteFill}
@@ -157,7 +155,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
+        <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('language')}>
               <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
@@ -167,13 +165,13 @@ export function OnboardingScreen({ onComplete }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (step === 'method') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView edges={['bottom']} style={styles.container}>
         <LinearGradient
           colors={['rgba(200, 120, 10, 0.1)', 'transparent']}
           style={StyleSheet.absoluteFill}
@@ -237,7 +235,7 @@ export function OnboardingScreen({ onComplete }: Props) {
           )}
         </ScrollView>
 
-        <View style={[styles.fixedBottom, { paddingBottom: bottomPad }]}>
+        <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('school')}>
               <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
@@ -249,7 +247,7 @@ export function OnboardingScreen({ onComplete }: Props) {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -271,6 +269,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.background,
     paddingHorizontal: theme.spacing.xl,
     paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.md,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
   },
@@ -334,7 +333,7 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.lg,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.md,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#7A5A40', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 6 },
@@ -343,7 +342,7 @@ const styles = StyleSheet.create({
   },
   langCardActive: {
     borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.accentMuted,
+    backgroundColor: theme.colors.surface,
   },
   langCardIcon: {
     fontSize: 32,
@@ -368,8 +367,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     padding: theme.spacing.lg,
     marginBottom: theme.spacing.sm,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: { shadowColor: '#7A5A40', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 4 },
       android: { elevation: 1 },
@@ -377,7 +376,7 @@ const styles = StyleSheet.create({
   },
   optionCardActive: {
     borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.accentMuted,
+    backgroundColor: theme.colors.surface,
   },
   optionLeft: {
     flex: 1,
@@ -405,12 +404,14 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     flex: 1,
-    padding: theme.spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.xl,
     borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   backBtnText: {
     fontSize: 15,
@@ -418,14 +419,16 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBodyBold,
   },
   nextBtn: {
-    flex: 1,
-    padding: theme.spacing.lg,
+    minHeight: 52,
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.xl,
     borderRadius: theme.borderRadius.md,
     backgroundColor: theme.colors.accent,
     alignItems: 'center',
+    justifyContent: 'center',
     ...Platform.select({
-      ios: { shadowColor: theme.colors.accent, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-      android: { elevation: 4 },
+      ios: { shadowColor: theme.colors.accent, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 4 },
+      android: { elevation: 2 },
     }),
   },
   nextBtnText: {
