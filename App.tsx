@@ -135,7 +135,7 @@ function MainTabs() {
   const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
-  const tabBarPaddingBottom = insets.bottom + 50;
+  const tabBarPaddingBottom = insets.bottom + 25;
   const tabBarHeight = 28 + 14 + 4 + tabBarPaddingBottom;
 
   return (
