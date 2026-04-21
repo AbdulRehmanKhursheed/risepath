@@ -41,12 +41,25 @@ type CountdownParts = {
 };
 
 function computeCountdown(target: Date, now: Date = new Date()): CountdownParts {
-  const diffMs = target.getTime() - now.getTime();
-  if (diffMs <= 0) return { days: 0, hours: 0, minutes: 0, isNow: true };
+  // Normalize both to midnight so "days" counts full calendar days remaining.
+  const t = new Date(target); t.setHours(0, 0, 0, 0);
+  const n = new Date(now);    n.setHours(0, 0, 0, 0);
+  const diffMs = t.getTime() - n.getTime();
+  if (diffMs <= 0) {
+    // Event is today or past — show live hours/minutes using real timestamps.
+    const liveDiff = target.getTime() - now.getTime();
+    if (liveDiff <= 0) return { days: 0, hours: 0, minutes: 0, isNow: true };
+    return {
+      days: 0,
+      hours: Math.floor(liveDiff / (1000 * 60 * 60)),
+      minutes: Math.floor((liveDiff / (1000 * 60)) % 60),
+      isNow: false,
+    };
+  }
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
-  const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
-  return { days, hours, minutes, isNow: false };
+  const hours = Math.floor((target.getTime() - now.getTime()) / (1000 * 60 * 60)) % 24;
+  const minutes = Math.floor((target.getTime() - now.getTime()) / (1000 * 60)) % 60;
+  return { days, hours: Math.max(0, hours), minutes: Math.max(0, minutes), isNow: false };
 }
 
 function eventGradient(type: EventType): [string, string] {
