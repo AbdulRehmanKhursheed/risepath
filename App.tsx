@@ -23,6 +23,13 @@ import { prefetchAllSurahs } from './src/services/quran';
 import { captureError, wrap } from './src/services/sentry';
 import { requestAdsConsent } from './src/services/consent';
 import { trackAppOpen, maybePromptReview } from './src/services/review';
+import {
+  requestNotificationPermissions,
+  setupNotificationChannel,
+  scheduleStreakReminder,
+} from './src/services/notifications';
+import * as Location from 'expo-location';
+import { storage } from './src/services/storage';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PrayerTrackerScreen } from './src/screens/PrayerTrackerScreen';
 import { LearnScreen } from './src/screens/LearnScreen';
@@ -279,6 +286,34 @@ function AppInner() {
     trackAppOpen().then(() => {
       setTimeout(() => { maybePromptReview().catch(() => {}); }, 20000);
     });
+
+    // Bundle first-launch permission prompts (notifications + location) and
+    // schedule a daily streak reminder. Prayer-time reminders are still scheduled
+    // in PrayerTrackerScreen once adhan times for the day are computed.
+    (async () => {
+      try {
+        const notifGranted = await requestNotificationPermissions();
+        if (notifGranted) {
+          await setupNotificationChannel();
+          const savedLang = (await AsyncStorage.getItem('app_language')) as 'en' | 'ur' | 'ar' | null;
+          await scheduleStreakReminder(savedLang ?? 'en');
+        }
+      } catch {}
+
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const result = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          await storage.setLocation({
+            latitude: result.coords.latitude,
+            longitude: result.coords.longitude,
+          });
+        }
+      } catch {}
+    })();
+
     return () => clearTimeout(t);
   }, [fontsLoaded, onboardingDone]);
 

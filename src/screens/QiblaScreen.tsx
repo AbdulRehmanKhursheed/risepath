@@ -22,6 +22,8 @@ import { useQibla, getCardinalDirection } from '../hooks/useQibla';
 import { useCompass } from '../hooks/useCompass';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const SIZE = SCREEN_WIDTH * 0.82;
@@ -227,6 +229,10 @@ export function QiblaScreen() {
       )}
 
       <Text style={styles.footerHint}>{t.holdPhoneFlat}</Text>
+
+      <View style={styles.adWrap}>
+        <AdBanner unitId={AD_UNITS.bannerQibla} />
+      </View>
     </ScrollView>
   );
 }
@@ -352,5 +358,10 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBody,
     textAlign: 'center',
     marginTop: 4,
+  },
+  adWrap: {
+    marginTop: theme.spacing.xl,
+    alignItems: 'center',
+    width: '100%',
   },
 });

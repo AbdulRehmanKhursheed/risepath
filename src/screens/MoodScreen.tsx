@@ -10,6 +10,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MoodButton } from '../components/MoodButton';
 import { ChatBubble } from '../components/ChatBubble';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 import { storage } from '../services/storage';
 import { getLocalMotivation } from '../services/ai';
 import { theme } from '../constants/theme';
@@ -41,7 +43,7 @@ export function MoodScreen() {
     const streak = streakData?.current ?? 0;
 
     const response = getLocalMotivation(streak, mood, missed);
-    setMessages((prev) => [response, ...prev]);
+    setMessages([response]);
 
     const moods = await storage.getMoods();
     moods.unshift({ date: today, mood, aiResponse: response });
@@ -92,6 +94,10 @@ export function MoodScreen() {
           {messages.map((msg, i) => (
             <ChatBubble key={i} message={msg} isUser={false} />
           ))}
+        </View>
+
+        <View style={styles.adWrap}>
+          <AdBanner unitId={AD_UNITS.bannerMood} />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -171,5 +177,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: theme.typography.fontBody,
     lineHeight: 22,
+  },
+  adWrap: {
+    marginTop: theme.spacing.xl,
+    alignItems: 'center',
   },
 });

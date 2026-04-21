@@ -42,6 +42,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [error, setError] = useState<string | null>(null);
   const [translationMode, setTranslationMode] = useState<TranslationMode>('urdu');
   const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
+  const [reciterSearch, setReciterSearch] = useState('');
   const [translationAudioEnabled, setTranslationAudioEnabled] = useState(false);
 
   const translationPlayback: TranslationPlaybackMode = translationAudioEnabled
@@ -157,6 +158,23 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </TouchableOpacity>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={styles.reciterChip}
+          onPress={() => setReciterPickerOpen(true)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.reciterChipIcon}>🎙</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.reciterChipLabel, { fontSize: fs(11) }]}>
+              {isUrdu ? 'قاری' : isArabic ? 'القارئ' : 'RECITER'}
+            </Text>
+            <Text style={[styles.reciterChipName, { fontSize: fs(14) }]} numberOfLines={1}>
+              {isUrdu ? currentReciter.nameUr : isArabic ? currentReciter.nameAr : currentReciter.nameEn}
+            </Text>
+          </View>
+          <Text style={styles.reciterChipArrow}>›</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.transAudioRow, translationAudioEnabled && styles.transAudioRowOn]}
@@ -332,35 +350,66 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           visible={reciterPickerOpen}
           transparent
           animationType="fade"
-          onRequestClose={() => setReciterPickerOpen(false)}
+          onRequestClose={() => { setReciterPickerOpen(false); setReciterSearch(''); }}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
               <Text style={[styles.modalTitle, { fontSize: fs(17) }]}>
                 {isUrdu ? 'قاری منتخب کریں' : isArabic ? 'اختر القارئ' : 'Choose Reciter'}
               </Text>
-              {RECITERS.map((r) => {
-                const selected = r.id === currentReciter.id;
-                return (
-                  <TouchableOpacity
-                    key={r.id}
-                    style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
-                    onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); }}
-                    activeOpacity={0.8}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
-                        {isUrdu ? r.nameUr : r.nameEn}
+
+              <TextInput
+                style={styles.reciterSearchInput}
+                value={reciterSearch}
+                onChangeText={setReciterSearch}
+                placeholder={isUrdu ? 'قاری تلاش کریں...' : isArabic ? 'ابحث عن قارئ...' : 'Search reciters...'}
+                placeholderTextColor={theme.colors.textMuted}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+
+              <ScrollView style={styles.reciterList} keyboardShouldPersistTaps="handled">
+                {(() => {
+                  const q = reciterSearch.trim().toLowerCase();
+                  const list = q
+                    ? RECITERS.filter((r) =>
+                        r.nameEn.toLowerCase().includes(q) ||
+                        r.nameAr.includes(q) ||
+                        r.nameUr.includes(q)
+                      )
+                    : RECITERS;
+                  if (list.length === 0) {
+                    return (
+                      <Text style={styles.reciterEmpty}>
+                        {isUrdu ? 'کوئی قاری نہیں ملا' : isArabic ? 'لم يتم العثور على قارئ' : 'No reciters found'}
                       </Text>
-                      <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
-                    </View>
-                    {selected && <Text style={styles.reciterCheck}>✓</Text>}
-                  </TouchableOpacity>
-                );
-              })}
+                    );
+                  }
+                  return list.map((r) => {
+                    const selected = r.id === currentReciter.id;
+                    return (
+                      <TouchableOpacity
+                        key={r.id}
+                        style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
+                        onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
+                            {isUrdu ? r.nameUr : r.nameEn}
+                          </Text>
+                          <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
+                        </View>
+                        {selected && <Text style={styles.reciterCheck}>✓</Text>}
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
+              </ScrollView>
+
               <TouchableOpacity
                 style={styles.modalCloseBtn}
-                onPress={() => setReciterPickerOpen(false)}
+                onPress={() => { setReciterPickerOpen(false); setReciterSearch(''); }}
               >
                 <Text style={styles.modalCloseBtnText}>
                   {isUrdu ? 'بند کریں' : isArabic ? 'إغلاق' : 'Close'}
@@ -932,6 +981,60 @@ const styles = StyleSheet.create({
   },
   toggleKnobOn: {
     transform: [{ translateX: 16 }],
+  },
+  reciterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    marginHorizontal: theme.spacing.xl,
+    marginTop: theme.spacing.sm,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  reciterChipIcon: {
+    fontSize: 20,
+  },
+  reciterChipLabel: {
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.textMuted,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+  },
+  reciterChipName: {
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+    marginTop: 1,
+  },
+  reciterChipArrow: {
+    fontSize: 22,
+    color: theme.colors.textMuted,
+    lineHeight: 24,
+  },
+  reciterSearchInput: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    fontSize: 14,
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.surface,
+    marginBottom: theme.spacing.md,
+  },
+  reciterList: {
+    maxHeight: 360,
+  },
+  reciterEmpty: {
+    textAlign: 'center',
+    paddingVertical: theme.spacing.xl,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    fontSize: 14,
   },
   reciterOption: {
     flexDirection: 'row',

@@ -36,6 +36,8 @@ function resolveBanner(envValue: string | undefined): string {
 export const AD_UNITS = {
   bannerHome: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_HOME),
   bannerStats: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_STATS),
+  bannerMood: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_MOOD),
+  bannerQibla: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_QIBLA),
 };
 
 let initialized = false;

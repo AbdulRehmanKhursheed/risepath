@@ -80,7 +80,57 @@ export async function setupNotificationChannel(): Promise<void> {
       importance: Notifications.AndroidImportance.DEFAULT,
       sound: 'default',
     });
+    await Notifications.setNotificationChannelAsync('streak-reminders', {
+      name: 'Daily Streak',
+      importance: Notifications.AndroidImportance.DEFAULT,
+      sound: 'default',
+    });
   }
+}
+
+const STREAK_ID_PREFIX = 'streak:';
+const STREAK_HOUR = 21;
+const STREAK_MINUTE = 0;
+
+const STREAK_COPY: Record<Language, { title: string; body: string }> = {
+  en: {
+    title: '🔥 Keep your streak alive',
+    body: 'Don’t let today pass. Mark your prayers and continue your journey with Noor.',
+  },
+  ur: {
+    title: '🔥 اپنا سلسلہ برقرار رکھیں',
+    body: 'آج کا دن ضائع نہ ہونے دیں۔ اپنی نمازیں مارک کریں اور نور کے ساتھ سفر جاری رکھیں۔',
+  },
+  ar: {
+    title: '🔥 حافظ على تتابعك',
+    body: 'لا تدع اليوم يمر. سجّل صلواتك وواصل رحلتك مع Noor.',
+  },
+};
+
+export async function scheduleStreakReminder(language: Language = 'en'): Promise<void> {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of existing) {
+    if (n.identifier.startsWith(STREAK_ID_PREFIX)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    }
+  }
+
+  const copy = STREAK_COPY[language] ?? STREAK_COPY.en;
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: `${STREAK_ID_PREFIX}daily`,
+    content: {
+      title: copy.title,
+      body: copy.body,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
+      hour: STREAK_HOUR,
+      minute: STREAK_MINUTE,
+      channelId: 'streak-reminders',
+    },
+  });
 }
 
 // Sacred Countdown notifications use a stable `sc:` prefix so prayer and

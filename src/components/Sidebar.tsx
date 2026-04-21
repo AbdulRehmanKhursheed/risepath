@@ -13,6 +13,7 @@ import {
   Alert,
   Linking,
   BackHandler,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +25,7 @@ import { theme } from '../constants/theme';
 import * as Clipboard from 'expo-clipboard';
 import { PLAY_STORE_URL } from '../constants/appLinks';
 
-const SIDEBAR_WIDTH = 290;
+const SIDEBAR_WIDTH = 300;
 const ANIM_DURATION = 260;
 
 type NavItem = {
@@ -35,17 +36,55 @@ type NavItem = {
   labelAr: string;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { name: 'SacredJourney', icon: '🌙', labelEn: 'Sacred Journey',    labelUr: 'مقدس سفر',        labelAr: 'الرحلة المقدسة' },
-  { name: 'Tasbih', icon: '📿', labelEn: 'Tasbih Counter',   labelUr: 'تسبیح کاؤنٹر',  labelAr: 'عدّاد التسبيح' },
-  { name: 'Learn',  icon: '✎', labelEn: 'Kalimas & Duas',   labelUr: 'کلمے اور دعائیں', labelAr: 'الكلمات والأدعية' },
-  { name: 'Eid',    icon: '🕌', labelEn: 'Eid Guide',        labelUr: 'عید گائیڈ',     labelAr: 'دليل العيد' },
-  { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',       labelUr: 'حج گائیڈ',     labelAr: 'دليل الحج' },
-  { name: 'Umrah',  icon: '✪', labelEn: 'Umrah Guide',      labelUr: 'عمرہ گائیڈ',   labelAr: 'دليل العمرة' },
-  { name: 'Janaza', icon: '☪', labelEn: 'Janaza Guide',     labelUr: 'جنازہ گائیڈ',   labelAr: 'دليل الجنازة' },
-  { name: 'Qibla',  icon: '◎', labelEn: 'Qibla Direction',  labelUr: 'قبلہ سمت',     labelAr: 'اتجاه القبلة' },
-  { name: 'Mood',   icon: '☺', labelEn: 'Mood Coach',       labelUr: 'موڈ کوچ',      labelAr: 'مرشد المزاج' },
-  { name: 'Stats',  icon: '▦', labelEn: 'My Stats',         labelUr: 'میرے اعداد',    labelAr: 'إحصائياتي' },
+type NavGroup = {
+  id: 'practice' | 'guides' | 'journey';
+  titleEn: string;
+  titleUr: string;
+  titleAr: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    id: 'practice',
+    titleEn: 'PRACTICE',
+    titleUr: 'روزمرہ عبادات',
+    titleAr: 'العبادات اليومية',
+    items: [
+      { name: 'Tasbih', icon: '📿', labelEn: 'Tasbih Counter',  labelUr: 'تسبیح کاؤنٹر',    labelAr: 'عدّاد التسبيح' },
+      { name: 'Qibla',  icon: '🧭', labelEn: 'Qibla Direction', labelUr: 'قبلہ سمت',        labelAr: 'اتجاه القبلة' },
+      { name: 'Learn',  icon: '📖', labelEn: 'Kalimas & Duas',  labelUr: 'کلمے اور دعائیں', labelAr: 'الكلمات والأدعية' },
+    ],
+  },
+  {
+    id: 'guides',
+    titleEn: 'GUIDES',
+    titleUr: 'گائیڈز',
+    titleAr: 'الأدلة',
+    items: [
+      { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',   labelUr: 'حج گائیڈ',    labelAr: 'دليل الحج' },
+      { name: 'Umrah',  icon: '⭐', labelEn: 'Umrah Guide',  labelUr: 'عمرہ گائیڈ',  labelAr: 'دليل العمرة' },
+      { name: 'Eid',    icon: '🕌', labelEn: 'Eid Guide',    labelUr: 'عید گائیڈ',    labelAr: 'دليل العيد' },
+      { name: 'Janaza', icon: '🤲', labelEn: 'Janaza Guide', labelUr: 'جنازہ گائیڈ', labelAr: 'دليل الجنازة' },
+    ],
+  },
+  {
+    id: 'journey',
+    titleEn: 'MY JOURNEY',
+    titleUr: 'میرا سفر',
+    titleAr: 'رحلتي',
+    items: [
+      { name: 'SacredJourney', icon: '🌙', labelEn: 'Sacred Journey', labelUr: 'مقدس سفر',  labelAr: 'الرحلة المقدسة' },
+      { name: 'Mood',          icon: '💚', labelEn: 'Mood Coach',     labelUr: 'موڈ کوچ',   labelAr: 'مرشد المزاج' },
+      { name: 'Stats',         icon: '📊', labelEn: 'My Stats',       labelUr: 'میرے اعداد', labelAr: 'إحصائياتي' },
+    ],
+  },
+];
+
+const LANGUAGES: Array<{ code: 'en' | 'ur' | 'ar'; label: string; native: string }> = [
+  { code: 'en', label: 'English',  native: 'English' },
+  { code: 'ur', label: 'Urdu',     native: 'اردو' },
+  { code: 'ar', label: 'Arabic',   native: 'العربية' },
 ];
 
 export function Sidebar() {
@@ -58,23 +97,14 @@ export function Sidebar() {
   const isArabic = language === 'ar';
   const navLabel = (item: NavItem) =>
     isUrdu ? item.labelUr : isArabic ? item.labelAr : item.labelEn;
-  const nextLanguage = (): 'en' | 'ur' | 'ar' => {
-    if (language === 'en') return 'ur';
-    if (language === 'ur') return 'ar';
-    return 'en';
-  };
-  const nextLangLabel = () => {
-    const n = nextLanguage();
-    if (n === 'en') return 'English';
-    if (n === 'ur') return 'اردو';
-    return 'العربية';
-  };
+  const groupTitle = (g: NavGroup) =>
+    isUrdu ? g.titleUr : isArabic ? g.titleAr : g.titleEn;
 
-  // Keep mounted until close animation finishes.
   const [mounted, setMounted] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(false);
+  const [langPickerVisible, setLangPickerVisible] = useState(false);
 
-  const translateX = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
+  const translateX = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -95,7 +125,7 @@ export function Sidebar() {
     } else {
       Animated.parallel([
         Animated.timing(translateX, {
-          toValue: -SIDEBAR_WIDTH,
+          toValue: SIDEBAR_WIDTH,
           duration: ANIM_DURATION,
           useNativeDriver: true,
         }),
@@ -108,7 +138,6 @@ export function Sidebar() {
     }
   }, [isOpen]);
 
-  // Hardware back closes the sidebar instead of exiting the app.
   useEffect(() => {
     if (!isOpen) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -166,8 +195,11 @@ export function Sidebar() {
     );
   };
 
+  const currentLangNative = LANGUAGES.find((l) => l.code === language)?.native ?? 'English';
+
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+      {/* About / Disclaimer modal */}
       <Modal
         visible={disclaimerVisible}
         transparent
@@ -199,6 +231,55 @@ export function Sidebar() {
         </View>
       </Modal>
 
+      {/* Language picker modal */}
+      <Modal
+        visible={langPickerVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLangPickerVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setLangPickerVisible(false)}>
+          <Pressable style={styles.langBox} onPress={() => {}}>
+            <Text style={styles.modalTitle}>
+              {isUrdu ? 'زبان منتخب کریں' : isArabic ? 'اختر اللغة' : 'Choose Language'}
+            </Text>
+            {LANGUAGES.map((l) => {
+              const selected = l.code === language;
+              return (
+                <TouchableOpacity
+                  key={l.code}
+                  style={[styles.langOption, selected && styles.langOptionSelected]}
+                  onPress={() => {
+                    setLanguage(l.code);
+                    setLangPickerVisible(false);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.langOptionNative, selected && styles.langOptionNativeSelected]}>
+                    {l.native}
+                  </Text>
+                  {l.code !== 'en' && (
+                    <Text style={[styles.langOptionLabel, selected && styles.langOptionLabelSelected]}>
+                      {l.label}
+                    </Text>
+                  )}
+                  {selected && <Text style={styles.langOptionCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.langCancel}
+              onPress={() => setLangPickerVisible(false)}
+            >
+              <Text style={styles.langCancelText}>
+                {isUrdu ? 'منسوخ' : isArabic ? 'إلغاء' : 'Cancel'}
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Dim overlay */}
       <TouchableWithoutFeedback onPress={closeSidebar}>
         <Animated.View
           style={[styles.overlay, { opacity: overlayOpacity }]}
@@ -206,13 +287,14 @@ export function Sidebar() {
         />
       </TouchableWithoutFeedback>
 
+      {/* Panel (slides in from right) */}
       <Animated.View
         style={[
           styles.panel,
           {
             transform: [{ translateX }],
-            paddingTop: insets.top + 16,
-            paddingBottom: Math.max(insets.bottom, 16),
+            paddingTop: insets.top + 12,
+            paddingBottom: Math.max(insets.bottom, 12),
           },
         ]}
       >
@@ -222,88 +304,112 @@ export function Sidebar() {
           pointerEvents="none"
         />
 
+        {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={closeSidebar}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Close menu"
+          >
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+
           <View style={styles.logoRow}>
             <View style={styles.logoBadge}>
               <Text style={styles.logoEmoji}>☾</Text>
             </View>
-            <View>
+            <View style={styles.logoTextWrap}>
               <Text style={[styles.appName, { fontSize: fs(22) }]}>Noor</Text>
-              <Text style={[styles.appTagline, { fontSize: fs(12) }]}>
-                {isUrdu ? 'آپ کا اسلامی ساتھی' : 'Your Muslim Companion'}
+              <Text style={[styles.appTagline, { fontSize: fs(13) }]}>
+                {isUrdu ? 'آپ کا اسلامی ساتھی' : isArabic ? 'رفيقك المسلم' : 'Your Muslim Companion'}
               </Text>
             </View>
           </View>
-
-          <TouchableOpacity style={styles.closeBtn} onPress={closeSidebar} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Text style={styles.closeBtnText}>✕</Text>
-          </TouchableOpacity>
         </View>
 
-        <View style={styles.divider} />
-        <Text style={[styles.sectionLabel, { fontSize: fs(11) }]}>
-          {isUrdu ? 'مزید خصوصیات' : 'MORE FEATURES'}
-        </Text>
-
-        <ScrollView style={styles.itemsScroll} showsVerticalScrollIndicator={false}>
-          {NAV_ITEMS.map((item) => (
-            <TouchableOpacity
-              key={item.name}
-              style={styles.item}
-              onPress={() => navigateTo(item.name)}
-              activeOpacity={0.8}
-            >
-              <View style={styles.itemIconWrap}>
-                <Text style={styles.itemIcon}>{item.icon}</Text>
-              </View>
-              <Text style={[styles.itemLabel, { fontSize: fs(15) }]}>
-                {navLabel(item)}
+        {/* Scrollable navigation area */}
+        <ScrollView
+          style={styles.scrollArea}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {NAV_GROUPS.map((group, gi) => (
+            <View key={group.id} style={[styles.group, gi === 0 && { marginTop: theme.spacing.sm }]}>
+              <Text style={[styles.sectionLabel, { fontSize: fs(11) }]}>
+                {groupTitle(group)}
               </Text>
-              <Text style={styles.itemArrow}>›</Text>
-            </TouchableOpacity>
+              <View style={styles.groupCard}>
+                {group.items.map((item, idx) => (
+                  <React.Fragment key={item.name}>
+                    <TouchableOpacity
+                      style={styles.item}
+                      onPress={() => navigateTo(item.name)}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel={navLabel(item)}
+                    >
+                      <View style={styles.itemIconWrap}>
+                        <Text style={styles.itemIcon}>{item.icon}</Text>
+                      </View>
+                      <Text style={[styles.itemLabel, { fontSize: fs(15) }]}>
+                        {navLabel(item)}
+                      </Text>
+                      <Text style={styles.itemArrow}>›</Text>
+                    </TouchableOpacity>
+                    {idx < group.items.length - 1 && <View style={styles.itemDivider} />}
+                  </React.Fragment>
+                ))}
+              </View>
+            </View>
           ))}
+
+          {/* Support section — demoted visually */}
+          <View style={[styles.group, { marginTop: theme.spacing.md }]}>
+            <Text style={[styles.sectionLabel, { fontSize: fs(11) }]}>
+              {isUrdu ? 'سپورٹ' : isArabic ? 'الدعم' : 'SUPPORT'}
+            </Text>
+            <TouchableOpacity
+              style={styles.sadaqahBtn}
+              onPress={onEasypaisa}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.sadaqahBtnText, { fontSize: fs(13) }]}>
+                📲 {isUrdu ? 'EasyPaisa — نمبر کاپی کریں' : isArabic ? 'EasyPaisa — انسخ الرقم' : 'EasyPaisa — Tap to copy'}
+              </Text>
+              <Text style={[styles.sadaqahBtnSub, { fontSize: fs(11) }]}>
+                {EASYPAISA_NUMBER}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.growthRow}>
+              <TouchableOpacity style={styles.growthBtn} onPress={onShareApp} activeOpacity={0.8}>
+                <Text style={[styles.growthBtnText, { fontSize: fs(13) }]}>
+                  {isUrdu ? '📤 شیئر' : isArabic ? '📤 شارك' : '📤 Share'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.growthBtn} onPress={onRateApp} activeOpacity={0.8}>
+                <Text style={[styles.growthBtnText, { fontSize: fs(13) }]}>
+                  {isUrdu ? '⭐ ریٹ کریں' : isArabic ? '⭐ قيّم' : '⭐ Rate'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
 
-        <TouchableOpacity
-          style={styles.aboutBtn}
-          onPress={() => setDisclaimerVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.aboutBtnText}>
-            {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : 'ℹ  About & Content Disclaimer'}
-          </Text>
-        </TouchableOpacity>
-
-        <Text style={[styles.sectionLabel, { fontSize: fs(11), marginTop: theme.spacing.sm }]}>
-          {isUrdu ? 'سپورٹ / عطیہ' : isArabic ? 'الدعم / التبرعات' : 'SUPPORT / DONATIONS'}
-        </Text>
-        <TouchableOpacity style={styles.sadaqahBtn} onPress={onEasypaisa} activeOpacity={0.85}>
-          <Text style={styles.sadaqahBtnText}>📲 EasyPaisa — Tap to copy number</Text>
-          <Text style={styles.sadaqahBtnSub}>
-            {isUrdu ? '03045919454 — نمبر کاپی کریں' : isArabic ? '03045919454 — انسخ الرقم' : '03045919454'}
-          </Text>
-        </TouchableOpacity>
-
-        <View style={styles.growthRow}>
-          <TouchableOpacity style={styles.growthBtn} onPress={onShareApp} activeOpacity={0.85}>
-            <Text style={styles.growthBtnText}>{isUrdu ? '📤 ایپ شیئر کریں' : '📤 Share App'}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.growthBtn} onPress={onRateApp} activeOpacity={0.85}>
-            <Text style={styles.growthBtnText}>{isUrdu ? '⭐ ریٹنگ دیں' : '⭐ Rate App'}</Text>
-          </TouchableOpacity>
-        </View>
-
+        {/* Pinned footer */}
         <View style={styles.footer}>
           <View style={styles.divider} />
           <View style={styles.footerRow}>
             <TouchableOpacity
               style={styles.footerBtn}
-              onPress={() => setLanguage(nextLanguage())}
+              onPress={() => setLangPickerVisible(true)}
               activeOpacity={0.8}
+              accessibilityLabel="Change language"
             >
               <Text style={styles.footerBtnIcon}>🌐</Text>
-              <Text style={[styles.footerBtnText, { fontSize: fs(12) }]}>
-                {nextLangLabel()}
+              <Text style={[styles.footerBtnText, { fontSize: fs(13) }]} numberOfLines={1}>
+                {currentLangNative}
               </Text>
             </TouchableOpacity>
 
@@ -311,13 +417,34 @@ export function Sidebar() {
               style={[styles.footerBtn, simpleMode && styles.footerBtnActive]}
               onPress={toggleSimpleMode}
               activeOpacity={0.8}
+              accessibilityLabel="Toggle large text"
+              accessibilityState={{ selected: simpleMode }}
             >
-              <Text style={styles.footerBtnIcon}>Aa</Text>
-              <Text style={[styles.footerBtnText, { fontSize: fs(12) }]}>
-                {isUrdu ? 'بڑا فونٹ' : 'Large Text'}
+              <Text style={[styles.footerBtnIcon, simpleMode && { color: theme.colors.accent }]}>Aa</Text>
+              <Text
+                style={[
+                  styles.footerBtnText,
+                  { fontSize: fs(13) },
+                  simpleMode && styles.footerBtnTextActive,
+                ]}
+                numberOfLines={1}
+              >
+                {isUrdu ? 'بڑا فونٹ' : isArabic ? 'نص كبير' : 'Large Text'}
               </Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity
+            style={styles.aboutLink}
+            onPress={() => setDisclaimerVisible(true)}
+            activeOpacity={0.6}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={[styles.aboutLinkText, { fontSize: fs(11) }]}>
+              {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : isArabic ? 'ℹ  عن التطبيق' : 'ℹ  About & Disclaimer'}
+              <Text style={styles.aboutVersion}>  ·  v1.0.0</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </View>
@@ -333,36 +460,53 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0,
     bottom: 0,
-    left: 0,
+    right: 0,
     width: SIDEBAR_WIDTH,
     backgroundColor: theme.colors.background,
     ...Platform.select({
       ios: {
         shadowColor: '#1C0F06',
-        shadowOffset: { width: 4, height: 0 },
+        shadowOffset: { width: -4, height: 0 },
         shadowOpacity: 0.25,
         shadowRadius: 16,
       },
       android: { elevation: 16 },
     }),
   },
+
+  /* Header */
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.lg,
+    paddingBottom: theme.spacing.md,
+    gap: theme.spacing.md,
+  },
+  closeBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  closeBtnText: {
+    fontSize: 16,
+    color: theme.colors.textSecondary,
+    lineHeight: 20,
   },
   logoRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: theme.spacing.md,
-    flex: 1,
   },
   logoBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: theme.colors.accentMuted,
     borderWidth: 2,
     borderColor: theme.colors.accent,
@@ -370,8 +514,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoEmoji: {
-    fontSize: 20,
+    fontSize: 22,
     color: theme.colors.accent,
+  },
+  logoTextWrap: {
+    flex: 1,
   },
   appName: {
     fontFamily: theme.typography.fontHeadingBold,
@@ -384,63 +531,58 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     marginTop: 2,
   },
-  closeBtn: {
-    width: 30,
-    height: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 15,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    marginTop: 4,
+
+  /* Scroll area */
+  scrollArea: {
+    flex: 1,
   },
-  closeBtnText: {
-    fontSize: 13,
-    color: theme.colors.textMuted,
-    lineHeight: 18,
+  scrollContent: {
+    paddingBottom: theme.spacing.md,
   },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginHorizontal: theme.spacing.xl,
+
+  /* Sections */
+  group: {
     marginBottom: theme.spacing.md,
   },
   sectionLabel: {
     fontFamily: theme.typography.fontBodyBold,
     color: theme.colors.textMuted,
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
     marginBottom: theme.spacing.sm,
     paddingHorizontal: theme.spacing.xl,
   },
-  itemsScroll: {
-    flex: 1,
+  groupCard: {
+    marginHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.borderSoft,
+    overflow: 'hidden',
   },
   item: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: 12,
+    paddingHorizontal: theme.spacing.md,
     gap: theme.spacing.md,
+    minHeight: 56,
+  },
+  itemDivider: {
+    height: 1,
+    backgroundColor: theme.colors.borderSoft,
+    marginLeft: 60,
   },
   itemIconWrap: {
     width: 36,
     height: 36,
     borderRadius: theme.borderRadius.sm,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.accentMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: { shadowColor: '#7A5A40', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3 },
-      android: { elevation: 1 },
-    }),
   },
   itemIcon: {
-    fontSize: 16,
-    color: theme.colors.accent,
+    fontSize: 18,
   },
   itemLabel: {
     flex: 1,
@@ -448,62 +590,17 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   itemArrow: {
-    fontSize: 20,
+    fontSize: 22,
     color: theme.colors.textMuted,
     lineHeight: 24,
+    marginRight: 4,
   },
-  footer: {
-    paddingHorizontal: 0,
-    paddingTop: theme.spacing.sm,
-  },
-  footerRow: {
-    flexDirection: 'row',
-    gap: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.xl,
-  },
-  footerBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  footerBtnActive: {
-    borderColor: theme.colors.accent,
-    backgroundColor: theme.colors.accentMuted,
-  },
-  footerBtnIcon: {
-    fontSize: 15,
-  },
-  footerBtnText: {
-    fontFamily: theme.typography.fontBodyMedium,
-    color: theme.colors.textMuted,
-  },
-  aboutBtn: {
-    marginHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
-    paddingVertical: 10,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  aboutBtnText: {
-    fontSize: 12,
-    fontFamily: theme.typography.fontBodyMedium,
-    color: theme.colors.textMuted,
-  },
+
+  /* Support */
   sadaqahBtn: {
-    marginHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
-    paddingVertical: 11,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+    paddingVertical: 12,
     paddingHorizontal: theme.spacing.lg,
     backgroundColor: theme.colors.accentMuted,
     borderRadius: theme.borderRadius.md,
@@ -512,12 +609,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   sadaqahBtnText: {
-    fontSize: 12,
     fontFamily: theme.typography.fontBodyBold,
     color: theme.colors.accent,
   },
   sadaqahBtnSub: {
-    fontSize: 10,
     fontFamily: theme.typography.fontBody,
     color: theme.colors.textMuted,
     marginTop: 2,
@@ -525,12 +620,11 @@ const styles = StyleSheet.create({
   growthRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,
-    marginHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
+    marginHorizontal: theme.spacing.lg,
   },
   growthBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderRadius: theme.borderRadius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -538,10 +632,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   growthBtnText: {
-    fontSize: 12,
     fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textSecondary,
+  },
+
+  /* Footer */
+  footer: {
+    paddingTop: theme.spacing.xs,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: theme.colors.border,
+    marginHorizontal: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+  },
+  footerBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minHeight: 46,
+  },
+  footerBtnActive: {
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.accentMuted,
+  },
+  footerBtnIcon: {
+    fontSize: 15,
+    color: theme.colors.textSecondary,
+  },
+  footerBtnText: {
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textSecondary,
+  },
+  footerBtnTextActive: {
+    color: theme.colors.accent,
+  },
+  aboutLink: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    marginTop: 2,
+  },
+  aboutLinkText: {
+    fontFamily: theme.typography.fontBody,
     color: theme.colors.textMuted,
   },
+  aboutVersion: {
+    color: theme.colors.textMuted,
+  },
+
+  /* Modals */
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.55)',
@@ -595,5 +747,67 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 15,
+  },
+
+  /* Language picker */
+  langBox: {
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.xl,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16 },
+      android: { elevation: 12 },
+    }),
+  },
+  langOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.md,
+  },
+  langOptionSelected: {
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.accentMuted,
+  },
+  langOptionNative: {
+    fontFamily: theme.typography.fontBodyBold,
+    fontSize: 17,
+    color: theme.colors.text,
+    flex: 1,
+  },
+  langOptionNativeSelected: {
+    color: theme.colors.accent,
+  },
+  langOptionLabel: {
+    fontFamily: theme.typography.fontBody,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+  },
+  langOptionLabelSelected: {
+    color: theme.colors.accent,
+  },
+  langOptionCheck: {
+    fontSize: 18,
+    color: theme.colors.accent,
+    fontWeight: '700',
+  },
+  langCancel: {
+    alignItems: 'center',
+    paddingVertical: 12,
+    marginTop: theme.spacing.xs,
+  },
+  langCancelText: {
+    fontFamily: theme.typography.fontBodyMedium,
+    fontSize: 14,
+    color: theme.colors.textMuted,
   },
 });
