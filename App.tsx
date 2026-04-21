@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect, Component, ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, useNavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -297,7 +297,7 @@ function AppInner() {
 
   return (
     <ErrorBoundary>
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <LanguageProvider>
         <SimpleModeProvider>
           <SidebarProvider>
