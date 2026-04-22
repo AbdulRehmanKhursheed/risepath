@@ -13,6 +13,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLocation } from '../hooks/useLocation';
 import { usePrayerTimes, PrayerName } from '../hooks/usePrayerTimes';
 import { PrayerRow } from '../components/PrayerRow';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 import { PrayerSettingsModal } from '../components/PrayerSettingsModal';
 import { storage, PrayerRecord } from '../services/storage';
 import {
@@ -261,6 +263,7 @@ export function PrayerTrackerScreen() {
       <View style={styles.footer}>
         <Text style={styles.footerText}>{t.tapToMarkReminders}</Text>
       </View>
+      <AdBanner unitId={AD_UNITS.bannerPrayer} />
     </ScrollView>
   );
 }

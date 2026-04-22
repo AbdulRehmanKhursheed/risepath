@@ -12,6 +12,8 @@ import { JANAZA_PHASES } from '../constants/janazaGuide';
 import type { JanazaStep } from '../constants/janazaGuide';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 type CompletedKey = string;
 
@@ -146,6 +148,7 @@ export function JanazaScreen() {
             : 'Sources: Sahih Bukhari, Sahih Muslim, Sunan Abu Dawud, Tirmidhi, Ibn Majah — verified classical fiqh.\nThis guide is for educational purposes. Consult a qualified scholar for rulings.'}
         </Text>
       </View>
+      <AdBanner unitId={AD_UNITS.bannerGuides} />
     </ScrollView>
   );
 }

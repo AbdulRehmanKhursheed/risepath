@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { HAJJ_STEPS } from '../constants/hajjGuide';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 export function HajjGuideScreen() {
   const { language } = useLanguage();
@@ -166,6 +168,7 @@ export function HajjGuideScreen() {
             : 'Sources: Sahih Bukhari, Muslim, Tirmidhi, Abu Dawud.\nNote: This guide covers Hajj al-Tamattu\'. For Ifrad/Qiran, consult your scholar.'}
         </Text>
       </View>
+      <AdBanner unitId={AD_UNITS.bannerGuides} />
     </ScrollView>
   );
 }

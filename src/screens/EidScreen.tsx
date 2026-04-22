@@ -18,6 +18,8 @@ import {
   EidSection,
   EidMasala,
 } from '../constants/eidGuide';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 type EidTab = 'fitr' | 'adha';
 
@@ -214,6 +216,7 @@ export function EidScreen() {
             : 'This guide is for educational purposes. Consult a qualified scholar for your specific madhab.'}
         </Text>
       </View>
+      <AdBanner unitId={AD_UNITS.bannerGuides} />
     </ScrollView>
   );
 }

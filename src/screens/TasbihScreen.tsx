@@ -16,6 +16,8 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
 import { TASBIH_PRESETS, TasbihPreset } from '../constants/tasbihPresets';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 type Locale = 'en' | 'ur' | 'ar';
 
@@ -223,6 +225,7 @@ export function TasbihScreen() {
             {virtueText}
           </Text>
         </View>
+        <AdBanner unitId={AD_UNITS.bannerTasbih} />
       </ScrollView>
 
       <Modal

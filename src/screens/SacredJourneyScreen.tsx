@@ -25,6 +25,8 @@ import {
   ResolvedEvent,
   Sect,
 } from '../constants/islamicCalendar';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 import {
   requestNotificationPermissions,
   scheduleSacredCountdownNotifications,
@@ -308,6 +310,7 @@ export function SacredJourneyScreen() {
               : 'Note: actual dates may vary ±1–2 days depending on your local moonsighting.'}
           </Text>
         </View>
+        <AdBanner unitId={AD_UNITS.bannerSacred} />
       </ScrollView>
 
       <Modal

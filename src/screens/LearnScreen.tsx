@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { KALIMAS, DUAS } from '../constants/kalimasAndDuas';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 type Section = 'kalimas' | 'duas';
 
@@ -119,6 +121,7 @@ export function LearnScreen() {
             ))}
           </View>
         )}
+        <AdBanner unitId={AD_UNITS.bannerLearn} />
       </ScrollView>
     </View>
   );

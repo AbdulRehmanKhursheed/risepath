@@ -38,6 +38,11 @@ export const AD_UNITS = {
   bannerStats: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_STATS),
   bannerMood: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_MOOD),
   bannerQibla: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_QIBLA),
+  bannerPrayer: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_PRAYER),
+  bannerTasbih: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_TASBIH),
+  bannerLearn: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_LEARN),
+  bannerGuides: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_GUIDES),
+  bannerSacred: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_SACRED),
 };
 
 let initialized = false;

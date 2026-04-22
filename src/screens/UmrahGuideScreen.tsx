@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { UMRAH_STEPS } from '../constants/umrahGuide';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { AdBanner } from '../components/AdBanner';
+import { AD_UNITS } from '../services/ads';
 
 export function UmrahGuideScreen() {
   const { language } = useLanguage();
@@ -164,6 +166,7 @@ export function UmrahGuideScreen() {
             : 'Note: Always consult a qualified scholar for guidance. This guide is for educational purposes.'}
         </Text>
       </View>
+      <AdBanner unitId={AD_UNITS.bannerGuides} />
     </ScrollView>
   );
 }

@@ -16,6 +16,10 @@ web-build/
 android/
 ios/
 
+# Build artifacts
+*.aab
+*.apk
+
 # Metro
 .metro-health-check*
 

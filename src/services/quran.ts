@@ -96,6 +96,27 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   return p;
 }
 
+const TAJWEED_PREFIX = 'quran_tajweed_';
+
+export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> {
+  const key = `${TAJWEED_PREFIX}${surahNumber}`;
+  try {
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) return JSON.parse(cached) as string[];
+  } catch {}
+
+  const url = `${BASE}/surah/${surahNumber}/editions/quran-tajweed`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Tajweed fetch failed for surah ${surahNumber}`);
+  const json = await res.json();
+  const edition = Array.isArray(json.data) ? json.data[0] : json.data;
+  const texts: string[] = (edition.ayahs as { text: string }[]).map(a => a.text);
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(texts));
+  } catch {}
+  return texts;
+}
+
 export async function hasCachedSurah(surahNumber: number): Promise<boolean> {
   const c = await readCache(surahNumber);
   return !!(c && c.ayahs && c.ayahs.length > 0);

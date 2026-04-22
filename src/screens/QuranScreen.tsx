@@ -21,8 +21,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { useAudioPlayer, RECITERS, TranslationPlaybackMode } from '../hooks/useAudioPlayer';
-import { prefetchAdjacent } from '../services/quran';
+import { prefetchAdjacent, fetchTajweedTexts } from '../services/quran';
 import { matchesSurah } from '../utils/surahSearch';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TajweedText } from '../components/TajweedText';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
 
@@ -44,6 +46,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
   const [reciterSearch, setReciterSearch] = useState('');
   const [translationAudioEnabled, setTranslationAudioEnabled] = useState(false);
+  const [viewMode, setViewMode] = useState<'verse' | 'mushaf'>('verse');
+  const [tajweedOn, setTajweedOn] = useState(false);
+  const [tajweedTexts, setTajweedTexts] = useState<string[] | null>(null);
+  const [tajweedLoading, setTajweedLoading] = useState(false);
 
   const translationPlayback: TranslationPlaybackMode = translationAudioEnabled
     ? translationMode
@@ -70,10 +76,35 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     translationPlayback
   );
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const [vm, tj] = await Promise.all([
+          AsyncStorage.getItem('quran_view_mode'),
+          AsyncStorage.getItem('quran_tajweed'),
+        ]);
+        if (vm === 'mushaf') setViewMode('mushaf');
+        if (tj === 'on') setTajweedOn(true);
+      } catch {}
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!tajweedOn || !selectedSurah) { setTajweedTexts(null); return; }
+    let cancelled = false;
+    setTajweedLoading(true);
+    fetchTajweedTexts(selectedSurah.number)
+      .then(texts => { if (!cancelled) setTajweedTexts(texts); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setTajweedLoading(false); });
+    return () => { cancelled = true; };
+  }, [tajweedOn, selectedSurah?.number]);
+
   const openSurah = useCallback(async (surah: SurahMeta) => {
     await stop();
     setSelectedSurah(surah);
     setSurahContent(null);
+    setTajweedTexts(null);
     setError(null);
     setLoading(true);
     ayahYRef.current = {};
@@ -145,6 +176,41 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           </View>
         </View>
 
+        <View style={styles.viewModeRow}>
+          <View style={styles.viewModePills}>
+            {(['verse', 'mushaf'] as const).map(mode => (
+              <TouchableOpacity
+                key={mode}
+                style={[styles.viewModeBtn, viewMode === mode && styles.viewModeBtnActive]}
+                onPress={() => {
+                  setViewMode(mode);
+                  AsyncStorage.setItem('quran_view_mode', mode).catch(() => {});
+                }}
+              >
+                <Text style={[styles.viewModeBtnText, viewMode === mode && styles.viewModeBtnTextActive]}>
+                  {mode === 'verse' ? (isUrdu ? 'آیت آیت' : 'Verse') : (isUrdu ? 'مصحف' : 'Mushaf')}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TouchableOpacity
+            style={[styles.tajweedBtn, tajweedOn && styles.tajweedBtnOn]}
+            onPress={() => {
+              const next = !tajweedOn;
+              setTajweedOn(next);
+              AsyncStorage.setItem('quran_tajweed', next ? 'on' : 'off').catch(() => {});
+            }}
+          >
+            {tajweedLoading
+              ? <ActivityIndicator size="small" color="#FF8000" />
+              : <Text style={[styles.tajweedBtnText, tajweedOn && styles.tajweedBtnTextOn]}>
+                  {isUrdu ? 'تجوید' : 'Tajweed'}
+                </Text>
+            }
+          </TouchableOpacity>
+        </View>
+
+        {viewMode === 'verse' && (
         <View style={styles.toggleRow}>
           {(['urdu', 'english', 'both'] as TranslationMode[]).map((mode) => (
             <TouchableOpacity
@@ -158,6 +224,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </TouchableOpacity>
           ))}
         </View>
+        )}
 
         <TouchableOpacity
           style={styles.reciterChip}
@@ -176,6 +243,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           <Text style={styles.reciterChipArrow}>›</Text>
         </TouchableOpacity>
 
+        {viewMode === 'verse' && (
         <TouchableOpacity
           style={[styles.transAudioRow, translationAudioEnabled && styles.transAudioRowOn]}
           onPress={() => setTranslationAudioEnabled((v) => !v)}
@@ -208,6 +276,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             <View style={[styles.toggleKnob, translationAudioEnabled && styles.toggleKnobOn]} />
           </View>
         </TouchableOpacity>
+        )}
 
         {loading && (
           <View style={styles.loadingWrap}>
@@ -229,6 +298,31 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
 
         {surahContent && (
           <View style={{ flex: 1 }}>
+            {viewMode === 'mushaf' ? (
+              <ScrollView
+                ref={scrollRef}
+                style={styles.ayahList}
+                contentContainerStyle={[styles.mushafContent, { paddingBottom: isPlayerActive ? 112 : theme.spacing.xxxl }]}
+                showsVerticalScrollIndicator={false}
+              >
+                {selectedSurah.number !== 9 && (
+                  <Text style={[styles.bismillah, { fontSize: fs(24) }]}>
+                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  </Text>
+                )}
+                <Text style={[styles.mushafText, { fontSize: fs(26), lineHeight: fs(26) * 2.1 }]}>
+                  {surahContent.ayahs.map((ayah, idx) => (
+                    <React.Fragment key={ayah.numberInSurah}>
+                      {tajweedOn && tajweedTexts
+                        ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26) }]} />
+                        : <Text style={[styles.mushafAyahText, { fontSize: fs(26) }]}>{ayah.arabic}</Text>
+                      }
+                      <Text style={[styles.mushafVerseNum, { fontSize: fs(14) }]}>{` ﴿${ayah.numberInSurah}﴾ `}</Text>
+                    </React.Fragment>
+                  ))}
+                </Text>
+              </ScrollView>
+            ) : (
             <ScrollView
               ref={scrollRef}
               style={styles.ayahList}
@@ -275,7 +369,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                       </View>
                     </View>
 
-                    <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
+                    {tajweedOn && tajweedTexts
+                      ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20) }]} />
+                      : <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
+                    }
 
                     {(translationMode === 'urdu' || translationMode === 'both') && (
                       <Text style={[styles.ayahUrdu, { fontSize: fs(14) }]}>{ayah.urdu}</Text>
@@ -287,6 +384,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 );
               })}
             </ScrollView>
+            )}
 
             {isPlayerActive && surahContent && (
               <View style={[styles.playerBar, { paddingBottom: Math.max(10, insets.bottom + 10) }]}>
@@ -751,6 +849,73 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 14,
+  },
+  viewModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    gap: theme.spacing.sm,
+  },
+  viewModePills: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 3,
+  },
+  viewModeBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.sm,
+  },
+  viewModeBtnActive: { backgroundColor: theme.colors.success },
+  viewModeBtnText: {
+    fontSize: 13,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  viewModeBtnTextActive: { color: '#fff' },
+  tajweedBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    minWidth: 72,
+    alignItems: 'center',
+  },
+  tajweedBtnOn: {
+    borderColor: '#FF8000',
+    backgroundColor: 'rgba(255, 128, 0, 0.08)',
+  },
+  tajweedBtnText: {
+    fontSize: 13,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  tajweedBtnTextOn: { color: '#FF8000' },
+  mushafContent: {
+    paddingHorizontal: theme.spacing.xl,
+  },
+  mushafText: {
+    textAlign: 'right',
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBody,
+    writingDirection: 'rtl',
+  },
+  mushafAyahText: {
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBody,
+  },
+  mushafVerseNum: {
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBody,
   },
   ayahList: { flex: 1 },
   ayahListContent: {
