@@ -51,9 +51,11 @@ const NAV_GROUPS: NavGroup[] = [
     titleUr: 'روزمرہ عبادات',
     titleAr: 'العبادات اليومية',
     items: [
-      { name: 'Tasbih', icon: '📿', labelEn: 'Tasbih Counter',  labelUr: 'تسبیح کاؤنٹر',    labelAr: 'عدّاد التسبيح' },
-      { name: 'Qibla',  icon: '🧭', labelEn: 'Qibla Direction', labelUr: 'قبلہ سمت',        labelAr: 'اتجاه القبلة' },
-      { name: 'Learn',  icon: '📖', labelEn: 'Kalimas & Duas',  labelUr: 'کلمے اور دعائیں', labelAr: 'الكلمات والأدعية' },
+      { name: 'Tasbih',      icon: '📿', labelEn: 'Tasbih Counter',     labelUr: 'تسبیح کاؤنٹر',      labelAr: 'عدّاد التسبيح' },
+      { name: 'Qibla',      icon: '🧭', labelEn: 'Qibla Direction',    labelUr: 'قبلہ سمت',          labelAr: 'اتجاه القبلة' },
+      { name: 'Duas',       icon: '🤲', labelEn: 'Dua Library',        labelUr: 'دعاؤں کی لائبریری', labelAr: 'مكتبة الأدعية' },
+      { name: 'Names',      icon: '✨', labelEn: '99 Names of Allah',  labelUr: 'اللہ کے ۹۹ نام',   labelAr: 'أسماء الله الحسنى' },
+      { name: 'Learn',      icon: '📖', labelEn: 'Kalimas & Duas',     labelUr: 'کلمے اور دعائیں',   labelAr: 'الكلمات والأدعية' },
     ],
   },
   {
@@ -74,9 +76,10 @@ const NAV_GROUPS: NavGroup[] = [
     titleUr: 'میرا سفر',
     titleAr: 'رحلتي',
     items: [
-      { name: 'SacredJourney', icon: '🌙', labelEn: 'Sacred Journey', labelUr: 'مقدس سفر',  labelAr: 'الرحلة المقدسة' },
-      { name: 'Mood',          icon: '💚', labelEn: 'Mood Coach',     labelUr: 'موڈ کوچ',   labelAr: 'مرشد المزاج' },
-      { name: 'Stats',         icon: '📊', labelEn: 'My Stats',       labelUr: 'میرے اعداد', labelAr: 'إحصائياتي' },
+      { name: 'SacredJourney', icon: '🌙', labelEn: 'Sacred Journey', labelUr: 'مقدس سفر',     labelAr: 'الرحلة المقدسة' },
+      { name: 'Hifz',         icon: '📚', labelEn: 'Hifz Tracker',  labelUr: 'حفظ ٹریکر',  labelAr: 'متابعة الحفظ' },
+      { name: 'Mood',         icon: '💚', labelEn: 'Mood Coach',     labelUr: 'موڈ کوچ',    labelAr: 'مرشد المزاج' },
+      { name: 'Stats',        icon: '📊', labelEn: 'My Stats',       labelUr: 'میرے اعداد', labelAr: 'إحصائياتي' },
     ],
   },
 ];

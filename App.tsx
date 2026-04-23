@@ -44,6 +44,9 @@ import { TasbihScreen } from './src/screens/TasbihScreen';
 import { SacredJourneyScreen } from './src/screens/SacredJourneyScreen';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { QuranScreen } from './src/screens/QuranScreen';
+import { DuaScreen } from './src/screens/DuaScreen';
+import { AsmaulHusnaScreen } from './src/screens/AsmaulHusnaScreen';
+import { HifzScreen } from './src/screens/HifzScreen';
 import { Sidebar } from './src/components/Sidebar';
 import { QuranNavProvider, useQuranNav } from './src/contexts/QuranNavContext';
 import { SidebarProvider } from './src/contexts/SidebarContext';
@@ -249,6 +252,21 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             name="SacredJourney"
             component={SacredJourneyScreen}
             options={{ headerShown: true, title: 'Sacred Journey', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Duas"
+            component={DuaScreen}
+            options={{ headerShown: true, title: 'Dua Library', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Names"
+            component={AsmaulHusnaScreen}
+            options={{ headerShown: true, title: '99 Names of Allah', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Hifz"
+            component={HifzScreen}
+            options={{ headerShown: true, title: 'Hifz Tracker', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
         </Stack.Navigator>
       </NavigationContainer>

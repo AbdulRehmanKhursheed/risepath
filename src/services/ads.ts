@@ -43,6 +43,9 @@ export const AD_UNITS = {
   bannerLearn: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_LEARN),
   bannerGuides: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_GUIDES),
   bannerSacred: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_SACRED),
+  bannerDua: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_DUA),
+  bannerNames: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_NAMES),
+  bannerHifz: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_HIFZ),
 };
 
 let initialized = false;
