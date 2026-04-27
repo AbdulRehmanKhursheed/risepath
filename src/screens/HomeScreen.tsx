@@ -7,14 +7,19 @@ import { GoalItem } from '../components/GoalItem';
 import { AdBanner } from '../components/AdBanner';
 import { HadithOfDay } from '../components/HadithOfDay';
 import { NextEventCard } from '../components/NextEventCard';
+import { EidHubCard } from '../components/EidHubCard';
+import { TodayCard } from '../components/TodayCard';
+import { QuickActions } from '../components/QuickActions';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
+import { computeStreak } from '../utils/streak';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
 import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { formatHijri } from '../utils/hijri';
+import { getLocalDateKey } from '../utils/date';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   const hour = new Date().getHours();
@@ -23,42 +28,68 @@ function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   return t.eveningGreeting;
 }
 
-const DEFAULT_GOALS = [
-  { id: '1', text: 'Read 10 min of Quran', completed: false, date: '' },
-  { id: '2', text: 'Dhikr after Fajr', completed: false, date: '' },
-  { id: '3', text: 'Help someone today', completed: false, date: '' },
-];
+// Default goals shown on first launch. Saved to AsyncStorage on first read,
+// so they must match the user's chosen language at install time — otherwise
+// an Urdu / Arabic user sees English goals forever after.
+const DEFAULT_GOALS_BY_LANG: Record<'en' | 'ur' | 'ar', { id: string; text: string; completed: boolean; date: string }[]> = {
+  en: [
+    { id: '1', text: 'Read 10 min of Quran',  completed: false, date: '' },
+    { id: '2', text: 'Dhikr after Fajr',      completed: false, date: '' },
+    { id: '3', text: 'Help someone today',    completed: false, date: '' },
+  ],
+  ur: [
+    { id: '1', text: '۱۰ منٹ قرآن کی تلاوت',     completed: false, date: '' },
+    { id: '2', text: 'فجر کے بعد ذکر',           completed: false, date: '' },
+    { id: '3', text: 'آج کسی کی مدد کریں',       completed: false, date: '' },
+  ],
+  ar: [
+    { id: '1', text: 'اقرأ ١٠ دقائق من القرآن',  completed: false, date: '' },
+    { id: '2', text: 'الذكر بعد الفجر',          completed: false, date: '' },
+    { id: '3', text: 'ساعد شخصاً اليوم',         completed: false, date: '' },
+  ],
+};
 
 export function HomeScreen() {
   const { t, language } = useLanguage();
   const navigation = useNavigation();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
   const hijri = formatHijri(new Date(), language);
+  // Streak is derived directly from the prayers store — single source of
+  // truth, no separate streak record to keep in sync.
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
-  const [goals, setGoals] = useState(DEFAULT_GOALS);
+  const defaultGoals = DEFAULT_GOALS_BY_LANG[language] ?? DEFAULT_GOALS_BY_LANG.en;
+  const [goals, setGoals] = useState(defaultGoals);
   const [quote, setQuote] = useState<QuoteEntry>(getRandomQuote);
+
+  const today = getLocalDateKey();
 
   useEffect(() => {
     setQuote(getRandomQuote());
-    storage.getStreak().then((data) => {
-      if (data) {
-        setStreak(data.current);
-        setLongest(data.longest);
-      }
+    storage.getPrayers().then((prayers) => {
+      const { current, longest } = computeStreak(prayers);
+      setStreak(current);
+      setLongest(longest);
     });
     storage.getGoals().then((data) => {
       if (data.length > 0) setGoals(data);
-      else storage.setGoals(DEFAULT_GOALS);
+      else {
+        setGoals(defaultGoals);
+        storage.setGoals(defaultGoals);
+      }
     });
-  }, []);
+  }, [language]);
 
-  const today = new Date().toISOString().split('T')[0];
-
+  // A goal counts as completed only if it was checked TODAY. Carrying a
+  // checkmark from a previous day was the bug the user hit on first open.
   const toggleGoal = async (id: string) => {
-    const updated = goals.map((g) =>
-      g.id === id ? { ...g, completed: !g.completed, date: today } : g
-    );
+    const updated = goals.map((g) => {
+      if (g.id !== id) return g;
+      const isCompletedToday = g.completed && g.date === today;
+      return isCompletedToday
+        ? { ...g, completed: false, date: '' }
+        : { ...g, completed: true, date: today };
+    });
     setGoals(updated);
     await storage.setGoals(updated);
   };
@@ -94,26 +125,10 @@ export function HomeScreen() {
         </View>
       </View>
 
+      <TodayCard />
+      <EidHubCard />
       <NextEventCard />
-
-      <TouchableOpacity
-        style={styles.tasbihShortcut}
-        onPress={() => (navigation as any).navigate('Tasbih')}
-        activeOpacity={0.85}
-      >
-        <View style={styles.tasbihIconCircle}>
-          <Text style={styles.tasbihIcon}>📿</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.tasbihTitle, { fontSize: fs(14) }]}>
-            {language === 'ur' ? 'تسبیح کاؤنٹر' : language === 'ar' ? 'عدّاد التسبيح' : 'Tasbih Counter'}
-          </Text>
-          <Text style={[styles.tasbihSub, { fontSize: fs(12) }]}>
-            {language === 'ur' ? 'ذکر کی گنتی رکھیں' : language === 'ar' ? 'احتسب أذكارك' : 'Track your dhikr'}
-          </Text>
-        </View>
-        <Text style={styles.tasbihArrow}>›</Text>
-      </TouchableOpacity>
+      <QuickActions />
 
       <HadithOfDay />
 
@@ -130,7 +145,7 @@ export function HomeScreen() {
           <GoalItem
             key={g.id}
             text={g.text}
-            completed={g.completed}
+            completed={g.completed && g.date === today}
             onToggle={() => toggleGoal(g.id)}
           />
         ))}

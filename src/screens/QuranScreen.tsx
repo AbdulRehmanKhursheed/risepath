@@ -76,12 +76,15 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     translationPlayback
   );
 
+  // Tajweed key is versioned (`_v2`) so any device that previously persisted
+  // 'on' under the old `quran_tajweed` key is ignored. Default state stays
+  // false, so every fresh launch is Tajweed-off until the user toggles it on.
   useEffect(() => {
     (async () => {
       try {
         const [vm, tj] = await Promise.all([
           AsyncStorage.getItem('quran_view_mode'),
-          AsyncStorage.getItem('quran_tajweed'),
+          AsyncStorage.getItem('quran_tajweed_v2'),
         ]);
         if (vm === 'mushaf') setViewMode('mushaf');
         if (tj === 'on') setTajweedOn(true);
@@ -198,7 +201,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             onPress={() => {
               const next = !tajweedOn;
               setTajweedOn(next);
-              AsyncStorage.setItem('quran_tajweed', next ? 'on' : 'off').catch(() => {});
+              AsyncStorage.setItem('quran_tajweed_v2', next ? 'on' : 'off').catch(() => {});
             }}
           >
             {tajweedLoading

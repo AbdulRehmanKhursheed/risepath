@@ -6,6 +6,8 @@ import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
 import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
+import { computeStreak } from '../utils/streak';
+import { getLocalDateKey } from '../utils/date';
 
 export function StatsScreen() {
   const { t } = useLanguage();
@@ -17,20 +19,18 @@ export function StatsScreen() {
 
   useEffect(() => {
     (async () => {
-      const streakData = await storage.getStreak();
-      if (streakData) {
-        setStreak(streakData.current);
-        setLongest(streakData.longest);
-      }
-
       const prayers = await storage.getPrayers();
+      const { current, longest } = computeStreak(prayers);
+      setStreak(current);
+      setLongest(longest);
+
       const now = new Date();
       let prayed = 0;
       let total = 0;
       for (let i = 0; i < 7; i++) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
-        const key = d.toISOString().split('T')[0];
+        const key = getLocalDateKey(d);
         const rec = prayers[key];
         if (rec) {
           prayed += [

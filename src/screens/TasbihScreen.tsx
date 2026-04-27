@@ -18,6 +18,7 @@ import { theme } from '../constants/theme';
 import { TASBIH_PRESETS, TasbihPreset } from '../constants/tasbihPresets';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { getLocalDateKey } from '../utils/date';
 
 type Locale = 'en' | 'ur' | 'ar';
 
@@ -37,7 +38,7 @@ type TodayState = {
 };
 
 function todayKey(): string {
-  return new Date().toISOString().split('T')[0];
+  return getLocalDateKey();
 }
 
 export function TasbihScreen() {
@@ -64,18 +65,24 @@ export function TasbihScreen() {
       ]);
 
       if (rawState) {
-        const saved: TasbihState = JSON.parse(rawState);
-        const matched = TASBIH_PRESETS.find((p) => p.id === saved.presetId) ?? TASBIH_PRESETS[0];
-        setPreset(matched);
-        setCount(saved.count ?? 0);
-        setTarget(saved.target ?? matched.defaultTarget);
+        try {
+          const saved: TasbihState = JSON.parse(rawState);
+          const matched = TASBIH_PRESETS.find((p) => p.id === saved.presetId) ?? TASBIH_PRESETS[0];
+          setPreset(matched);
+          setCount(saved.count ?? 0);
+          setTarget(saved.target ?? matched.defaultTarget);
+        } catch {}
       }
       if (rawLife) setLifetime(Number(rawLife) || 0);
 
       if (rawToday) {
-        const t: TodayState = JSON.parse(rawToday);
-        if (t.date === todayKey()) setTodayCount(t.count);
-        else setTodayCount(0);
+        try {
+          const t: TodayState = JSON.parse(rawToday);
+          if (t.date === todayKey()) setTodayCount(t.count);
+          else setTodayCount(0);
+        } catch {
+          setTodayCount(0);
+        }
       }
       setHydrated(true);
     })();

@@ -30,7 +30,10 @@ export function AsmaulHusnaScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(KNOWN_KEY).then((raw) => {
-      if (raw) setKnown(new Set(JSON.parse(raw)));
+      if (!raw) return;
+      try {
+        setKnown(new Set(JSON.parse(raw)));
+      } catch {}
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);

@@ -24,7 +24,10 @@ export function DuaScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(FAVORITES_KEY).then((raw) => {
-      if (raw) setFavorites(new Set(JSON.parse(raw)));
+      if (!raw) return;
+      try {
+        setFavorites(new Set(JSON.parse(raw)));
+      } catch {}
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);

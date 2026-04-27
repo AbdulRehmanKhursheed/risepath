@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { CalendarRegion } from '../constants/islamicCalendar';
 
 const KEYS = {
   STREAK: 'streak',
@@ -11,6 +12,26 @@ const KEYS = {
   CALENDAR_REGION: 'calendarRegion',
   SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
 } as const;
+
+const CALENDAR_REGION_IDS: CalendarRegion[] = [
+  'saudi',
+  'southasia',
+  'uk',
+  'northamerica',
+  'europe',
+  'africa',
+  'southeastasia',
+  'global',
+];
+
+function parseJson<T>(raw: string | null, fallback: T): T {
+  if (!raw) return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
 
 export type StreakData = {
   current: number;
@@ -50,8 +71,6 @@ export type PrayerSettings = {
   fiqhSchool?: 'sunni' | 'shia';
 };
 
-import type { CalendarRegion } from '../constants/islamicCalendar';
-
 export type SacredCountdownPrefs = {
   // Per-event mute list. Empty = all events enabled.
   mutedEventIds: string[];
@@ -64,7 +83,7 @@ export type SacredCountdownPrefs = {
 export const storage = {
   async getStreak(): Promise<StreakData | null> {
     const raw = await AsyncStorage.getItem(KEYS.STREAK);
-    return raw ? JSON.parse(raw) : null;
+    return parseJson<StreakData | null>(raw, null);
   },
 
   async setStreak(data: StreakData): Promise<void> {
@@ -73,7 +92,7 @@ export const storage = {
 
   async getPrayers(): Promise<Record<string, PrayerRecord>> {
     const raw = await AsyncStorage.getItem(KEYS.PRAYERS);
-    return raw ? JSON.parse(raw) : {};
+    return parseJson<Record<string, PrayerRecord>>(raw, {});
   },
 
   async setPrayers(data: Record<string, PrayerRecord>): Promise<void> {
@@ -82,7 +101,7 @@ export const storage = {
 
   async getGoals(): Promise<Goal[]> {
     const raw = await AsyncStorage.getItem(KEYS.GOALS);
-    return raw ? JSON.parse(raw) : [];
+    return parseJson<Goal[]>(raw, []);
   },
 
   async setGoals(goals: Goal[]): Promise<void> {
@@ -91,7 +110,7 @@ export const storage = {
 
   async getMoods(): Promise<MoodEntry[]> {
     const raw = await AsyncStorage.getItem(KEYS.MOODS);
-    return raw ? JSON.parse(raw) : [];
+    return parseJson<MoodEntry[]>(raw, []);
   },
 
   async setMoods(moods: MoodEntry[]): Promise<void> {
@@ -100,7 +119,7 @@ export const storage = {
 
   async getLocation(): Promise<LocationData | null> {
     const raw = await AsyncStorage.getItem(KEYS.LOCATION);
-    return raw ? JSON.parse(raw) : null;
+    return parseJson<LocationData | null>(raw, null);
   },
 
   async setLocation(loc: LocationData): Promise<void> {
@@ -109,7 +128,7 @@ export const storage = {
 
   async getPrayerSettings(): Promise<PrayerSettings | null> {
     const raw = await AsyncStorage.getItem(KEYS.PRAYER_SETTINGS);
-    return raw ? JSON.parse(raw) : null;
+    return parseJson<PrayerSettings | null>(raw, null);
   },
 
   async setPrayerSettings(settings: PrayerSettings): Promise<void> {
@@ -118,7 +137,7 @@ export const storage = {
 
   async getFiqhSchool(): Promise<'sunni' | 'shia' | null> {
     const raw = await AsyncStorage.getItem(KEYS.FIQH_SCHOOL);
-    return (raw as 'sunni' | 'shia') ?? null;
+    return raw === 'sunni' || raw === 'shia' ? raw : null;
   },
 
   async setFiqhSchool(school: 'sunni' | 'shia'): Promise<void> {
@@ -127,7 +146,7 @@ export const storage = {
 
   async getCalendarRegion(): Promise<CalendarRegion | null> {
     const raw = await AsyncStorage.getItem(KEYS.CALENDAR_REGION);
-    return (raw as CalendarRegion) ?? null;
+    return CALENDAR_REGION_IDS.includes(raw as CalendarRegion) ? (raw as CalendarRegion) : null;
   },
 
   async setCalendarRegion(region: CalendarRegion): Promise<void> {
@@ -136,8 +155,7 @@ export const storage = {
 
   async getSacredCountdownPrefs(): Promise<SacredCountdownPrefs> {
     const raw = await AsyncStorage.getItem(KEYS.SACRED_COUNTDOWN_PREFS);
-    if (!raw) return { mutedEventIds: [], lastScheduledAt: '', enabled: true };
-    return JSON.parse(raw);
+    return parseJson<SacredCountdownPrefs>(raw, { mutedEventIds: [], lastScheduledAt: '', enabled: true });
   },
 
   async setSacredCountdownPrefs(prefs: SacredCountdownPrefs): Promise<void> {

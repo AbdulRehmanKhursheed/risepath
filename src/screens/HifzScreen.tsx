@@ -47,7 +47,10 @@ export function HifzScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem(HIFZ_KEY).then((raw) => {
-      if (raw) setProgress(JSON.parse(raw));
+      if (!raw) return;
+      try {
+        setProgress(JSON.parse(raw));
+      } catch {}
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);

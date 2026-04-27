@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MoodButton } from '../components/MoodButton';
@@ -15,39 +16,60 @@ import { AD_UNITS } from '../services/ads';
 import { storage } from '../services/storage';
 import { getLocalMotivation } from '../services/ai';
 import { theme } from '../constants/theme';
+import { computeStreak } from '../utils/streak';
 import { useLanguage } from '../contexts/LanguageContext';
+import { getLocalDateKey } from '../utils/date';
 
 export function MoodScreen() {
   const { t } = useLanguage();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
+  // Surfaced via the chat area while the response is being computed. Without
+  // this, the user taps a mood and stares at a static screen for ~200-500ms
+  // while storage reads + streak compute + write run. Showing the "thinking"
+  // bubble immediately makes the screen feel responsive.
+  const [thinking, setThinking] = useState(false);
+  // Lock to coalesce rapid double-taps. Two concurrent submissions both
+  // `getMoods()` from the same snapshot, both unshift, and the second write
+  // wins — silently dropping the first entry. The ref guard prevents that
+  // by short-circuiting any submission while one is already in flight.
+  const submittingRef = useRef(false);
 
   const handleMoodSelect = async (mood: number) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSelectedMood(mood);
+    setThinking(true);
+    setMessages([]); // clear any prior response so the spinner is the only thing on screen
 
-    const prayers = await storage.getPrayers();
-    const today = new Date().toISOString().split('T')[0];
-    const todayPrayers = prayers[today];
-    const missed = todayPrayers
-      ? 5 -
-        [
-          todayPrayers.fajr,
-          todayPrayers.dhuhr,
-          todayPrayers.asr,
-          todayPrayers.maghrib,
-          todayPrayers.isha,
-        ].filter(Boolean).length
-      : 5;
+    try {
+      const prayers = await storage.getPrayers();
+      const today = getLocalDateKey();
+      const todayPrayers = prayers[today];
+      const missed = todayPrayers
+        ? 5 -
+          [
+            todayPrayers.fajr,
+            todayPrayers.dhuhr,
+            todayPrayers.asr,
+            todayPrayers.maghrib,
+            todayPrayers.isha,
+          ].filter(Boolean).length
+        : 5;
 
-    const streakData = await storage.getStreak();
-    const streak = streakData?.current ?? 0;
+      // `prayers` already loaded above — reuse it instead of a second read.
+      const { current: streak } = computeStreak(prayers);
 
-    const response = getLocalMotivation(streak, mood, missed);
-    setMessages([response]);
+      const response = getLocalMotivation(streak, mood, missed);
+      setMessages([response]);
 
-    const moods = await storage.getMoods();
-    moods.unshift({ date: today, mood, aiResponse: response });
-    await storage.setMoods(moods.slice(0, 50));
+      const moods = await storage.getMoods();
+      moods.unshift({ date: today, mood, aiResponse: response });
+      await storage.setMoods(moods.slice(0, 50));
+    } finally {
+      submittingRef.current = false;
+      setThinking(false);
+    }
   };
 
   return (
@@ -85,10 +107,16 @@ export function MoodScreen() {
         </View>
 
         <View style={styles.chat}>
-          {messages.length === 0 && (
+          {!thinking && messages.length === 0 && (
             <View style={styles.placeholderCard}>
               <Text style={styles.placeholderIcon}>🌿</Text>
               <Text style={styles.placeholder}>{t.moodPlaceholder}</Text>
+            </View>
+          )}
+          {thinking && (
+            <View style={styles.thinkingRow}>
+              <ActivityIndicator size="small" color={theme.colors.accent} />
+              <Text style={styles.thinkingText}>{t.coachThinking}</Text>
             </View>
           )}
           {messages.map((msg, i) => (
@@ -177,6 +205,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontFamily: theme.typography.fontBody,
     lineHeight: 22,
+  },
+  thinkingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingVertical: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.lg,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  thinkingText: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    fontSize: 14,
+    fontStyle: 'italic',
   },
   adWrap: {
     marginTop: theme.spacing.xl,

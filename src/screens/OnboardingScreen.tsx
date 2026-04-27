@@ -29,6 +29,7 @@ export function OnboardingScreen({ onComplete }: Props) {
   const [selectedMadhab, setSelectedMadhab] = useState<MadhabId>('Shafi');
 
   const isUrdu = language === 'ur';
+  const isArabic = language === 'ar';
 
   const selectSchool = (school: FiqhSchool) => {
     setSelectedSchool(school);
@@ -41,6 +42,7 @@ export function OnboardingScreen({ onComplete }: Props) {
   };
 
   const finish = async () => {
+    await setLanguage(language);
     await storage.setFiqhSchool(selectedSchool);
     await storage.setPrayerSettings({
       calculationMethod: selectedMethod,
@@ -86,12 +88,24 @@ export function OnboardingScreen({ onComplete }: Props) {
             </View>
             {language === 'ur' && <Text style={styles.checkmark}>✓</Text>}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.langCard, language === 'ar' && styles.langCardActive]}
+            onPress={() => setLanguage('ar')}
+          >
+            <Text style={styles.langCardIcon}>🇸🇦</Text>
+            <View>
+              <Text style={styles.langCardTitle}>العربية</Text>
+              <Text style={styles.langCardSub}>Arabic</Text>
+            </View>
+            {language === 'ar' && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.fixedBottom}>
           <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('school')}>
             <Text style={styles.nextBtnText}>
-              {isUrdu ? 'آگے بڑھیں ←' : 'Continue →'}
+              {isUrdu ? 'آگے بڑھیں ←' : isArabic ? 'متابعة ←' : 'Continue →'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -108,13 +122,15 @@ export function OnboardingScreen({ onComplete }: Props) {
           pointerEvents="none"
         />
         <View style={styles.center}>
-          <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۱ از ۲' : 'Step 1 of 2'}</Text>
+          <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۱ از ۲' : isArabic ? 'الخطوة ١ من ٢' : 'Step 1 of 2'}</Text>
           <Text style={styles.stepTitle}>
-            {isUrdu ? 'اپنا مسلک منتخب کریں' : 'Your School of Thought'}
+            {isUrdu ? 'اپنا مسلک منتخب کریں' : isArabic ? 'اختر المذهب' : 'Your School of Thought'}
           </Text>
           <Text style={[styles.langCardSub, { textAlign: 'center', marginBottom: 28, color: '#888' }]}>
             {isUrdu
               ? 'نماز کے اوقات اسی کے مطابق ترتیب دیے جائیں گے۔ بعد میں تبدیل کیا جا سکتا ہے۔'
+              : isArabic
+              ? 'سيتم حساب أوقات الصلاة بناء على اختيارك. يمكنك تغييره لاحقا.'
               : 'Prayer times will be calculated accordingly. Can be changed later.'}
           </Text>
 
@@ -125,11 +141,13 @@ export function OnboardingScreen({ onComplete }: Props) {
             <Text style={styles.langCardIcon}>☽</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.langCardTitle}>
-                {isUrdu ? 'سنی' : 'Sunni'}
+                {isUrdu ? 'سنی' : isArabic ? 'سني' : 'Sunni'}
               </Text>
               <Text style={styles.langCardSub}>
                 {isUrdu
                   ? 'حنفی، شافعی، مالکی، حنبلی'
+                  : isArabic
+                  ? 'حنفي · شافعي · مالكي · حنبلي'
                   : 'Hanafi · Shafi\'i · Maliki · Hanbali'}
               </Text>
             </View>
@@ -143,11 +161,13 @@ export function OnboardingScreen({ onComplete }: Props) {
             <Text style={styles.langCardIcon}>🌙</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.langCardTitle}>
-                {isUrdu ? 'شیعہ' : 'Shia'}
+                {isUrdu ? 'شیعہ' : isArabic ? 'شيعي' : 'Shia'}
               </Text>
               <Text style={styles.langCardSub}>
                 {isUrdu
                   ? 'جعفری / اثنا عشری — اوقات نماز: لیوا ریسرچ انسٹیٹیوٹ، قم'
+                  : isArabic
+                  ? 'جعفري / اثنا عشري — معهد ليفا للأبحاث، قم'
                   : 'Jafari / Ithna-Ashari — Leva Research Institute, Qum'}
               </Text>
             </View>
@@ -158,10 +178,10 @@ export function OnboardingScreen({ onComplete }: Props) {
         <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('language')}>
-              <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
+              <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : isArabic ? '← رجوع' : '← Back'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.nextBtn, { flex: 2 }]} onPress={() => setStep('method')}>
-              <Text style={styles.nextBtnText}>{isUrdu ? 'آگے بڑھیں →' : 'Continue →'}</Text>
+              <Text style={styles.nextBtnText}>{isUrdu ? 'آگے بڑھیں →' : isArabic ? 'متابعة →' : 'Continue →'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -181,18 +201,20 @@ export function OnboardingScreen({ onComplete }: Props) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۲ از ۲' : 'Step 2 of 2'}</Text>
+          <Text style={styles.stepNum}>{isUrdu ? 'مرحلہ ۲ از ۲' : isArabic ? 'الخطوة ٢ من ٢' : 'Step 2 of 2'}</Text>
           <Text style={styles.stepTitle}>
-            {isUrdu ? 'نماز کا طریقہ منتخب کریں' : 'Select Prayer Method'}
+            {isUrdu ? 'نماز کا طریقہ منتخب کریں' : isArabic ? 'اختر طريقة الصلاة' : 'Select Prayer Method'}
           </Text>
           <Text style={styles.stepSubtitle}>
             {isUrdu
               ? 'اپنے علاقے کا طریقہ منتخب کریں — بعد میں بھی تبدیل کیا جا سکتا ہے'
+              : isArabic
+              ? 'اختر الطريقة المستخدمة في بلدك — يمكنك تغييرها لاحقا'
               : 'Choose the method used in your country — can be changed later'}
           </Text>
 
           <Text style={styles.sectionLabel}>
-            {isUrdu ? 'حساب کتاب کا طریقہ' : 'Calculation Method'}
+            {isUrdu ? 'حساب کتاب کا طریقہ' : isArabic ? 'طريقة الحساب' : 'Calculation Method'}
           </Text>
           {CALCULATION_METHODS
             .filter((m) => selectedSchool === 'shia' ? m.id === 'Jafari' : m.id !== 'Jafari')
@@ -213,10 +235,10 @@ export function OnboardingScreen({ onComplete }: Props) {
           {selectedSchool === 'sunni' && (
             <>
               <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
-                {isUrdu ? 'عصر کا طریقہ (مذہب)' : 'Asr Calculation (Madhab)'}
+                {isUrdu ? 'عصر کا طریقہ (مذہب)' : isArabic ? 'حساب العصر (المذهب)' : 'Asr Calculation (Madhab)'}
               </Text>
               <Text style={styles.stepSubtitle}>
-                {isUrdu ? 'عصر کے وقت پر اثر ڈالتا ہے' : 'This affects only the Asr prayer time'}
+                {isUrdu ? 'عصر کے وقت پر اثر ڈالتا ہے' : isArabic ? 'يؤثر فقط على وقت صلاة العصر' : 'This affects only the Asr prayer time'}
               </Text>
               {MADHABS.map((m) => (
                 <TouchableOpacity
@@ -238,11 +260,11 @@ export function OnboardingScreen({ onComplete }: Props) {
         <View style={styles.fixedBottom}>
           <View style={styles.btnRow}>
             <TouchableOpacity style={styles.backBtn} onPress={() => setStep('school')}>
-              <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : '← Back'}</Text>
+              <Text style={styles.backBtnText}>{isUrdu ? '← واپس' : isArabic ? '← رجوع' : '← Back'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.nextBtn, { flex: 2 }]} onPress={finish}>
               <Text style={styles.nextBtnText}>
-                {isUrdu ? 'شروع کریں ✦' : 'Get Started ✦'}
+                {isUrdu ? 'شروع کریں ✦' : isArabic ? 'ابدأ الآن ✦' : 'Get Started ✦'}
               </Text>
             </TouchableOpacity>
           </View>

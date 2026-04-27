@@ -1,8 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = 'https://api.alquran.cloud/v1';
-const CACHE_PREFIX = 'quran_surah_';
 const CACHE_VERSION = 2;
+const CACHE_PREFIX = `quran_surah_v${CACHE_VERSION}_`;
 const CACHE_VERSION_KEY = 'quran_cache_version';
 
 export type Ayah = {
@@ -96,7 +96,13 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   return p;
 }
 
-const TAJWEED_PREFIX = 'quran_tajweed_';
+// Cache key prefix versioned: previous releases used alquran.cloud's
+// `quran-tajweed` edition, which returns Tanzil-style bracket markup
+// (e.g. "[h:1[ٱ]") that our parser cannot read. We now use Quran.com's
+// `uthmani_tajweed` edition, which returns proper HTML <tajweed class=X>
+// tags. The version bump ensures any stale bracket-format cache is ignored.
+const TAJWEED_PREFIX = 'quran_tajweed_v2_';
+const TAJWEED_API = 'https://api.quran.com/api/v4/quran/verses/uthmani_tajweed';
 
 export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> {
   const key = `${TAJWEED_PREFIX}${surahNumber}`;
@@ -105,12 +111,12 @@ export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> 
     if (cached) return JSON.parse(cached) as string[];
   } catch {}
 
-  const url = `${BASE}/surah/${surahNumber}/editions/quran-tajweed`;
+  const url = `${TAJWEED_API}?chapter_number=${surahNumber}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Tajweed fetch failed for surah ${surahNumber}`);
   const json = await res.json();
-  const edition = Array.isArray(json.data) ? json.data[0] : json.data;
-  const texts: string[] = (edition.ayahs as { text: string }[]).map(a => a.text);
+  const verses = (json.verses ?? []) as { text_uthmani_tajweed: string }[];
+  const texts: string[] = verses.map((v) => v.text_uthmani_tajweed ?? '');
   try {
     await AsyncStorage.setItem(key, JSON.stringify(texts));
   } catch {}

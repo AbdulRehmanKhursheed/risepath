@@ -19,7 +19,7 @@ import { PrayerSettingsModal } from '../components/PrayerSettingsModal';
 import { storage, PrayerRecord } from '../services/storage';
 import {
   requestNotificationPermissions,
-  schedulePrayerNotifications,
+  schedulePrayerNotificationsAhead,
   scheduleSacredCountdownNotifications,
   setupNotificationChannel,
 } from '../services/notifications';
@@ -28,9 +28,10 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { MenuButton } from '../components/MenuButton';
 import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
 import { detectRegionFromCoords } from '../constants/islamicCalendar';
+import { getLocalDateKey } from '../utils/date';
 
 function getDateString(d: Date): string {
-  return d.toISOString().split('T')[0];
+  return getLocalDateKey(d);
 }
 
 function getWeekDates(): Date[] {
@@ -51,6 +52,7 @@ export function PrayerTrackerScreen() {
   const { location, loading: locationLoading } = useLocation();
   const [prayers, setPrayers] = useState<Record<string, PrayerRecord>>({});
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethodId>('Karachi');
   const [madhab, setMadhab] = useState<MadhabId>('Shafi');
@@ -96,29 +98,49 @@ export function PrayerTrackerScreen() {
     isha: false,
   };
 
+  // Functional setState avoids the race where two rapid taps both close over
+  // the same `prayers` snapshot — without this, the second tap would overwrite
+  // the first because both compute their `updated` from the same baseline.
   const markPrayer = useCallback(
     async (key: PrayerName) => {
-      const newRecord = { ...todayRecord, [key]: !todayRecord[key] };
-      const updated = { ...prayers, [todayKey]: newRecord };
-      setPrayers(updated);
-      await storage.setPrayers(updated);
+      let computed: Record<string, PrayerRecord> | null = null;
+      setPrayers((prev) => {
+        const cur =
+          prev[todayKey] ?? {
+            fajr: false,
+            dhuhr: false,
+            asr: false,
+            maghrib: false,
+            isha: false,
+          };
+        const next = { ...cur, [key]: !cur[key] };
+        const updated = { ...prev, [todayKey]: next };
+        computed = updated;
+        return updated;
+      });
+      if (computed) await storage.setPrayers(computed);
     },
-    [todayRecord, prayers, todayKey]
+    [todayKey]
   );
 
-  // Guard: only reschedule notifications once per day to avoid repeated
-  // cancel/reschedule cycles every time a parent re-render occurs.
-  const lastScheduledDate = useRef<string>('');
+  // Guard: only reschedule notifications once per day-per-settings combo to
+  // avoid repeated cancel/reschedule cycles on parent re-renders. The settings
+  // tuple in the key ensures a calc-method/madhab change re-runs the schedule.
+  const lastScheduledKey = useRef<string>('');
   useEffect(() => {
     const todayKey = getDateString(today);
-    if (lastScheduledDate.current === todayKey) return;
+    const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
+    if (lastScheduledKey.current === scheduleKey) return;
+    lastScheduledKey.current = scheduleKey;
+    let cancelled = false;
     (async () => {
       const granted = await requestNotificationPermissions();
+      if (cancelled || !granted) return;
       if (granted) {
         await setupNotificationChannel();
-        await schedulePrayerNotifications(
-          prayerTimes.map((p) => ({ name: p.name, time: p.time }))
-        );
+        // Schedule prayer reminders 7 days ahead so they survive app dormancy.
+        await schedulePrayerNotificationsAhead(lat, lng, calculationMethod, madhab);
+        if (cancelled) return;
 
         // Sacred Countdown: region-aware, sect-aware, per-event mute.
         const [fiqh, savedRegion, prefs, loc] = await Promise.all([
@@ -139,15 +161,15 @@ export function PrayerTrackerScreen() {
             language
           );
         }
+        if (cancelled) return;
         await storage.setSacredCountdownPrefs({
           ...prefs,
           lastScheduledAt: todayKey,
         });
-
-        lastScheduledDate.current = todayKey;
       }
     })();
-  }, [prayerTimes, today, language]);
+    return () => { cancelled = true; };
+  }, [today, language, calculationMethod, madhab, lat, lng]);
 
   const getStatus = (key: PrayerName, prayerTime: Date): 'prayed' | 'missed' | 'upcoming' => {
     if (todayRecord[key]) return 'prayed';
@@ -184,8 +206,15 @@ export function PrayerTrackerScreen() {
       contentContainerStyle={styles.content}
       refreshControl={
         <RefreshControl
-          refreshing={false}
-          onRefresh={() => loadPrayers()}
+          refreshing={refreshing}
+          onRefresh={async () => {
+            setRefreshing(true);
+            try {
+              await loadPrayers();
+            } finally {
+              setRefreshing(false);
+            }
+          }}
           tintColor={theme.colors.accent}
         />
       }
@@ -223,9 +252,11 @@ export function PrayerTrackerScreen() {
         calculationMethod={calculationMethod}
         madhab={madhab}
         onSave={async (method, m) => {
+          const fiqhSchool = method === 'Jafari' ? 'shia' : 'sunni';
           setCalculationMethod(method);
           setMadhab(m);
-          await storage.setPrayerSettings({ calculationMethod: method, madhab: m });
+          await storage.setFiqhSchool(fiqhSchool);
+          await storage.setPrayerSettings({ calculationMethod: method, madhab: m, fiqhSchool });
         }}
       />
 

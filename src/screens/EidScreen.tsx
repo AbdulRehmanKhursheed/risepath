@@ -136,13 +136,15 @@ function SectionBlock({ section, isUrdu, fs }: { section: EidSection; isUrdu: bo
 }
 
 export function EidScreen() {
-  const [activeTab, setActiveTab] = useState<EidTab>('fitr');
+  const nextEid = getNextEid();
+  // Default the tab to whichever Eid is upcoming so the user lands on the
+  // relevant content immediately, instead of always starting on Fitr.
+  const [activeTab, setActiveTab] = useState<EidTab>(nextEid?.type ?? 'fitr');
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const isUrdu = language === 'ur';
 
   const sections = activeTab === 'fitr' ? EID_FITR_SECTIONS : EID_ADHA_SECTIONS;
-  const nextEid = getNextEid();
   const days = nextEid ? daysUntil(nextEid.date) : null;
 
   return (

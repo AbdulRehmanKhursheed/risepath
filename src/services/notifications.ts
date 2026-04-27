@@ -1,6 +1,13 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import {
+  PrayerTimes as AdhanPrayerTimes,
+  Coordinates,
+  CalculationMethod,
+  CalculationParameters,
+  Madhab,
+} from 'adhan';
+import {
   CalendarRegion,
   EventType,
   getMilestonesFor,
@@ -9,12 +16,18 @@ import {
   ResolvedEvent,
   Sect,
 } from '../constants/islamicCalendar';
+import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
 import type { Language } from '../constants/translations';
+import { storage } from './storage';
 
 export type PrayerTime = {
   name: string;
   time: Date;
 };
+
+// Days of prayer notifications kept scheduled ahead. 7 × 5 = 35 entries leaves
+// room under Android's ~50 pending-notification cap for streak + sacred schedules.
+export const PRAYER_SCHEDULE_DAYS_AHEAD = 7;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -36,10 +49,105 @@ export async function requestNotificationPermissions(): Promise<boolean> {
 
 const PRAYER_ID_PREFIX = 'pr:';
 
+const ADHAN_METHOD_MAP: Record<CalculationMethodId, () => CalculationParameters> = {
+  MuslimWorldLeague: () => CalculationMethod.MuslimWorldLeague(),
+  Egyptian: () => CalculationMethod.Egyptian(),
+  Karachi: () => CalculationMethod.Karachi(),
+  UmmAlQura: () => CalculationMethod.UmmAlQura(),
+  Dubai: () => CalculationMethod.Dubai(),
+  MoonsightingCommittee: () => CalculationMethod.MoonsightingCommittee(),
+  NorthAmerica: () => CalculationMethod.NorthAmerica(),
+  Kuwait: () => CalculationMethod.Kuwait(),
+  Qatar: () => CalculationMethod.Qatar(),
+  Singapore: () => CalculationMethod.Singapore(),
+  Tehran: () => CalculationMethod.Tehran(),
+  Turkey: () => CalculationMethod.Turkey(),
+  Jafari: () => {
+    const p = CalculationMethod.Other();
+    p.fajrAngle = 16;
+    p.ishaAngle = 14;
+    p.maghribAngle = 4;
+    return p;
+  },
+  Other: () => CalculationMethod.Other(),
+};
+
+const ADHAN_MADHAB_MAP = { Shafi: Madhab.Shafi, Hanafi: Madhab.Hanafi } as const;
+
+function computePrayerTimesForDate(
+  lat: number,
+  lng: number,
+  date: Date,
+  calculationMethod: CalculationMethodId,
+  madhab: MadhabId
+): PrayerTime[] {
+  const coords = new Coordinates(lat, lng);
+  const params = ADHAN_METHOD_MAP[calculationMethod]?.() ?? CalculationMethod.Karachi();
+  params.madhab = ADHAN_MADHAB_MAP[madhab] ?? Madhab.Shafi;
+  const t = new AdhanPrayerTimes(coords, date, params);
+  return [
+    { name: 'Fajr', time: t.fajr },
+    { name: 'Dhuhr', time: t.dhuhr },
+    { name: 'Asr', time: t.asr },
+    { name: 'Maghrib', time: t.maghrib },
+    { name: 'Isha', time: t.isha },
+  ];
+}
+
+// Cancels pending prayer reminders and schedules `daysAhead` worth of fresh
+// ones. Idempotent — safe to call repeatedly (app open, AppState 'active',
+// settings change). Only touches `pr:` IDs, so streak and sacred-countdown
+// schedules are untouched.
+export async function schedulePrayerNotificationsAhead(
+  lat: number,
+  lng: number,
+  calculationMethod: CalculationMethodId,
+  madhab: MadhabId,
+  daysAhead: number = PRAYER_SCHEDULE_DAYS_AHEAD
+): Promise<number> {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of existing) {
+    if (n.identifier.startsWith(PRAYER_ID_PREFIX)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    }
+  }
+
+  const now = new Date();
+  let scheduled = 0;
+
+  for (let dayOffset = 0; dayOffset < daysAhead; dayOffset += 1) {
+    // Anchor at noon to avoid DST/midnight edge cases when computing prayer times.
+    const target = new Date(now);
+    target.setDate(target.getDate() + dayOffset);
+    target.setHours(12, 0, 0, 0);
+    const prayers = computePrayerTimesForDate(lat, lng, target, calculationMethod, madhab);
+
+    for (const prayer of prayers) {
+      const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000);
+      if (triggerTime <= now) continue;
+      const id = `${PRAYER_ID_PREFIX}${prayer.name}:${triggerTime.getTime()}`;
+      await Notifications.scheduleNotificationAsync({
+        identifier: id,
+        content: {
+          title: `⏰ ${prayer.name} in 5 minutes`,
+          body: 'Time to prepare for prayer.',
+          sound: true,
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerTime,
+          channelId: 'azan-reminders',
+        },
+      });
+      scheduled += 1;
+    }
+  }
+  return scheduled;
+}
+
 export async function schedulePrayerNotifications(
   prayerTimes: PrayerTime[]
 ): Promise<void> {
-  // Only cancel prayer reminders — leave sacred-countdown notifications in place.
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   for (const n of existing) {
     if (n.identifier.startsWith(PRAYER_ID_PREFIX)) {
@@ -48,7 +156,7 @@ export async function schedulePrayerNotifications(
   }
 
   for (const prayer of prayerTimes) {
-    const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000); // 5 min before
+    const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000);
     if (triggerTime > new Date()) {
       const id = `${PRAYER_ID_PREFIX}${prayer.name}:${triggerTime.getTime()}`;
       await Notifications.scheduleNotificationAsync({
@@ -68,24 +176,79 @@ export async function schedulePrayerNotifications(
   }
 }
 
+// Reads location + calc method + madhab from storage and rebuilds the prayer
+// schedule. Called from app boot, AppState 'active', and PrayerTrackerScreen.
+// Falls back to Karachi defaults if no location is stored.
+export async function rebuildPrayerScheduleFromStorage(): Promise<number> {
+  const [loc, settings] = await Promise.all([
+    storage.getLocation(),
+    storage.getPrayerSettings(),
+  ]);
+  const lat = loc?.latitude ?? 24.8607;
+  const lng = loc?.longitude ?? 67.0011;
+  const method = (settings?.calculationMethod as CalculationMethodId) ?? 'Karachi';
+  const madhab = (settings?.madhab as MadhabId) ?? 'Shafi';
+  return schedulePrayerNotificationsAhead(lat, lng, method, madhab);
+}
+
 export async function setupNotificationChannel(): Promise<void> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync('azan-reminders', {
-      name: 'Prayer Reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-      sound: 'default',
-    });
-    await Notifications.setNotificationChannelAsync('sacred-countdown', {
-      name: 'Sacred Events',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      sound: 'default',
-    });
-    await Notifications.setNotificationChannelAsync('streak-reminders', {
-      name: 'Daily Streak',
-      importance: Notifications.AndroidImportance.DEFAULT,
-      sound: 'default',
-    });
-  }
+  if (Platform.OS !== 'android') return;
+
+  // All three reminder channels are HIGH importance: prayer, sacred-event and
+  // streak reminders are the app's core promise — they must wake the screen,
+  // show heads-up, and survive DND for users who opt in. Android only allows
+  // *lowering* a channel's importance after creation; HIGH from the start.
+  await Notifications.setNotificationChannelAsync('azan-reminders', {
+    name: 'Prayer Reminders',
+    description: '5-min advance reminder before each Salah (Fajr, Dhuhr, Asr, Maghrib, Isha)',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    enableVibrate: true,
+    vibrationPattern: [0, 250, 250, 250],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+  await Notifications.setNotificationChannelAsync('sacred-countdown', {
+    name: 'Sacred Events',
+    description: 'Eid, Ramadan, Day of Arafah, Mawlid and other Islamic event reminders',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    enableVibrate: true,
+    vibrationPattern: [0, 250, 250, 250],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+  await Notifications.setNotificationChannelAsync('streak-reminders', {
+    name: 'Daily Streak',
+    description: 'Evening reminder to mark prayers and keep your daily streak',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    enableVibrate: true,
+    vibrationPattern: [0, 300],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+}
+
+// Fires a notification a few seconds in the future, useful from the Prayer
+// Settings sheet to verify the device's notification path end-to-end:
+// permission, channel importance, sound, vibration, lockscreen visibility,
+// and OEM battery whitelist all light up at once.
+export async function sendTestNotification(): Promise<boolean> {
+  const granted = await requestNotificationPermissions();
+  if (!granted) return false;
+  await setupNotificationChannel();
+  await Notifications.scheduleNotificationAsync({
+    identifier: `test:${Date.now()}`,
+    content: {
+      title: '🔔 Noor — test notification',
+      body: 'If you can read this, your notifications are working. Fajr will fire on time.',
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+      seconds: 3,
+      channelId: 'azan-reminders',
+    },
+  });
+  return true;
 }
 
 const STREAK_ID_PREFIX = 'streak:';
@@ -106,6 +269,58 @@ const STREAK_COPY: Record<Language, { title: string; body: string }> = {
     body: 'لا تدع اليوم يمر. سجّل صلواتك وواصل رحلتك مع Noor.',
   },
 };
+
+// ─── Weekly Jumu'ah reminder ─────────────────────────────────────────────────
+// Fires every Friday at 08:00 local time. Recommends Surah al-Kahf, ghusl,
+// going early to the mosque, and abundant durood. Ramps up year-round
+// engagement (52 firings per year vs 1-2 for Eid).
+
+const JUMUAH_ID_PREFIX = 'jumu:';
+
+const JUMUAH_COPY: Record<Language, { title: string; body: string }> = {
+  en: {
+    title: '🕌 Friday — Day of Jumu\'ah',
+    body: 'Recite Surah al-Kahf today. Take ghusl, wear your best, go early to the mosque, send abundant durood.',
+  },
+  ur: {
+    title: '🕌 جمعہ — یوم الجمعہ',
+    body: 'آج سورۃ الکہف پڑھیں۔ غسل کریں، بہترین لباس پہنیں، جلدی مسجد جائیں، کثرت سے درود بھیجیں۔',
+  },
+  ar: {
+    title: '🕌 الجمعة — يوم الجمعة',
+    body: 'اقرأ سورة الكهف. اغتسل، البس أحسن ثيابك، تبكّر إلى المسجد، أكثر من الصلاة على النبي ﷺ.',
+  },
+};
+
+export async function scheduleJumuahReminder(
+  language: Language = 'en'
+): Promise<void> {
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of existing) {
+    if (n.identifier.startsWith(JUMUAH_ID_PREFIX)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    }
+  }
+
+  const copy = JUMUAH_COPY[language] ?? JUMUAH_COPY.en;
+
+  // expo-notifications WEEKLY weekday: Sunday=1 ... Saturday=7. Friday = 6.
+  await Notifications.scheduleNotificationAsync({
+    identifier: `${JUMUAH_ID_PREFIX}weekly`,
+    content: {
+      title: copy.title,
+      body: copy.body,
+      sound: true,
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+      weekday: 6,
+      hour: 8,
+      minute: 0,
+      channelId: 'sacred-countdown',
+    },
+  });
+}
 
 export async function scheduleStreakReminder(language: Language = 'en'): Promise<void> {
   const existing = await Notifications.getAllScheduledNotificationsAsync();
@@ -136,6 +351,7 @@ export async function scheduleStreakReminder(language: Language = 'en'): Promise
 // Sacred Countdown notifications use a stable `sc:` prefix so prayer and
 // sacred schedules can be cancelled/recreated independently.
 const SACRED_ID_PREFIX = 'sc:';
+export const SACRED_MUTE_ALL_ID = '__all__';
 
 type MilestoneCopy = {
   title: string;
@@ -300,6 +516,8 @@ export async function scheduleSacredCountdownNotifications(
       await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
     }
   }
+
+  if (mutedIds.includes(SACRED_MUTE_ALL_ID)) return 0;
 
   const events = getUpcomingEvents(sect, region).slice(0, 12); // cap to avoid spam
   const now = new Date();

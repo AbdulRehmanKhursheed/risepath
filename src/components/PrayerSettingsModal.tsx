@@ -7,6 +7,9 @@ import {
   ScrollView,
   StyleSheet,
   Pressable,
+  Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { theme } from '../constants/theme';
 import {
@@ -16,6 +19,7 @@ import {
   type MadhabId,
 } from '../constants/prayerMethods';
 import { useLanguage } from '../contexts/LanguageContext';
+import { sendTestNotification } from '../services/notifications';
 
 type Props = {
   visible: boolean;
@@ -97,6 +101,51 @@ export function PrayerSettingsModal({
                 <Text style={styles.optionRegion}>{m.region}</Text>
               </TouchableOpacity>
             ))}
+
+            <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
+              Notifications
+            </Text>
+            <Text style={styles.sectionHint}>
+              If reminders aren't firing on your device, your phone may be killing
+              background apps. Test below, then if needed allow Noor to run in the
+              background and disable battery optimisation in Android Settings.
+            </Text>
+            <TouchableOpacity
+              style={styles.notifTestBtn}
+              onPress={async () => {
+                const ok = await sendTestNotification();
+                Alert.alert(
+                  ok ? '✓ Test scheduled' : 'Permission denied',
+                  ok
+                    ? 'A test notification will fire in 3 seconds. Lock your screen now to confirm it wakes the device.'
+                    : 'Please allow notifications for Noor in Settings, then try again.',
+                  [
+                    { text: 'OK' },
+                    !ok && Platform.OS === 'android'
+                      ? {
+                          text: 'Open Settings',
+                          onPress: () => Linking.openSettings().catch(() => {}),
+                        }
+                      : null,
+                  ].filter(Boolean) as any
+                );
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.notifTestBtnText}>🔔 Send test notification</Text>
+            </TouchableOpacity>
+
+            {Platform.OS === 'android' && (
+              <TouchableOpacity
+                style={styles.notifSettingsLink}
+                onPress={() => Linking.openSettings().catch(() => {})}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.notifSettingsLinkText}>
+                  ⚙️  Open Android notification settings ›
+                </Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
 
           <View style={styles.footer}>
@@ -222,5 +271,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
+  },
+  notifTestBtn: {
+    backgroundColor: theme.colors.accentMuted,
+    borderWidth: 1.5,
+    borderColor: theme.colors.accent,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    marginTop: theme.spacing.sm,
+  },
+  notifTestBtnText: {
+    fontSize: 14,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.accent,
+  },
+  notifSettingsLink: {
+    paddingVertical: 10,
+    alignItems: 'center',
+    marginTop: theme.spacing.xs,
+  },
+  notifSettingsLinkText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyMedium,
   },
 });

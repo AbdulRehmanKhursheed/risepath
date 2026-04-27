@@ -28,10 +28,12 @@ import {
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import {
+  SACRED_MUTE_ALL_ID,
   requestNotificationPermissions,
   scheduleSacredCountdownNotifications,
   setupNotificationChannel,
 } from '../services/notifications';
+import { getLocalDateKey } from '../utils/date';
 
 const TICK_INTERVAL_MS = 60 * 1000;
 
@@ -139,10 +141,10 @@ export function SacredJourneyScreen() {
       if (!region) return;
       await storage.setSacredCountdownPrefs({
         ...next,
-        lastScheduledAt: new Date().toISOString().slice(0, 10),
+        lastScheduledAt: getLocalDateKey(),
       });
       if (!next.enabled) {
-        await scheduleSacredCountdownNotifications(sect, region, ['__all__'], language);
+        await scheduleSacredCountdownNotifications(sect, region, [SACRED_MUTE_ALL_ID], language);
         return;
       }
       const granted = await requestNotificationPermissions();
@@ -194,7 +196,7 @@ export function SacredJourneyScreen() {
       : `${countdown.days} days, ${countdown.hours} hours`;
     const quote = getQuoteForEvent(next.type, countdown.days);
     const body = isUrdu ? quote.ur : quote.en;
-    const text = `${next.icon} ${eventName} — ${countdownStr}\n\n"${body}"\n— ${quote.source}\n\nNoor · Your Muslim Companion`;
+    const text = `${next.icon} ${eventName} — ${countdownStr}\n\n"${body}"\n— ${quote.source}\n\nShared from Noor · Quran, Prayer Times, Eid Guide`;
     try {
       await Share.share({ message: text });
     } catch {

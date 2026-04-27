@@ -1,6 +1,6 @@
-import React, { useCallback, useState, useEffect, Component, ReactNode } from 'react';
+import React, { useCallback, useState, useEffect, useRef, Component, ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, AppState, AppStateStatus } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets, initialWindowMetrics } from 'react-native-safe-area-context';
 import { NavigationContainer, DefaultTheme, useNavigationContainerRef, CommonActions } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -20,13 +20,15 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
 import { prefetchAllSurahs } from './src/services/quran';
-import { captureError, wrap } from './src/services/sentry';
+import { captureError } from './src/services/sentry';
 import { requestAdsConsent } from './src/services/consent';
 import { trackAppOpen, maybePromptReview } from './src/services/review';
 import {
   requestNotificationPermissions,
   setupNotificationChannel,
   scheduleStreakReminder,
+  scheduleJumuahReminder,
+  rebuildPrayerScheduleFromStorage,
 } from './src/services/notifications';
 import * as Location from 'expo-location';
 import { storage } from './src/services/storage';
@@ -57,7 +59,11 @@ import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
-  enableLogs: true,
+  // The listing claims "no tracking, data stays on device". Sentry crash
+  // payloads are an acceptable narrow exception (anonymous error reports),
+  // but routing console.log output to Sentry would broaden that and break
+  // the claim. Keep logs local.
+  enableLogs: false,
   tracesSampleRate: 0.2,
   sendDefaultPii: false,
 });
@@ -123,7 +129,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 function QuranTab() {
-  const { pendingSurah, clearPending } = useQuranNav();
+  const { pendingSurah } = useQuranNav();
 
   const [activeSurah, setActiveSurah] = useState<number | undefined>(() =>
     pendingSurah !== null ? pendingSurah : undefined
@@ -134,7 +140,6 @@ function QuranTab() {
     if (pendingSurah !== null) {
       setActiveSurah(pendingSurah);
       setMountKey((k) => k + 1);
-      clearPending();
     }
   }, [pendingSurah]);
 
@@ -183,24 +188,25 @@ function MainTabs() {
 }
 
 function AppStack({ onLayout }: { onLayout: () => void }) {
-  const { pendingSurah } = useQuranNav();
+  const { pendingSurah, clearPending } = useQuranNav();
   const navRef = useNavigationContainerRef();
+  const [navReady, setNavReady] = useState(false);
 
   useEffect(() => {
-    if (pendingSurah !== null && navRef.isReady()) {
-      navRef.dispatch(
-        CommonActions.navigate({
-          name: 'MainTabs',
-          params: { screen: 'Quran' },
-        })
-      );
-    }
-  }, [pendingSurah]);
+    if (pendingSurah === null || !navReady || !navRef.isReady()) return;
+    navRef.dispatch(
+      CommonActions.navigate({
+        name: 'MainTabs',
+        params: { screen: 'Quran' },
+      })
+    );
+    clearPending();
+  }, [pendingSurah, navReady, navRef, clearPending]);
 
   return (
     <View style={styles.root} onLayout={onLayout}>
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
-      <NavigationContainer ref={navRef} theme={NAV_THEME}>
+      <NavigationContainer ref={navRef} theme={NAV_THEME} onReady={() => setNavReady(true)}>
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen
@@ -285,9 +291,13 @@ function AppInner() {
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
-    AsyncStorage.getItem('onboarding_complete').then((val) => {
-      setOnboardingDone(val === 'true');
-    });
+    AsyncStorage.getItem('onboarding_complete')
+      .then((val) => {
+        setOnboardingDone(val === 'true');
+      })
+      .catch(() => {
+        setOnboardingDone(false);
+      });
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
@@ -301,13 +311,18 @@ function AppInner() {
     // Delay trickle-prefetch so first-paint network stays clear. Runs once
     // per app-install and is a no-op when surahs are already cached.
     const t = setTimeout(() => { prefetchAllSurahs().catch(() => {}); }, 4000);
+    let reviewTimer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
     trackAppOpen().then(() => {
-      setTimeout(() => { maybePromptReview().catch(() => {}); }, 20000);
+      if (cancelled) return;
+      reviewTimer = setTimeout(() => { maybePromptReview().catch(() => {}); }, 20000);
     });
 
-    // Bundle first-launch permission prompts (notifications + location) and
-    // schedule a daily streak reminder. Prayer-time reminders are still scheduled
-    // in PrayerTrackerScreen once adhan times for the day are computed.
+    // Bundle first-launch permission prompts (notifications + location),
+    // schedule streak + 7-day prayer reminders, and start an AppState listener
+    // that re-runs the prayer schedule on every resume — that listener is the
+    // safety net for users who don't open the Prayers tab daily and for devices
+    // that wipe scheduled alarms after reboot.
     (async () => {
       try {
         const notifGranted = await requestNotificationPermissions();
@@ -315,6 +330,8 @@ function AppInner() {
           await setupNotificationChannel();
           const savedLang = (await AsyncStorage.getItem('app_language')) as 'en' | 'ur' | 'ar' | null;
           await scheduleStreakReminder(savedLang ?? 'en');
+          await scheduleJumuahReminder(savedLang ?? 'en');
+          await rebuildPrayerScheduleFromStorage().catch(() => {});
         }
       } catch {}
 
@@ -328,11 +345,34 @@ function AppInner() {
             latitude: result.coords.latitude,
             longitude: result.coords.longitude,
           });
+          // Reschedule once we know the real location so day-1 prayers are
+          // computed with the user's coords instead of the Karachi default.
+          await rebuildPrayerScheduleFromStorage().catch(() => {});
         }
       } catch {}
     })();
 
-    return () => clearTimeout(t);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+      if (reviewTimer) clearTimeout(reviewTimer);
+    };
+  }, [fontsLoaded, onboardingDone]);
+
+  // Re-run the prayer schedule on every resume. Idempotent and lightweight,
+  // but throttled to once per 30 s to avoid hammering on rapid state churn.
+  const lastResumeRebuildAt = useRef<number>(0);
+  useEffect(() => {
+    if (!fontsLoaded || onboardingDone !== true) return;
+    const onChange = (state: AppStateStatus) => {
+      if (state !== 'active') return;
+      const now = Date.now();
+      if (now - lastResumeRebuildAt.current < 30_000) return;
+      lastResumeRebuildAt.current = now;
+      rebuildPrayerScheduleFromStorage().catch(() => {});
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
   }, [fontsLoaded, onboardingDone]);
 
   const completeOnboarding = async () => {
@@ -372,7 +412,7 @@ function AppInner() {
   );
 }
 
-export default Sentry.wrap(wrap(AppInner));
+export default Sentry.wrap(AppInner);
 
 const styles = StyleSheet.create({
   root: {

@@ -9,7 +9,17 @@ export function HadithOfDay() {
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const hadith = useMemo(() => getDailyHadith(), []);
-  const body = language === 'ur' ? hadith.urdu : hadith.english;
+  // Arabic readers get the Arabic original (already shown above as the
+  // primary text). The body line is the rendered translation in the user's
+  // chosen reading language. Falling back to English for Arabic was a bug —
+  // an Arabic user expects an Arabic translation if one exists, otherwise
+  // the original is what's needed (which the `arabic` field already supplies).
+  const body =
+    language === 'ur'
+      ? hadith.urdu
+      : language === 'ar'
+      ? (hadith as { arabic?: string; arabicTranslation?: string }).arabicTranslation ?? hadith.arabic
+      : hadith.english;
   const label = language === 'ur' ? 'آج کی حدیث' : language === 'ar' ? 'حديث اليوم' : 'Hadith of the Day';
 
   return (

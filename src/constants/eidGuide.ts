@@ -296,6 +296,123 @@ export const EID_FITR_SECTIONS: EidSection[] = [
 
 export const EID_ADHA_SECTIONS: EidSection[] = [
   {
+    id: 'adha-tendays',
+    icon: '🌙',
+    title: 'The 10 Sacred Days of Dhul Hijjah',
+    titleUr: 'ذوالحجہ کے دس مبارک دن',
+    masail: [
+      {
+        id: 'adha-td-1',
+        title: 'Best Days of the Year for Worship',
+        titleUr: 'سال کے بہترین دن',
+        description:
+          'The Prophet ﷺ said: "There are no days during which righteous deeds are more beloved to Allah than these ten days." The Companions asked: "Not even Jihad in the way of Allah?" He replied: "Not even Jihad — except for a man who goes out risking himself and his wealth, and returns with none of that."\n\nThis means fasting one day, one tahajjud, one sadaqah, one ayah recited in these ten days outweighs the same act in any other ten days of the year.',
+        descriptionUr:
+          'حضور ﷺ نے فرمایا: "اللہ کے نزدیک ان دس دنوں سے زیادہ کوئی دن نہیں جن میں نیک اعمال اس کو زیادہ محبوب ہوں۔" صحابہ نے پوچھا: "اللہ کے راستے میں جہاد بھی نہیں؟" آپ ﷺ نے فرمایا: "جہاد بھی نہیں، سوائے اس شخص کے جو اپنی جان و مال لے کر نکلے اور کچھ بھی واپس نہ لائے۔"\n\nمطلب: ان دس دنوں میں ایک روزہ، ایک تہجد، ایک صدقہ، ایک آیت کی تلاوت سال کے باقی دس دنوں سے زیادہ محبوب ہے۔',
+        source: 'Bukhari 969, Tirmidhi 757, Abu Dawud 2438',
+        important: true,
+      },
+      {
+        id: 'adha-td-2',
+        title: 'Allah Swears by These Ten Nights',
+        titleUr: 'اللہ نے ان دس راتوں کی قسم کھائی',
+        description:
+          'Allah opens Surah Al-Fajr with an oath by these ten nights — and Allah only swears by what is of tremendous importance. Ibn Abbas RA, Ibn Umar RA, Mujahid, and the majority of mufassireen confirmed these are the first ten nights of Dhul Hijjah.',
+        descriptionUr:
+          'اللہ نے سورۃ الفجر کا آغاز ان دس راتوں کی قسم سے کیا — اور اللہ صرف عظیم چیز کی قسم کھاتا ہے۔ ابن عباسؓ، ابن عمرؓ، مجاہد اور اکثر مفسرین کے مطابق یہ ذوالحجہ کی پہلی دس راتیں ہیں۔',
+        dua: {
+          arabic: 'وَالْفَجْرِ ۝ وَلَيَالٍ عَشْرٍ',
+          transliteration: 'Wal Fajri, Wa Layaalin Ashr',
+          translation: 'By the dawn, and by the ten nights.',
+          translationUr: 'قسم ہے فجر کی، اور دس راتوں کی۔',
+        },
+        source: "Qur'an 89:1-2; Tafsir Ibn Kathir, Tafsir at-Tabari",
+        important: true,
+      },
+      {
+        id: 'adha-td-3',
+        title: 'Day of Arafah — Fasting Wipes Two Years of Sins',
+        titleUr: 'یومِ عرفہ کا روزہ — دو سال کے گناہوں کا کفارہ',
+        description:
+          'Fasting on the 9th of Dhul Hijjah (Day of Arafah) for non-pilgrims expiates the sins of the previous year AND the coming year. The Prophet ﷺ said: "There is no day on which Allah frees more people from the Fire than the Day of Arafah."\n\nPilgrims standing at Arafah do NOT fast — following the Prophet\'s ﷺ practice on his Hajj.',
+        descriptionUr:
+          'یومِ عرفہ (۹ ذوالحجہ) کا روزہ جو شخص حج پر نہ ہو، اس کے پچھلے اور آنے والے سال کے گناہوں کا کفارہ ہے۔ حضور ﷺ نے فرمایا: "یومِ عرفہ سے زیادہ کوئی دن ایسا نہیں جس میں اللہ زیادہ لوگوں کو جہنم سے آزاد کرتا ہو۔"\n\nحاجی عرفات میں روزہ نہیں رکھتے — یہ حضور ﷺ کا حج میں طریقہ تھا۔',
+        source: 'Muslim 1162, Muslim 1348, Tirmidhi 749',
+        important: true,
+      },
+      {
+        id: 'adha-td-4',
+        title: 'The Best Dua — Said on the Day of Arafah',
+        titleUr: 'بہترین دعا — یومِ عرفہ کی دعا',
+        description:
+          'The Prophet ﷺ said: "The best of supplication is the supplication of the Day of Arafah, and the best thing that I and the prophets before me have said is: La ilaha illallah wahdahu la sharika lah, lahul-mulku wa lahul-hamd, wa huwa ala kulli shay\'in qadeer."\n\nRepeat this throughout the day — at home, on the way, after every prayer.',
+        descriptionUr:
+          'حضور ﷺ نے فرمایا: "بہترین دعا یومِ عرفہ کی دعا ہے، اور میں نے اور مجھ سے پہلے انبیاء نے جو سب سے بہتر بات کہی وہ یہ ہے: لَا إِلٰهَ إِلَّا اللّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ..."\n\nاس کلمہ کو دن بھر دہرائیں — گھر میں، راستے میں، ہر نماز کے بعد۔',
+        dua: {
+          arabic:
+            'لَا إِلٰهَ إِلَّا اللّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ',
+          transliteration:
+            'La ilaha illallahu wahdahu la sharika lah, lahul-mulku wa lahul-hamdu wa huwa ala kulli shay\'in qadeer',
+          translation:
+            'There is no god but Allah alone, with no partner. To Him belongs all sovereignty and all praise, and He is over all things capable.',
+          translationUr:
+            'اللہ کے سوا کوئی معبود نہیں، وہ اکیلا ہے، اس کا کوئی شریک نہیں، اسی کے لیے بادشاہی اور اسی کے لیے تعریف ہے، اور وہ ہر چیز پر قادر ہے۔',
+        },
+        source: 'Tirmidhi 3585 (graded hasan)',
+        important: true,
+      },
+      {
+        id: 'adha-td-5',
+        title: 'The Sacrifice of Ibrahim ﷺ — Why We Celebrate',
+        titleUr: 'حضرت ابراہیم ؑ کی قربانی — عید کی اصل',
+        description:
+          'Eid al-Adha commemorates Prophet Ibrahim\'s ﷺ willingness to sacrifice his son Ismail ﷺ in obedience to Allah\'s command shown to him in a dream. As Ibrahim prepared to carry it out — and as Ismail willingly submitted — Allah replaced him with a great ram and called out: "O Ibrahim! You have fulfilled the vision."\n\nThe Quran preserves their conversation: Ibrahim said, "O my dear son! I see in a dream that I am sacrificing you. So tell me what you think." He said, "O my father! Do as you are commanded; you will find me, Allah willing, of the patient ones." (37:102)\n\nQurbani is not about meat — it is about renewing this surrender.',
+        descriptionUr:
+          'عیدالاضحی حضرت ابراہیم ؑ کی اس قربانی کی یاد ہے جب اللہ نے انہیں خواب میں اپنے بیٹے اسماعیل ؑ کو ذبح کرنے کا حکم دیا۔ جب وہ تعمیل کرنے لگے — اور اسماعیل ؑ نے رضامندی سے سر جھکا دیا — تو اللہ نے ایک عظیم مینڈھے سے فدیہ دیا اور پکارا: "اے ابراہیم! تم نے خواب سچ کر دکھایا۔"\n\nقرآن میں ان کی گفتگو محفوظ ہے: ابراہیم ؑ نے کہا، "بیٹے! میں خواب میں دیکھتا ہوں کہ تمہیں ذبح کر رہا ہوں، تمہاری کیا رائے ہے؟" اسماعیل ؑ نے کہا، "ابا جان! جو حکم ملا ہے وہ کر گزریں، ان شاء اللہ آپ مجھے صبر کرنے والوں میں پائیں گے۔" (۳۷:۱۰۲)\n\nقربانی گوشت کا نہیں، اسی سپردگی کی تجدید کا نام ہے۔',
+        dua: {
+          arabic:
+            'يَا أَبَتِ افْعَلْ مَا تُؤْمَرُ ۖ سَتَجِدُنِي إِنْ شَاءَ اللَّهُ مِنَ الصَّابِرِينَ',
+          transliteration:
+            'Yaa abati ifʿal maa tu\'mar, satajiduni inshaa Allahu minas saabireen',
+          translation:
+            'O my father! Do as you are commanded — you will find me, Allah willing, of the patient.',
+          translationUr:
+            'ابا جان! جو حکم آپ کو ملا ہے وہ کر گزریں، ان شاء اللہ آپ مجھے صابرین میں پائیں گے۔',
+        },
+        source: "Qur'an As-Saffat 37:99-111",
+      },
+      {
+        id: 'adha-td-6',
+        title: 'Daily Worship Plan — 1st to 9th Dhul Hijjah',
+        titleUr: 'یکم سے ۹ ذوالحجہ — روزانہ کا عمل',
+        description:
+          'Plan each day with at least three things from this list. The Prophet ﷺ commanded increased remembrance of Allah in these days specifically.',
+        descriptionUr:
+          'ہر دن کم از کم تین چیزیں ضرور کریں۔ حضور ﷺ نے ان دنوں میں خاص طور پر اللہ کے ذکر میں اضافے کا حکم دیا۔',
+        tips: [
+          'Fast as many of the first 9 days as possible — especially Day of Arafah (9th)',
+          'Recite Takbeer (Allahu Akbar), Tahmeed (Alhamdulillah), Tahleel (La ilaha illallah) loudly',
+          'Read Qur\'an daily — at minimum one juz, ideally one Surah Al-Kahf on Friday',
+          'Give sadaqah every single day — even one rupee/coin',
+          'Pray Tahajjud — even two rakats in the last third of the night',
+          'Make sincere tawbah and increase istighfar',
+          'Keep family ties — call a relative you have not spoken to',
+        ],
+        tipsUr: [
+          'پہلے ۹ دنوں میں زیادہ سے زیادہ روزے رکھیں — خاص طور پر ۹ ذوالحجہ',
+          'تکبیر، تحمید، تہلیل بلند آواز سے پڑھیں',
+          'روزانہ قرآن کی تلاوت — کم از کم ایک پارہ، جمعہ کو سورۃ الکہف',
+          'ہر دن صدقہ کریں — چاہے ایک روپیہ ہو',
+          'تہجد ادا کریں — رات کے آخری حصے میں دو رکعت بھی کافی ہیں',
+          'سچی توبہ اور کثرت سے استغفار',
+          'صلہ رحمی کریں — کسی بھولے رشتہ دار کو فون کریں',
+        ],
+        source: 'Musnad Ahmad 5446 (Ibn Umar RA), Bukhari 969',
+        important: true,
+      },
+    ],
+  },
+  {
     id: 'adha-preparation',
     icon: '✨',
     title: 'Night & Morning of Eid',
@@ -399,10 +516,21 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
         title: 'Who Must Do Qurbani?',
         titleUr: 'قربانی کس پر واجب ہے؟',
         description:
-          'Every adult Muslim who possesses nisab (≈ value of 612g silver in cash) on the days of qurbani must perform it.\n\nHanafi: Wajib. One qurbani suffices for the whole household (head of family acts on behalf of all).\nShafi\'i / Maliki / Hanbali: Sunnah Mu\'akkadah — one per individual adult.',
+          'Qurbani is for the adult Muslim of sound mind who possesses **nisab** on the days of qurbani.\n\nNisab = the value of 87.48 g of gold OR 612.36 g of silver in cash, savings, or wealth beyond essential needs (home, clothing, tools of trade, debt obligations). Most contemporary scholars use the silver standard since it benefits more recipients.\n\nHanafi: **Wajib** (obligatory). One qurbani per household; the head of family acts on behalf of dependents.\nShafi\'i / Maliki / Hanbali: **Sunnah Mu\'akkadah** (strongly emphasised) — one per individual adult who can afford it.\nJa\'fari (Shia): Mustahabb (recommended) for those who can; not obligatory.',
         descriptionUr:
-          'ہر وہ بالغ مسلمان جو قربانی کے دنوں میں نصاب (تقریباً ۶۱۲ گرام چاندی کی قیمت) کے برابر مال رکھتا ہو۔\n\nحنفی: واجب — ایک قربانی پورے گھرانے کی طرف سے کافی ہے۔\nشافعی/مالکی/حنبلی: سنتِ مؤکدہ — ہر بالغ کے لیے الگ۔',
-        source: 'Abu Dawud 2788, Ibn Majah 3123',
+          'قربانی ہر اس بالغ، عاقل مسلمان پر ہے جو قربانی کے دنوں میں **نصاب** کا مالک ہو۔\n\nنصاب = ۸۷.۴۸ گرام سونا یا ۶۱۲.۳۶ گرام چاندی کی قیمت کے برابر نقد یا مال (بنیادی ضروریات سے زائد)۔ آج کے علماء عموماً چاندی کا معیار لیتے ہیں کیونکہ اس سے زیادہ غرباء کو فائدہ پہنچتا ہے۔\n\nحنفی: **واجب** — ایک قربانی پورے گھرانے کی طرف سے کافی۔\nشافعی/مالکی/حنبلی: **سنتِ مؤکدہ** — ہر صاحبِ نصاب بالغ پر الگ۔\nجعفری: مستحب — جس پر آسان ہو۔',
+        source: 'Abu Dawud 2788, Ibn Majah 3123, Al-Hidayah, Al-Mughni',
+        important: true,
+      },
+      {
+        id: 'adha-qr-1b',
+        title: 'Who Does NOT Have to Do Qurbani?',
+        titleUr: 'قربانی کس پر واجب نہیں؟',
+        description:
+          'There is no obligation on:\n\n• **Children** (before puberty) — no shar\'i taklif yet, even if the child owns wealth\n• **Anyone of unsound mind** — same reason (no taklif)\n• **The poor** — anyone whose total wealth on the days of qurbani is below nisab\n• **Travellers** (Hanafi school) — a musafir during the days of qurbani is exempt from the wajib status; if he later has nisab while resident he may do it as nafl\n• **A wife / adult child** living in a household where the head of family is performing one qurbani in the Hanafi household-pooling view (other schools require each adult to do their own when capable)\n\nFor someone who is exempt but still wants to perform a qurbani, it counts as **nafl** (voluntary) and is highly rewarded.',
+        descriptionUr:
+          'ان پر قربانی واجب نہیں:\n\n• **بچے** (نابالغ) — ابھی شرعی تکلیف نہیں\n• **مجنون / غیر عاقل** — وہی وجہ\n• **غریب / فقیر** — جس کا مال قربانی کے دنوں میں نصاب سے کم ہو\n• **مسافر** (حنفی مسلک) — قربانی کے دنوں میں مسافر پر وجوب نہیں\n• **بیوی / بالغ اولاد** اگر گھر کا سرپرست اپنی طرف سے ایک قربانی کر رہا ہو (حنفی گھرانے کی رائے میں؛ دیگر مسالک میں ہر صاحبِ استطاعت پر الگ ہے)\n\nاگر کوئی غیر مکلف ہوتے ہوئے بھی قربانی کرے تو یہ **نفل** ہے اور بہت ثواب کا باعث ہے۔',
+        source: 'Al-Hidayah (Marghinani), Al-Mughni (Ibn Qudama), Bada\'i al-Sana\'i (Al-Kasani)',
         important: true,
       },
       {
@@ -536,9 +664,11 @@ export type EidDate = {
   type: 'fitr' | 'adha';
 };
 
+// Dates anchored to Saudi/Umm al-Qura. Actual local date may shift ±1 day by region.
+// Kept in sync with src/constants/islamicCalendar.ts.
 export const UPCOMING_EID_DATES: EidDate[] = [
-  { name: 'Eid ul-Adha 2026', nameUr: 'عیدالاضحی ۲۰۲۶', date: new Date(2026, 5, 6), type: 'adha' },
-  { name: 'Eid ul-Fitr 2027', nameUr: 'عیدالفطر ۲۰۲۷', date: new Date(2027, 2, 20), type: 'fitr' },
-  { name: 'Eid ul-Adha 2027', nameUr: 'عیدالاضحی ۲۰۲۷', date: new Date(2027, 4, 27), type: 'adha' },
-  { name: 'Eid ul-Fitr 2028', nameUr: 'عیدالفطر ۲۰۲۸', date: new Date(2028, 2, 9), type: 'fitr' },
+  { name: 'Eid ul-Adha 2026', nameUr: 'عیدالاضحی ۲۰۲۶', date: new Date(2026, 4, 27), type: 'adha' },
+  { name: 'Eid ul-Fitr 2027', nameUr: 'عیدالفطر ۲۰۲۷', date: new Date(2027, 2, 10), type: 'fitr' },
+  { name: 'Eid ul-Adha 2027', nameUr: 'عیدالاضحی ۲۰۲۷', date: new Date(2027, 4, 17), type: 'adha' },
+  { name: 'Eid ul-Fitr 2028', nameUr: 'عیدالفطر ۲۰۲۸', date: new Date(2028, 1, 27), type: 'fitr' },
 ];

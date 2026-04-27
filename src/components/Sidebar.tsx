@@ -22,7 +22,6 @@ import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
-import * as Clipboard from 'expo-clipboard';
 import { PLAY_STORE_URL } from '../constants/appLinks';
 
 const SIDEBAR_WIDTH = 300;
@@ -161,11 +160,12 @@ export function Sidebar() {
 
   const onShareApp = async () => {
     try {
-      await Share.share({
-        message: isUrdu
-          ? `Noor — مسلم ساتھی\nنماز، قبلہ، حج/عمرہ/جنازہ گائیڈ اور روزانہ روحانی ٹریکنگ\n${PLAY_STORE_URL}`
-          : `Noor — Muslim Companion\nPrayer, Qibla, Hajj/Umrah/Janaza guides and daily spiritual tracking\n${PLAY_STORE_URL}`,
-      });
+      const message = isUrdu
+        ? `🌙 Noor — قرآن، نماز کے اوقات، اذان، قبلہ، دعا، عید گائیڈ اور تسبیح۔ مفت، بغیر اکاؤنٹ۔\n${PLAY_STORE_URL}`
+        : isArabic
+        ? `🌙 Noor — القرآن، أوقات الصلاة، الأذان، القبلة، الأدعية، دليل العيد والتسبيح. مجاني، بدون حساب.\n${PLAY_STORE_URL}`
+        : `🌙 Noor — Quran with Tajweed, Prayer Times, Azan, Qibla, Dua, Eid Guide & Tasbih. Free, no account, private.\n${PLAY_STORE_URL}`;
+      await Share.share({ message });
     } catch {
       Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'شیئر نہیں ہو سکا' : 'Could not share app');
     }
@@ -184,20 +184,6 @@ export function Sidebar() {
     }
   };
 
-  const EASYPAISA_NUMBER = '03045919454';
-
-  const onEasypaisa = async () => {
-    await Clipboard.setStringAsync(EASYPAISA_NUMBER);
-    Alert.alert(
-      isUrdu ? 'نمبر کاپی ہو گیا' : isArabic ? 'تم النسخ' : 'Copied!',
-      isUrdu
-        ? `EasyPaisa نمبر کاپی ہو گیا:\n${EASYPAISA_NUMBER}`
-        : isArabic
-        ? `تم نسخ رقم EasyPaisa:\n${EASYPAISA_NUMBER}`
-        : `EasyPaisa number copied:\n${EASYPAISA_NUMBER}`,
-    );
-  };
-
   const currentLangNative = LANGUAGES.find((l) => l.code === language)?.native ?? 'English';
 
   return (
@@ -212,15 +198,17 @@ export function Sidebar() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>
-              {isUrdu ? 'اہم نوٹ' : 'About Noor'}
+              {isUrdu ? 'اہم نوٹ' : isArabic ? 'عن Noor' : 'About Noor'}
             </Text>
             <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
               <Text style={styles.modalText}>
                 {isUrdu
-                  ? 'قرآنی آیات العثمانی اسکرپٹ (عربی)، Saheeh International (انگریزی)، اور مودودی (اردو) ترجمہ سے لی گئی ہیں۔\n\nاحادیث اور دعائیں اعلیٰ درجے کی کتب سے لی گئی ہیں۔ جہاں کوئی روایت کمزور یا محل نظر ہو، وہاں نوٹ شامل ہے۔\n\nیہ ایپ ایک تعلیمی اور حوصلہ افزائی کا ذریعہ ہے، کسی مستند عالم کا متبادل نہیں۔ کسی بھی شرعی مسئلہ کے لیے اپنے عالم سے رابطہ کریں۔'
-                  : 'Quran text is sourced from the Uthmani script (Arabic), Saheeh International (English), and Maududi (Urdu) editions.\n\nHadith references and duas have been compiled from authenticated sources. Where a narration is known to be disputed or weak, a note is included.\n\nThis app is an educational and motivational aid — it is not a substitute for a qualified Islamic scholar. For religious rulings, always consult your local scholar.\n\nAll data is stored only on your device. We do not collect or share personal information. See PRIVACY_POLICY.md for full details.'}
+                  ? 'قرآنی آیات العثمانی اسکرپٹ (عربی)، Saheeh International (انگریزی)، اور مودودی (اردو) ترجمہ سے لی گئی ہیں۔\n\nاحادیث اور دعائیں معتبر مصادر سے احتیاط کے ساتھ جمع کی گئی ہیں۔ جہاں کوئی روایت کمزور یا محل نظر ہو، وہاں نوٹ شامل ہے۔\n\nیہ ایپ ایک تعلیمی اور حوصلہ افزائی کا ذریعہ ہے، کسی مستند عالم کا متبادل نہیں۔ کسی بھی شرعی مسئلہ کے لیے اپنے عالم سے رابطہ کریں۔\n\nآپ کی نماز، قرآن، حفظ، موڈ، اور اہداف کا ڈیٹا آپ کے فون پر رہتا ہے۔ مفت ایپ چلانے کے لیے کچھ اسکرینز پر Google AdMob بینر اشتہارات دکھائے جاتے ہیں، اور خرابی سمجھنے کے لیے Sentry گمنام کریش رپورٹس لے سکتا ہے۔'
+                  : isArabic
+                  ? 'نص القرآن مأخوذ من الرسم العثماني، وترجمة Saheeh International الإنجليزية، وترجمة المودودي الأردية.\n\nتم جمع مراجع الأحاديث والأدعية بعناية من مصادر معتبرة، ومع التنبيه عند وجود خلاف أو ضعف معروف.\n\nهذا التطبيق وسيلة تعليمية وتحفيزية، وليس بديلا عن العالم المؤهل. في المسائل الشرعية الخاصة، راجع عالما موثوقا في بلدك.\n\nتبقى بيانات الصلاة والقرآن والحفظ والمزاج والأهداف على جهازك. لتمويل التطبيق المجاني قد تظهر إعلانات بانر من Google AdMob في بعض الشاشات، وقد يستقبل Sentry تقارير أعطال مجهولة لمساعدتنا على إصلاح الأخطاء.'
+                  : 'Quran text is sourced from the Uthmani script, Saheeh International English translation, and Maududi Urdu translation.\n\nHadith references and duas have been compiled carefully from established sources. Where a narration is known to be disputed or weak, a note is included.\n\nThis app is an educational and motivational aid, not a substitute for a qualified Islamic scholar. For personal religious rulings, consult a trusted local scholar.\n\nYour prayer, Quran, hifz, mood, and goal data stays on your device. To keep Noor free, some screens show Google AdMob banner ads, and Sentry may receive anonymous crash reports so we can fix bugs.'}
               </Text>
-              <Text style={styles.modalVersion}>Noor v1.0.0</Text>
+              <Text style={styles.modalVersion}>Noor v1.0.1</Text>
             </ScrollView>
             <TouchableOpacity
               style={styles.modalCloseBtn}
@@ -372,19 +360,6 @@ export function Sidebar() {
             <Text style={[styles.sectionLabel, { fontSize: fs(11) }]}>
               {isUrdu ? 'سپورٹ' : isArabic ? 'الدعم' : 'SUPPORT'}
             </Text>
-            <TouchableOpacity
-              style={styles.sadaqahBtn}
-              onPress={onEasypaisa}
-              activeOpacity={0.85}
-            >
-              <Text style={[styles.sadaqahBtnText, { fontSize: fs(13) }]}>
-                📲 {isUrdu ? 'EasyPaisa — نمبر کاپی کریں' : isArabic ? 'EasyPaisa — انسخ الرقم' : 'EasyPaisa — Tap to copy'}
-              </Text>
-              <Text style={[styles.sadaqahBtnSub, { fontSize: fs(11) }]}>
-                {EASYPAISA_NUMBER}
-              </Text>
-            </TouchableOpacity>
-
             <View style={styles.growthRow}>
               <TouchableOpacity style={styles.growthBtn} onPress={onShareApp} activeOpacity={0.8}>
                 <Text style={[styles.growthBtnText, { fontSize: fs(13) }]}>
@@ -445,7 +420,7 @@ export function Sidebar() {
           >
             <Text style={[styles.aboutLinkText, { fontSize: fs(11) }]}>
               {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : isArabic ? 'ℹ  عن التطبيق' : 'ℹ  About & Disclaimer'}
-              <Text style={styles.aboutVersion}>  ·  v1.0.0</Text>
+              <Text style={styles.aboutVersion}>  ·  v1.0.1</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -600,26 +575,6 @@ const styles = StyleSheet.create({
   },
 
   /* Support */
-  sadaqahBtn: {
-    marginHorizontal: theme.spacing.lg,
-    marginBottom: theme.spacing.sm,
-    paddingVertical: 12,
-    paddingHorizontal: theme.spacing.lg,
-    backgroundColor: theme.colors.accentMuted,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: theme.colors.accent,
-    alignItems: 'center',
-  },
-  sadaqahBtnText: {
-    fontFamily: theme.typography.fontBodyBold,
-    color: theme.colors.accent,
-  },
-  sadaqahBtnSub: {
-    fontFamily: theme.typography.fontBody,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
   growthRow: {
     flexDirection: 'row',
     gap: theme.spacing.sm,

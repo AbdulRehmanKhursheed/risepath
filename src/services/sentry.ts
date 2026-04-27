@@ -7,5 +7,3 @@ export function captureError(err: unknown, context?: Record<string, unknown>): v
     // ignore
   }
 }
-
-export const wrap = Sentry.wrap;
