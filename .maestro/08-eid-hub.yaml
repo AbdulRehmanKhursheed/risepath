@@ -1,0 +1,33 @@
+# Eid Hub card on Home: when in the Adha visibility window (-21d to +5d
+# of Eid date) the card surfaces direct CTAs for Qurbani / Takbir / Guide.
+# This flow assumes today is inside that window — the card is hidden
+# otherwise so the assertions below short-circuit.
+appId: com.risepath.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# If the Eid hub is showing, exercise its CTAs
+- runFlow:
+    when:
+      visible: "EID IS NEAR"
+    commands:
+      - assertVisible: "Eid al-Adha"
+      # Qurbani CTA
+      - tapOn: "Qurbani"
+      - assertVisible: "Qurbani Calculator"
+      - back
+      # Takbir CTA
+      - tapOn: "Takbir"
+      - assertVisible: "Takbir of Tashreeq"
+      - back
+      # Full Guide CTA
+      - tapOn: "Full Guide"
+      - assertVisible: "Eid Guide"
+      - takeScreenshot: artifacts/08-eid-hub-routes

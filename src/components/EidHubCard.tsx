@@ -77,10 +77,22 @@ export function EidHubCard() {
     : 'Eid al-Fitr';
 
   const ctaText = isUrdu
-    ? 'مکمل گائیڈ کھولیں'
+    ? 'مکمل گائیڈ'
     : isArabic
-    ? 'افتح الدليل'
-    : 'Open full guide';
+    ? 'الدليل'
+    : 'Full Guide';
+
+  const qurbaniText = isUrdu
+    ? 'قربانی'
+    : isArabic
+    ? 'الأضحية'
+    : 'Qurbani';
+
+  const takbirText = isUrdu
+    ? 'تکبیرات'
+    : isArabic
+    ? 'التكبير'
+    : 'Takbir';
 
   const countdownText =
     daysUntil > 0
@@ -172,24 +184,63 @@ export function EidHubCard() {
 
         <Text style={[styles.subtitle, { fontSize: fs(12) }]}>{subtitle}</Text>
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.btn, styles.btnPrimary]}
-            onPress={() => (navigation as any).navigate('Eid')}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.btnPrimaryText, { fontSize: fs(13) }]}>{ctaText} ›</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.btn, styles.btnSecondary]}
-            onPress={onShareGreeting}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.btnSecondaryText, { fontSize: fs(13) }]}>
-              {isUrdu ? '📤 شیئر' : isArabic ? '📤 شارك' : '📤 Share'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        {isAdha ? (
+          <>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnPrimary]}
+                onPress={() => (navigation as any).navigate('Qurbani')}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.btnPrimaryText, { fontSize: fs(13) }]}>🐑 {qurbaniText}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnPrimary]}
+                onPress={() => (navigation as any).navigate('Takbir')}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.btnPrimaryText, { fontSize: fs(13) }]}>📣 {takbirText}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.actionRow}>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnSecondary]}
+                onPress={() => (navigation as any).navigate('Eid')}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.btnSecondaryText, { fontSize: fs(13) }]}>{ctaText} ›</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.btn, styles.btnSecondary]}
+                onPress={onShareGreeting}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.btnSecondaryText, { fontSize: fs(13) }]}>
+                  {isUrdu ? '📤 شیئر' : isArabic ? '📤 شارك' : '📤 Share'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.btn, styles.btnPrimary]}
+              onPress={() => (navigation as any).navigate('Eid')}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.btnPrimaryText, { fontSize: fs(13) }]}>{ctaText} ›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.btn, styles.btnSecondary]}
+              onPress={onShareGreeting}
+              activeOpacity={0.85}
+            >
+              <Text style={[styles.btnSecondaryText, { fontSize: fs(13) }]}>
+                {isUrdu ? '📤 شیئر' : isArabic ? '📤 شارك' : '📤 Share'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </LinearGradient>
     </View>
   );

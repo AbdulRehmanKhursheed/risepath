@@ -8,6 +8,8 @@ export function MenuButton() {
 
   return (
     <TouchableOpacity
+      testID="menu-button"
+      accessibilityLabel="Open menu"
       style={styles.btn}
       onPress={openSidebar}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}

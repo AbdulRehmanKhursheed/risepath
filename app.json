@@ -2,7 +2,7 @@
   "expo": {
     "name": "Noor — Muslim Companion",
     "slug": "risepath",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -22,7 +22,7 @@
     },
     "android": {
       "package": "com.risepath.app",
-      "versionCode": 3,
+      "versionCode": 4,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",

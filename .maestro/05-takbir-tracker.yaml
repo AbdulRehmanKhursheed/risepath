@@ -1,0 +1,47 @@
+# Takbir of Tashreeq: tick a few prayers, verify progress counter updates.
+appId: com.risepath.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# Open sidebar and navigate to Takbir
+- tapOn:
+    id: "menu-button"
+    optional: true
+- tapOn: "Takbir of Tashreeq"
+
+- assertVisible: "Takbir of Tashreeq"
+- assertVisible: "of 23 prayers"
+
+# Tap the first row's Fajr chip — this should mark it complete
+- tapOn:
+    text: "Fajr"
+    index: 0
+- assertVisible: "1 of 23 prayers"
+
+- tapOn:
+    text: "Dhuhr"
+    index: 0
+- assertVisible: "2 of 23 prayers"
+
+- takeScreenshot: artifacts/05-takbir-2-of-23
+
+# Toggle the Fajr off again — should drop to 1
+- tapOn:
+    text: "Fajr"
+    index: 0
+- assertVisible: "1 of 23 prayers"
+
+# Persistence: relaunch and check the count survived
+- launchApp
+- tapOn:
+    id: "menu-button"
+    optional: true
+- tapOn: "Takbir of Tashreeq"
+- assertVisible: "1 of 23 prayers"

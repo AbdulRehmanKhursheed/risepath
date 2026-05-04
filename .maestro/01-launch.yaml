@@ -1,0 +1,7 @@
+# Smoke test: app launches without crashing.
+appId: com.risepath.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Noor"
+- takeScreenshot: artifacts/01-launch

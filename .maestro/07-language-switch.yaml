@@ -1,0 +1,42 @@
+# Switch language to Urdu and verify localized labels appear.
+appId: com.risepath.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# Open sidebar
+- tapOn:
+    id: "menu-button"
+    optional: true
+
+# Tap language switcher (footer "🌐" button)
+- tapOn:
+    text: "English"
+    index: 0
+- assertVisible: "Choose Language"
+
+# Switch to Urdu
+- tapOn: "اردو"
+
+# Verify Urdu labels show in sidebar
+- assertVisible: "روزمرہ عبادات"
+- assertVisible: "تسبیح کاؤنٹر"
+- assertVisible: "قربانی کیلکولیٹر"
+
+- takeScreenshot: artifacts/07-urdu
+
+# Switch back to English so other flows still work
+- tapOn:
+    text: "اردو"
+    index: 0
+- runFlow:
+    when:
+      visible: "Choose Language"
+    commands:
+      - tapOn: "English"

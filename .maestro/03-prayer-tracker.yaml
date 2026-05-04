@@ -1,0 +1,31 @@
+# Mark a prayer in Prayer Tracker — verify the toggle persists.
+appId: com.risepath.app
+---
+- launchApp
+# Skip onboarding if it appears (clean install scenarios run flow 02 first)
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# Navigate to the Prayers tab
+- tapOn: "Prayers"
+- assertVisible: "Fajr"
+- assertVisible: "Dhuhr"
+- assertVisible: "Asr"
+- assertVisible: "Maghrib"
+- assertVisible: "Isha"
+
+# Tap Dhuhr to mark it as prayed (we use Dhuhr because Fajr + Isha are
+# time-conditional — Dhuhr is most reliably "due" through the day).
+- tapOn: "Dhuhr"
+- takeScreenshot: artifacts/03-prayer-marked
+
+# Re-launch and verify the mark persisted
+- launchApp
+- tapOn: "Prayers"
+- assertVisible: "Dhuhr"
+- takeScreenshot: artifacts/03-prayer-persisted

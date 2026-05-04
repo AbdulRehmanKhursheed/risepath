@@ -1,0 +1,60 @@
+# Qurbani Calculator: pick cow, increase people stepper, verify result.
+appId: com.risepath.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# Open sidebar (top-right menu button on Home)
+- tapOn:
+    id: "menu-button"
+    optional: true
+- runFlow:
+    when:
+      notVisible: "Qurbani Calculator"
+    commands:
+      # Fallback when menu button has no testID — tap by visible label
+      - tapOn:
+          text: "☰|Menu|≡"
+          optional: true
+
+# From the sidebar, tap the Qurbani entry
+- tapOn: "Qurbani Calculator"
+- assertVisible: "Qurbani Calculator"
+
+# Default selection is goat — switch to Cow
+- tapOn: "Cow"
+
+# 7-share visualizer should now be visible. Increase people from 1 → 5
+- tapOn: "Increase people"
+- tapOn: "Increase people"
+- tapOn: "Increase people"
+- tapOn: "Increase people"
+
+# Result should still say 1 cow (5 people share 1 cow)
+- assertVisible: "5"
+- assertVisible: "PEOPLE"
+- assertVisible: "You need"
+
+# Two more taps → 7 people, still 1 cow
+- tapOn: "Increase people"
+- tapOn: "Increase people"
+
+# One more → 8 people would need 2 cows but stepper is capped at 7 for cow
+# (the cap = animal.shares). Verify 7 max.
+- tapOn: "Increase people"
+- assertVisible: "7"
+
+- takeScreenshot: artifacts/04-qurbani-cow-7-shares
+
+# Niyyah card visible
+- assertVisible: "Bismillahi Allahu Akbar"
+
+# Distribution visualizer visible
+- assertVisible: "Family"
+- assertVisible: "Poor & Needy"

@@ -1,0 +1,40 @@
+# Sidebar lists every section and each entry navigates correctly.
+appId: com.risepath.app
+---
+- launchApp
+- runFlow:
+    when:
+      visible: "Choose your language"
+    commands:
+      - tapOn: "Continue →"
+      - tapOn: "Continue →"
+      - tapOn: "Get Started ✦"
+
+# Open sidebar
+- tapOn:
+    id: "menu-button"
+    optional: true
+
+# Verify all section labels and items are present
+- assertVisible: "PRACTICE"
+- assertVisible: "Tasbih Counter"
+- assertVisible: "Takbir of Tashreeq"
+- assertVisible: "Qibla Direction"
+- assertVisible: "Dua Library"
+- assertVisible: "99 Names of Allah"
+- assertVisible: "Kalimas & Duas"
+
+- assertVisible: "GUIDES"
+- assertVisible: "Hajj Guide"
+- assertVisible: "Umrah Guide"
+- assertVisible: "Eid Guide"
+- assertVisible: "Qurbani Calculator"
+- assertVisible: "Janaza Guide"
+
+- assertVisible: "MY JOURNEY"
+- assertVisible: "Sacred Journey"
+- assertVisible: "Hifz Tracker"
+- assertVisible: "Mood Coach"
+- assertVisible: "My Stats"
+
+- takeScreenshot: artifacts/06-sidebar

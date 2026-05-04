@@ -18,6 +18,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
@@ -51,6 +53,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleAr: 'العبادات اليومية',
     items: [
       { name: 'Tasbih',      icon: '📿', labelEn: 'Tasbih Counter',     labelUr: 'تسبیح کاؤنٹر',      labelAr: 'عدّاد التسبيح' },
+      { name: 'Takbir',     icon: '📣', labelEn: 'Takbir of Tashreeq', labelUr: 'تکبیراتِ تشریق',     labelAr: 'تكبيرات التشريق' },
       { name: 'Qibla',      icon: '🧭', labelEn: 'Qibla Direction',    labelUr: 'قبلہ سمت',          labelAr: 'اتجاه القبلة' },
       { name: 'Duas',       icon: '🤲', labelEn: 'Dua Library',        labelUr: 'دعاؤں کی لائبریری', labelAr: 'مكتبة الأدعية' },
       { name: 'Names',      icon: '✨', labelEn: '99 Names of Allah',  labelUr: 'اللہ کے ۹۹ نام',   labelAr: 'أسماء الله الحسنى' },
@@ -63,10 +66,11 @@ const NAV_GROUPS: NavGroup[] = [
     titleUr: 'گائیڈز',
     titleAr: 'الأدلة',
     items: [
-      { name: 'Hajj',   icon: '🕋', labelEn: 'Hajj Guide',   labelUr: 'حج گائیڈ',    labelAr: 'دليل الحج' },
-      { name: 'Umrah',  icon: '⭐', labelEn: 'Umrah Guide',  labelUr: 'عمرہ گائیڈ',  labelAr: 'دليل العمرة' },
-      { name: 'Eid',    icon: '🕌', labelEn: 'Eid Guide',    labelUr: 'عید گائیڈ',    labelAr: 'دليل العيد' },
-      { name: 'Janaza', icon: '🤲', labelEn: 'Janaza Guide', labelUr: 'جنازہ گائیڈ', labelAr: 'دليل الجنازة' },
+      { name: 'Hajj',     icon: '🕋', labelEn: 'Hajj Guide',          labelUr: 'حج گائیڈ',         labelAr: 'دليل الحج' },
+      { name: 'Umrah',    icon: '⭐', labelEn: 'Umrah Guide',         labelUr: 'عمرہ گائیڈ',       labelAr: 'دليل العمرة' },
+      { name: 'Eid',      icon: '🕌', labelEn: 'Eid Guide',           labelUr: 'عید گائیڈ',         labelAr: 'دليل العيد' },
+      { name: 'Qurbani',  icon: '🐑', labelEn: 'Qurbani Calculator',  labelUr: 'قربانی کیلکولیٹر', labelAr: 'حاسبة الأضحية' },
+      { name: 'Janaza',   icon: '🤲', labelEn: 'Janaza Guide',        labelUr: 'جنازہ گائیڈ',     labelAr: 'دليل الجنازة' },
     ],
   },
   {
@@ -171,6 +175,68 @@ export function Sidebar() {
     }
   };
 
+  const onResetData = () => {
+    const title = isUrdu ? 'تمام ڈیٹا حذف کریں؟' : isArabic ? 'حذف جميع البيانات؟' : 'Reset all app data?';
+    const body = isUrdu
+      ? 'یہ آپ کی نمازیں، اہداف، موڈ، تسبیح، حفظ، اور ترتیبات حذف کر دے گا۔ یہ عمل واپس نہیں ہو سکتا۔'
+      : isArabic
+      ? 'سيؤدي ذلك إلى حذف صلواتك وأهدافك ومزاجك وتسبيحك وحفظك والإعدادات. لا يمكن التراجع.'
+      : 'This will delete your prayers, goals, mood entries, tasbih, hifz, takbir history and settings. This cannot be undone.';
+    const cancel = isUrdu ? 'منسوخ' : isArabic ? 'إلغاء' : 'Cancel';
+    const confirmStep1 = isUrdu ? 'جاری رکھیں' : isArabic ? 'متابعة' : 'Continue';
+    const confirmStep2 = isUrdu ? 'ہاں، ڈیٹا حذف کریں' : isArabic ? 'نعم، احذف' : 'Yes, reset everything';
+    const finalTitle = isUrdu ? 'یقینی طور پر؟' : isArabic ? 'هل أنت متأكد؟' : 'Are you sure?';
+    const finalBody = isUrdu
+      ? 'یہ آخری وارننگ ہے۔ ٹیپ کرنے کے بعد کچھ بھی واپس نہیں آئے گا۔'
+      : isArabic
+      ? 'هذا تحذير أخير. لن يمكنك استعادة شيء بعد ذلك.'
+      : 'Last warning. After tapping below, nothing can be recovered.';
+    const doneTitle = isUrdu ? 'مکمل' : isArabic ? 'تم' : 'Done';
+    const doneBody = isUrdu
+      ? 'ایپ کو مکمل بند کر کے دوبارہ کھولیں۔'
+      : isArabic
+      ? 'أغلق التطبيق تماماً ثم أعد فتحه.'
+      : 'Please close Noor completely and reopen it to start fresh.';
+
+    Alert.alert(title, body, [
+      { text: cancel, style: 'cancel' },
+      {
+        text: confirmStep1,
+        style: 'destructive',
+        onPress: () => {
+          Alert.alert(finalTitle, finalBody, [
+            { text: cancel, style: 'cancel' },
+            {
+              text: confirmStep2,
+              style: 'destructive',
+              onPress: async () => {
+                try {
+                  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+                  await AsyncStorage.clear();
+                } catch {
+                  // best-effort wipe — even partial success leaves app re-onboarding
+                }
+                setDisclaimerVisible(false);
+                Alert.alert(doneTitle, doneBody, [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // BackHandler.exitApp is Android-only. On iOS the user
+                      // closes the app via the home indicator — acceptable.
+                      if (Platform.OS === 'android') {
+                        BackHandler.exitApp();
+                      }
+                    },
+                  },
+                ]);
+              },
+            },
+          ]);
+        },
+      },
+    ]);
+  };
+
   const onRateApp = async () => {
     try {
       const supported = await Linking.canOpenURL(PLAY_STORE_URL);
@@ -208,8 +274,21 @@ export function Sidebar() {
                   ? 'نص القرآن مأخوذ من الرسم العثماني، وترجمة Saheeh International الإنجليزية، وترجمة المودودي الأردية.\n\nتم جمع مراجع الأحاديث والأدعية بعناية من مصادر معتبرة، ومع التنبيه عند وجود خلاف أو ضعف معروف.\n\nهذا التطبيق وسيلة تعليمية وتحفيزية، وليس بديلا عن العالم المؤهل. في المسائل الشرعية الخاصة، راجع عالما موثوقا في بلدك.\n\nتبقى بيانات الصلاة والقرآن والحفظ والمزاج والأهداف على جهازك. لتمويل التطبيق المجاني قد تظهر إعلانات بانر من Google AdMob في بعض الشاشات، وقد يستقبل Sentry تقارير أعطال مجهولة لمساعدتنا على إصلاح الأخطاء.'
                   : 'Quran text is sourced from the Uthmani script, Saheeh International English translation, and Maududi Urdu translation.\n\nHadith references and duas have been compiled carefully from established sources. Where a narration is known to be disputed or weak, a note is included.\n\nThis app is an educational and motivational aid, not a substitute for a qualified Islamic scholar. For personal religious rulings, consult a trusted local scholar.\n\nYour prayer, Quran, hifz, mood, and goal data stays on your device. To keep Noor free, some screens show Google AdMob banner ads, and Sentry may receive anonymous crash reports so we can fix bugs.'}
               </Text>
-              <Text style={styles.modalVersion}>Noor v1.0.1</Text>
+              <Text style={styles.modalVersion}>Noor v1.0.2</Text>
             </ScrollView>
+            <TouchableOpacity
+              style={styles.resetBtn}
+              onPress={onResetData}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.resetBtnText, { fontSize: fs(13) }]}>
+                {isUrdu
+                  ? '⟳ ایپ کا تمام ڈیٹا حذف کریں'
+                  : isArabic
+                  ? '⟳ إعادة تعيين بيانات التطبيق'
+                  : '⟳ Reset all app data'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.modalCloseBtn}
               onPress={() => setDisclaimerVisible(false)}
@@ -420,7 +499,7 @@ export function Sidebar() {
           >
             <Text style={[styles.aboutLinkText, { fontSize: fs(11) }]}>
               {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : isArabic ? 'ℹ  عن التطبيق' : 'ℹ  About & Disclaimer'}
-              <Text style={styles.aboutVersion}>  ·  v1.0.1</Text>
+              <Text style={styles.aboutVersion}>  ·  v1.0.2</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -705,6 +784,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 15,
+  },
+  resetBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+    marginBottom: theme.spacing.md,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.errorMuted,
+    backgroundColor: 'transparent',
+  },
+  resetBtnText: {
+    color: theme.colors.error,
+    fontFamily: theme.typography.fontBodyMedium,
+    letterSpacing: 0.3,
   },
 
   /* Language picker */

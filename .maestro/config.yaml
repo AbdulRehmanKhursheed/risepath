@@ -1,0 +1,14 @@
+# Maestro test config for Noor — Muslim Companion
+# Run individual flows:    maestro test .maestro/01-launch.yaml
+# Run the whole suite:     maestro test .maestro/
+
+appId: com.risepath.app
+flows:
+  - 01-launch.yaml
+  - 02-onboarding.yaml
+  - 03-prayer-tracker.yaml
+  - 04-qurbani-calculator.yaml
+  - 05-takbir-tracker.yaml
+  - 06-sidebar-nav.yaml
+  - 07-language-switch.yaml
+  - 08-eid-hub.yaml

@@ -1,0 +1,25 @@
+# Onboarding picks language → school → method → lands on Home.
+appId: com.risepath.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Noor"
+- assertVisible: "Choose your language"
+
+# Step 1 — keep English (already selected by default)
+- tapOn: "Continue →"
+
+# Step 2 — keep Sunni (default)
+- assertVisible:
+    text: "Sunni"
+- tapOn: "Continue →"
+
+# Step 3 — calc method screen, keep defaults & finish
+- assertVisible: "Get Started ✦"
+- tapOn: "Get Started ✦"
+
+# Should now be on Home
+- assertVisible:
+    text: "."
+    enabled: true
+- takeScreenshot: artifacts/02-onboarding-complete

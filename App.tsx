@@ -49,6 +49,8 @@ import { QuranScreen } from './src/screens/QuranScreen';
 import { DuaScreen } from './src/screens/DuaScreen';
 import { AsmaulHusnaScreen } from './src/screens/AsmaulHusnaScreen';
 import { HifzScreen } from './src/screens/HifzScreen';
+import { QurbaniScreen } from './src/screens/QurbaniScreen';
+import { TakbirScreen } from './src/screens/TakbirScreen';
 import { Sidebar } from './src/components/Sidebar';
 import { QuranNavProvider, useQuranNav } from './src/contexts/QuranNavContext';
 import { SidebarProvider } from './src/contexts/SidebarContext';
@@ -273,6 +275,16 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             name="Hifz"
             component={HifzScreen}
             options={{ headerShown: true, title: 'Hifz Tracker', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Qurbani"
+            component={QurbaniScreen}
+            options={{ headerShown: true, title: 'Qurbani Calculator', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Takbir"
+            component={TakbirScreen}
+            options={{ headerShown: true, title: 'Takbir of Tashreeq', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
         </Stack.Navigator>
       </NavigationContainer>
