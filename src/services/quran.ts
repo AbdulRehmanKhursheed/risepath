@@ -5,6 +5,13 @@ const CACHE_VERSION = 2;
 const CACHE_PREFIX = `quran_surah_v${CACHE_VERSION}_`;
 const CACHE_VERSION_KEY = 'quran_cache_version';
 
+// IndoPak text comes from Quran.com (alquran.cloud has no IndoPak edition).
+// Cached separately so a user toggling Reading Style doesn't re-pay network.
+const INDOPAK_PREFIX = 'quran_surah_indopak_v1_';
+const INDOPAK_API = 'https://api.quran.com/api/v4/quran/verses/indopak';
+
+export type QuranScript = 'uthmani' | 'indopak';
+
 export type Ayah = {
   numberInSurah: number;
   arabic: string;
@@ -103,6 +110,222 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
 // tags. The version bump ensures any stale bracket-format cache is ignored.
 const TAJWEED_PREFIX = 'quran_tajweed_v2_';
 const TAJWEED_API = 'https://api.quran.com/api/v4/quran/verses/uthmani_tajweed';
+
+const indopakInflight = new Map<number, Promise<string[]>>();
+
+// Page-based fetch — used by the 604-page Mushaf reader. Pulls all verses
+// on a given Madinah-Mushaf page with both scripts AND both translations
+// (Sahih International English + Maududi Tafheem Urdu) in a single request,
+// plus the juz/hizb numbers needed for the page footer.
+//
+// v2 cache: bumped to invalidate v1 entries that lack translations.
+const PAGE_PREFIX = 'quran_page_v2_';
+const PAGE_API = 'https://api.quran.com/api/v4/verses/by_page';
+export const TOTAL_PAGES = 604;
+
+// Quran.com translation IDs. Picked to match what the existing surah reader
+// uses (Sahih English + Maududi Urdu) so the user sees the same translator
+// across both reading surfaces.
+const TRANSLATION_EN_ID = 131;  // Saheeh International
+const TRANSLATION_UR_ID = 97;   // Tafheem-ul-Qur'an (Maududi)
+
+export type PageVerse = {
+  verseKey: string;       // e.g. "2:142"
+  surahNumber: number;
+  ayahNumber: number;
+  textUthmani: string;
+  textIndopak: string;
+  translationEn: string;
+  translationUr: string;
+  juzNumber: number;
+  hizbNumber: number;
+  pageNumber: number;
+};
+
+export type PageContent = {
+  pageNumber: number;
+  verses: PageVerse[];
+  juzNumber: number;       // juz of the first verse on this page
+  fetchedAt: number;
+};
+
+function stripTranslationHtml(s: string): string {
+  // Quran.com translations occasionally include <sup>, <i>, footnote markers.
+  // Strip tags so the bottom sheet shows clean prose.
+  return s
+    .replace(/<sup[^>]*>[\s\S]*?<\/sup>/gi, '')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .trim();
+}
+
+const pageInflight = new Map<number, Promise<PageContent>>();
+
+export async function fetchPage(pageNumber: number): Promise<PageContent> {
+  if (pageNumber < 1 || pageNumber > TOTAL_PAGES) {
+    throw new Error(`Page ${pageNumber} out of range`);
+  }
+
+  const key = `${PAGE_PREFIX}${pageNumber}`;
+  try {
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached) as PageContent;
+      if (parsed?.verses?.length > 0) return parsed;
+    }
+  } catch {}
+
+  const existing = pageInflight.get(pageNumber);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const url =
+        `${PAGE_API}/${pageNumber}` +
+        `?fields=text_uthmani,text_indopak,juz_number,hizb_number,page_number` +
+        `&translations=${TRANSLATION_EN_ID},${TRANSLATION_UR_ID}` +
+        `&per_page=50`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Page ${pageNumber} fetch failed`);
+      const json = await res.json();
+      const raw = (json.verses ?? []) as Array<{
+        verse_key: string;
+        text_uthmani: string;
+        text_indopak: string;
+        juz_number: number;
+        hizb_number: number;
+        page_number: number;
+        translations?: Array<{ resource_id: number; text: string }>;
+      }>;
+      const verses: PageVerse[] = raw.map((v) => {
+        const [s, a] = v.verse_key.split(':').map(Number);
+        const tEn =
+          v.translations?.find((t) => t.resource_id === TRANSLATION_EN_ID)?.text ?? '';
+        const tUr =
+          v.translations?.find((t) => t.resource_id === TRANSLATION_UR_ID)?.text ?? '';
+        return {
+          verseKey: v.verse_key,
+          surahNumber: s,
+          ayahNumber: a,
+          textUthmani: v.text_uthmani ?? '',
+          textIndopak: v.text_indopak ?? '',
+          translationEn: stripTranslationHtml(tEn),
+          translationUr: stripTranslationHtml(tUr),
+          juzNumber: v.juz_number,
+          hizbNumber: v.hizb_number,
+          pageNumber: v.page_number,
+        };
+      });
+      const content: PageContent = {
+        pageNumber,
+        verses,
+        juzNumber: verses[0]?.juzNumber ?? 1,
+        fetchedAt: Date.now(),
+      };
+      try {
+        await AsyncStorage.setItem(key, JSON.stringify(content));
+      } catch {}
+      return content;
+    } finally {
+      pageInflight.delete(pageNumber);
+    }
+  })();
+
+  pageInflight.set(pageNumber, p);
+  return p;
+}
+
+export function prefetchPage(pageNumber: number): void {
+  if (pageNumber < 1 || pageNumber > TOTAL_PAGES) return;
+  fetchPage(pageNumber).catch(() => {});
+}
+
+export function prefetchAdjacentPages(pageNumber: number): void {
+  prefetchPage(pageNumber - 1);
+  prefetchPage(pageNumber + 1);
+}
+
+// Unified last-read state — one record across every reader. Whichever reader
+// the user touched most recently wins; the Quran landing shows a single
+// prominent "Continue Reading" card backed by this value.
+export type LastRead =
+  | { type: 'page';  value: number; ts: number }
+  | { type: 'surah'; value: number; ts: number };
+
+const LAST_READ_KEY = 'quran_last_read_v2';
+
+// Legacy juz-typed records (from before Juz was removed) are migrated to a
+// page resume using the juz's starting page, so existing users don't lose
+// their Continue-Reading card.
+import { JUZ_START_PAGE } from '../constants/juzList';
+
+export async function saveLastRead(
+  partial: { type: LastRead['type']; value: number }
+): Promise<void> {
+  try {
+    const lr: LastRead = { ...partial, ts: Date.now() } as LastRead;
+    await AsyncStorage.setItem(LAST_READ_KEY, JSON.stringify(lr));
+  } catch {
+    // non-fatal; the resume card just won't appear until next session.
+  }
+}
+
+export async function loadLastRead(): Promise<LastRead | null> {
+  try {
+    const raw = await AsyncStorage.getItem(LAST_READ_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { type: string; value: number; ts: number };
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof parsed.value !== 'number') return null;
+    if (parsed.type === 'page' || parsed.type === 'surah') {
+      return parsed as LastRead;
+    }
+    if (parsed.type === 'juz') {
+      const startPage = JUZ_START_PAGE[parsed.value];
+      if (!startPage) return null;
+      return { type: 'page', value: startPage, ts: parsed.ts };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchIndopakTexts(surahNumber: number): Promise<string[]> {
+  const key = `${INDOPAK_PREFIX}${surahNumber}`;
+  try {
+    const cached = await AsyncStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached) as string[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+
+  const existing = indopakInflight.get(surahNumber);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const url = `${INDOPAK_API}?chapter_number=${surahNumber}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`IndoPak fetch failed for surah ${surahNumber}`);
+      const json = await res.json();
+      const verses = (json.verses ?? []) as { text_indopak: string }[];
+      const texts: string[] = verses.map((v) => v.text_indopak ?? '');
+      try {
+        await AsyncStorage.setItem(key, JSON.stringify(texts));
+      } catch {}
+      return texts;
+    } finally {
+      indopakInflight.delete(surahNumber);
+    }
+  })();
+
+  indopakInflight.set(surahNumber, p);
+  return p;
+}
 
 export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> {
   const key = `${TAJWEED_PREFIX}${surahNumber}`;

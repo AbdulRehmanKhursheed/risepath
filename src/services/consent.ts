@@ -1,10 +1,15 @@
+import { NativeModules } from 'react-native';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _AdsConsent: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _AdsConsentDebugGeography: any = null;
 
+const ADS_NATIVE_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
+
 function loadModule(): boolean {
   if (_AdsConsent) return true;
+  if (!ADS_NATIVE_AVAILABLE) return false;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const m = require('react-native-google-mobile-ads');

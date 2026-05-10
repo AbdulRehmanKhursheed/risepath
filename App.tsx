@@ -299,6 +299,10 @@ function AppInner() {
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
+    // Quran fonts. AmiriQuran = Madinah/Uthmani Mushaf style.
+    // NoorehudaQuran = Indo-Pak script (familiar to South-Asian readers).
+    AmiriQuran: require('./assets/fonts/AmiriQuran-Regular.ttf'),
+    NoorehudaQuran: require('./assets/fonts/NoorehudaRegular.ttf'),
   });
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 

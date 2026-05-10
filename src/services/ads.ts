@@ -1,12 +1,20 @@
-import { Platform } from 'react-native';
+import { Platform, NativeModules } from 'react-native';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _MobileAds: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _MaxAdContentRating: any = null;
 
+// Hard-gate the ads module behind a TurboModule check. Without this, Expo Go
+// (which has no AdMob native binary) crashes with "Invariant Violation:
+// TurboModuleRegistry.getEnforcing(...): 'RNGoogleMobileAdsModule' could not
+// be found" — the require itself succeeds with stubs, but the first call
+// throws past JS try/catch.
+const ADS_NATIVE_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
+
 function loadAdsModule() {
   if (_MobileAds) return true;
+  if (!ADS_NATIVE_AVAILABLE) return false;
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const m = require('react-native-google-mobile-ads');

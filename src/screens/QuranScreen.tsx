@@ -15,18 +15,63 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SURAH_LIST, SurahMeta } from '../constants/surahList';
-import { fetchSurah, SurahContent, Ayah } from '../services/quran';
+import { fetchSurah, SurahContent, Ayah, QuranScript } from '../services/quran';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { useAudioPlayer, RECITERS, TranslationPlaybackMode } from '../hooks/useAudioPlayer';
-import { prefetchAdjacent, fetchTajweedTexts } from '../services/quran';
+import { prefetchAdjacent, fetchTajweedTexts, fetchIndopakTexts } from '../services/quran';
 import { matchesSurah } from '../utils/surahSearch';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { TajweedText } from '../components/TajweedText';
+import { WaqfLegendModal } from '../components/WaqfLegendModal';
+import { JUZ_START_PAGE } from '../constants/juzList';
+import { MushafPageReader } from '../components/MushafPageReader';
+import { TOTAL_PAGES, saveLastRead, loadLastRead, LastRead } from '../services/quran';
+import { isIndoPakRegion } from '../utils/region';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
+
+// Smart-search intent parser. Lets the same search box act as a universal
+// jump: "page 234", "p 234", "juz 5", "para 5", "5:1", "2:255" — all
+// recognised, including Urdu variants ("صفحہ", "پارہ", "آیت"). "Para N"
+// resolves to the juz's starting Mushaf page (no Juz browser). If nothing
+// matches, the caller falls back to the surah-name search.
+type SearchIntent =
+  | { type: 'page'; value: number; viaPara?: number }
+  | { type: 'verse'; surah: number; ayah: number };
+
+function parseSearchIntent(raw: string): SearchIntent | null {
+  const q = raw.trim().toLowerCase();
+  if (!q) return null;
+
+  // surah:ayah reference, e.g. "2:255" or "2 : 255"
+  const versMatch = q.match(/^(\d{1,3})\s*[:،]\s*(\d{1,3})$/);
+  if (versMatch) {
+    const s = parseInt(versMatch[1], 10);
+    const a = parseInt(versMatch[2], 10);
+    if (s >= 1 && s <= 114 && a >= 1) return { type: 'verse', surah: s, ayah: a };
+  }
+
+  // page N — accepts "page", "pg", "p", and the Urdu word "صفحہ"
+  const pageMatch = q.match(/^(?:page|pg|p|صفحہ|صفحه)\s*(\d{1,3})$/);
+  if (pageMatch) {
+    const n = parseInt(pageMatch[1], 10);
+    if (n >= 1 && n <= 604) return { type: 'page', value: n };
+  }
+
+  // juz/para N — resolved to the juz's starting page; we keep `viaPara` so
+  // the smart-hint card can label it as "Open Para N" instead of "Open page X".
+  const juzMatch = q.match(/^(?:juz|para|پارہ|پاره|جزء)\s*(\d{1,2})$/);
+  if (juzMatch) {
+    const n = parseInt(juzMatch[1], 10);
+    const startPage = JUZ_START_PAGE[n];
+    if (n >= 1 && n <= 30 && startPage) return { type: 'page', value: startPage, viaPara: n };
+  }
+
+  return null;
+}
 
 export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const insets = useSafeAreaInsets();
@@ -50,6 +95,29 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [tajweedOn, setTajweedOn] = useState(false);
   const [tajweedTexts, setTajweedTexts] = useState<string[] | null>(null);
   const [tajweedLoading, setTajweedLoading] = useState(false);
+  // Reading style. IndoPak is the script Pakistani/Indian readers grew up
+  // with from physical Mushafs; Uthmani is the Madinah Mushaf used worldwide.
+  // Default intelligently: Urdu users OR users in Indo-Pak timezones get
+  // IndoPak by default; everyone else gets Uthmani. The persisted choice
+  // wins on subsequent launches.
+  const [script, setScript] = useState<QuranScript>(
+    isUrdu || isIndoPakRegion() ? 'indopak' : 'uthmani'
+  );
+  const [indopakTexts, setIndopakTexts] = useState<string[] | null>(null);
+  const [indopakLoading, setIndopakLoading] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
+  const [selectedPage, setSelectedPage] = useState<number | null>(null);
+  const [lastRead, setLastRead] = useState<LastRead | null>(null);
+  const arabicFont =
+    script === 'indopak'
+      ? theme.typography.fontQuranIndopak
+      : theme.typography.fontQuranUthmani;
+  // Bismillah comes from the API for non-9 surahs, but we render a fixed copy
+  // at the top of the reader. Each script writes it slightly differently.
+  const bismillahText =
+    script === 'indopak'
+      ? 'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِیْمِ'
+      : 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
 
   const translationPlayback: TranslationPlaybackMode = translationAudioEnabled
     ? translationMode
@@ -82,18 +150,22 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   useEffect(() => {
     (async () => {
       try {
-        const [vm, tj] = await Promise.all([
+        const [vm, tj, sc, lr] = await Promise.all([
           AsyncStorage.getItem('quran_view_mode'),
           AsyncStorage.getItem('quran_tajweed_v2'),
+          AsyncStorage.getItem('quran_script_v1'),
+          loadLastRead(),
         ]);
         if (vm === 'mushaf') setViewMode('mushaf');
         if (tj === 'on') setTajweedOn(true);
+        if (sc === 'indopak' || sc === 'uthmani') setScript(sc);
+        if (lr) setLastRead(lr);
       } catch {}
     })();
   }, []);
 
   useEffect(() => {
-    if (!tajweedOn || !selectedSurah) { setTajweedTexts(null); return; }
+    if (!tajweedOn || !selectedSurah || script !== 'uthmani') { setTajweedTexts(null); return; }
     let cancelled = false;
     setTajweedLoading(true);
     fetchTajweedTexts(selectedSurah.number)
@@ -101,16 +173,32 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setTajweedLoading(false); });
     return () => { cancelled = true; };
-  }, [tajweedOn, selectedSurah?.number]);
+  }, [tajweedOn, selectedSurah?.number, script]);
+
+  // Pull IndoPak text whenever the user is on IndoPak script and a surah
+  // is open. Cached per-surah; flips between scripts are instant after
+  // first fetch.
+  useEffect(() => {
+    if (script !== 'indopak' || !selectedSurah) { setIndopakTexts(null); return; }
+    let cancelled = false;
+    setIndopakLoading(true);
+    fetchIndopakTexts(selectedSurah.number)
+      .then(texts => { if (!cancelled) setIndopakTexts(texts); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setIndopakLoading(false); });
+    return () => { cancelled = true; };
+  }, [script, selectedSurah?.number]);
 
   const openSurah = useCallback(async (surah: SurahMeta) => {
     await stop();
     setSelectedSurah(surah);
     setSurahContent(null);
     setTajweedTexts(null);
+    setIndopakTexts(null);
     setError(null);
     setLoading(true);
     ayahYRef.current = {};
+    saveLastRead({ type: 'surah', value: surah.number });
     try {
       const content = await fetchSurah(surah.number);
       setSurahContent(content);
@@ -142,17 +230,42 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   }, [playingIndex]);
 
   useEffect(() => {
-    if (!selectedSurah) return;
+    if (!selectedSurah && selectedPage === null) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       (async () => {
         await stop();
-        setSelectedSurah(null);
-        setSurahContent(null);
+        if (selectedPage !== null) {
+          setSelectedPage(null);
+        } else {
+          setSelectedSurah(null);
+          setSurahContent(null);
+        }
       })();
       return true;
     });
     return () => sub.remove();
-  }, [selectedSurah, stop]);
+  }, [selectedSurah, selectedPage, stop]);
+
+  if (selectedPage !== null) {
+    return (
+      <MushafPageReader
+        initialPage={selectedPage}
+        onBack={() => {
+          // Refresh the unified last-read pointer from storage so the resume
+          // card on the landing reflects whatever page we left off on.
+          loadLastRead().then((lr) => { if (lr) setLastRead(lr); });
+          setSelectedPage(null);
+        }}
+        language={language}
+        fs={fs}
+        script={script}
+        setScript={(s) => {
+          setScript(s);
+          AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
+        }}
+      />
+    );
+  }
 
   if (selectedSurah) {
     return (
@@ -170,6 +283,13 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           >
             <Text style={styles.backBtnText}>← {isUrdu ? 'فہرست' : 'List'}</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.legendBtn}
+            onPress={() => setLegendOpen(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.legendBtnText}>?</Text>
+          </TouchableOpacity>
           <View style={styles.readerTitleWrap}>
             <Text style={styles.readerArabicTitle}>{selectedSurah.nameArabic}</Text>
             <Text style={styles.readerEnglishTitle}>
@@ -178,6 +298,12 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </Text>
           </View>
         </View>
+
+        <WaqfLegendModal
+          visible={legendOpen}
+          onClose={() => setLegendOpen(false)}
+          language={language}
+        />
 
         <View style={styles.viewModeRow}>
           <View style={styles.viewModePills}>
@@ -191,26 +317,55 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 }}
               >
                 <Text style={[styles.viewModeBtnText, viewMode === mode && styles.viewModeBtnTextActive]}>
-                  {mode === 'verse' ? (isUrdu ? 'آیت آیت' : 'Verse') : (isUrdu ? 'مصحف' : 'Mushaf')}
+                  {mode === 'verse' ? (isUrdu ? 'آیت آیت' : 'Verse') : (isUrdu ? 'قرآن' : 'Quran')}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
-          <TouchableOpacity
-            style={[styles.tajweedBtn, tajweedOn && styles.tajweedBtnOn]}
-            onPress={() => {
-              const next = !tajweedOn;
-              setTajweedOn(next);
-              AsyncStorage.setItem('quran_tajweed_v2', next ? 'on' : 'off').catch(() => {});
-            }}
-          >
-            {tajweedLoading
-              ? <ActivityIndicator size="small" color="#FF8000" />
-              : <Text style={[styles.tajweedBtnText, tajweedOn && styles.tajweedBtnTextOn]}>
-                  {isUrdu ? 'تجوید' : 'Tajweed'}
+        </View>
+
+        <View style={styles.viewModeRow}>
+          <View style={styles.viewModePills}>
+            {(['indopak', 'uthmani'] as const).map(s => (
+              <TouchableOpacity
+                key={s}
+                style={[styles.viewModeBtn, script === s && styles.viewModeBtnActive]}
+                onPress={() => {
+                  setScript(s);
+                  AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
+                  // Tajweed coloring is Uthmani-only; flipping to IndoPak
+                  // disables it so we don't paint colors on a different text.
+                  if (s === 'indopak' && tajweedOn) {
+                    setTajweedOn(false);
+                    AsyncStorage.setItem('quran_tajweed_v2', 'off').catch(() => {});
+                  }
+                }}
+              >
+                <Text style={[styles.viewModeBtnText, script === s && styles.viewModeBtnTextActive]}>
+                  {s === 'indopak'
+                    ? (isUrdu ? 'انڈو پاک' : 'Indo-Pak')
+                    : (isUrdu ? 'مدینہ' : 'Madinah')}
                 </Text>
-            }
-          </TouchableOpacity>
+              </TouchableOpacity>
+            ))}
+          </View>
+          {script === 'uthmani' && (
+            <TouchableOpacity
+              style={[styles.tajweedBtn, tajweedOn && styles.tajweedBtnOn]}
+              onPress={() => {
+                const next = !tajweedOn;
+                setTajweedOn(next);
+                AsyncStorage.setItem('quran_tajweed_v2', next ? 'on' : 'off').catch(() => {});
+              }}
+            >
+              {tajweedLoading
+                ? <ActivityIndicator size="small" color="#FF8000" />
+                : <Text style={[styles.tajweedBtnText, tajweedOn && styles.tajweedBtnTextOn]}>
+                    {isUrdu ? 'تجوید' : 'Tajweed'}
+                  </Text>
+              }
+            </TouchableOpacity>
+          )}
         </View>
 
         {viewMode === 'verse' && (
@@ -305,24 +460,27 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               <ScrollView
                 ref={scrollRef}
                 style={styles.ayahList}
-                contentContainerStyle={[styles.mushafContent, { paddingBottom: isPlayerActive ? 112 : theme.spacing.xxxl }]}
+                contentContainerStyle={[styles.mushafContent, { paddingBottom: isPlayerActive ? 84 : theme.spacing.xxxl }]}
                 showsVerticalScrollIndicator={false}
               >
                 {selectedSurah.number !== 9 && (
-                  <Text style={[styles.bismillah, { fontSize: fs(24) }]}>
-                    بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                  <Text style={[styles.bismillah, { fontSize: fs(24), fontFamily: arabicFont }]}>
+                    {bismillahText}
                   </Text>
                 )}
-                <Text style={[styles.mushafText, { fontSize: fs(26), lineHeight: fs(26) * 2.1 }]}>
-                  {surahContent.ayahs.map((ayah, idx) => (
-                    <React.Fragment key={ayah.numberInSurah}>
-                      {tajweedOn && tajweedTexts
-                        ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26) }]} />
-                        : <Text style={[styles.mushafAyahText, { fontSize: fs(26) }]}>{ayah.arabic}</Text>
-                      }
-                      <Text style={[styles.mushafVerseNum, { fontSize: fs(14) }]}>{` ﴿${ayah.numberInSurah}﴾ `}</Text>
-                    </React.Fragment>
-                  ))}
+                <Text style={[styles.mushafText, { fontSize: fs(26), lineHeight: fs(26) * 2.1, fontFamily: arabicFont }]}>
+                  {surahContent.ayahs.map((ayah, idx) => {
+                    const indopakText = script === 'indopak' ? indopakTexts?.[idx] : null;
+                    return (
+                      <React.Fragment key={ayah.numberInSurah}>
+                        {tajweedOn && tajweedTexts && script === 'uthmani'
+                          ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: arabicFont }]} />
+                          : <Text style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: arabicFont }]}>{indopakText ?? ayah.arabic}</Text>
+                        }
+                        <Text style={[styles.mushafVerseNum, { fontSize: fs(14) }]}>{` ﴿${ayah.numberInSurah}﴾ `}</Text>
+                      </React.Fragment>
+                    );
+                  })}
                 </Text>
               </ScrollView>
             ) : (
@@ -331,19 +489,20 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               style={styles.ayahList}
               contentContainerStyle={[
                 styles.ayahListContent,
-                { paddingBottom: isPlayerActive ? 112 : theme.spacing.xxxl },
+                { paddingBottom: isPlayerActive ? 84 : theme.spacing.xxxl },
               ]}
               showsVerticalScrollIndicator={false}
             >
               {/* Bismillah omitted for Surah 9 (At-Tawbah) by convention. */}
               {selectedSurah.number !== 9 && (
-                <Text style={[styles.bismillah, { fontSize: fs(22) }]}>
-                  بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+                <Text style={[styles.bismillah, { fontSize: fs(22), fontFamily: arabicFont }]}>
+                  {bismillahText}
                 </Text>
               )}
 
               {surahContent.ayahs.map((ayah, idx) => {
                 const isPlaying = playingIndex === idx;
+                const indopakText = script === 'indopak' ? indopakTexts?.[idx] : null;
                 return (
                   <View
                     key={ayah.numberInSurah}
@@ -372,9 +531,9 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                       </View>
                     </View>
 
-                    {tajweedOn && tajweedTexts
-                      ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20) }]} />
-                      : <Text style={[styles.ayahArabic, { fontSize: fs(20) }]}>{ayah.arabic}</Text>
+                    {tajweedOn && tajweedTexts && script === 'uthmani'
+                      ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: arabicFont }]} />
+                      : <Text style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: arabicFont }]}>{indopakText ?? ayah.arabic}</Text>
                     }
 
                     {(translationMode === 'urdu' || translationMode === 'both') && (
@@ -551,7 +710,13 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           <Text style={styles.searchIcon}>🔍</Text>
           <TextInput
             style={[styles.searchInput, { fontSize: fs(14) }]}
-            placeholder={isUrdu ? 'سورہ تلاش کریں...' : isArabic ? 'ابحث عن سورة...' : 'Search surah...'}
+            placeholder={
+              isUrdu
+                ? 'سورہ، پارہ ۵، صفحہ ۲۳۴، یا ۲:۲۵۵'
+                : isArabic
+                ? 'سورة، صفحة ٢٣٤، أو ٢:٢٥٥'
+                : 'Search surah, para 5, page 234, 2:255...'
+            }
             placeholderTextColor={theme.colors.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -562,6 +727,85 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             </TouchableOpacity>
           )}
         </View>
+
+        {lastRead && (() => {
+          const lr = lastRead;
+          const label = isUrdu ? 'وہیں سے جاری رکھیں' : 'Continue Reading';
+          let title = '';
+          let sub = '';
+          if (lr.type === 'page') {
+            title = isUrdu ? `صفحہ ${lr.value}` : `Page ${lr.value}`;
+            sub = isUrdu ? `${TOTAL_PAGES} میں سے` : `of ${TOTAL_PAGES}`;
+          } else {
+            const s = SURAH_LIST.find((x) => x.number === lr.value);
+            title = s ? (isUrdu ? s.nameUrdu : s.nameEnglish) : '';
+            sub = isUrdu ? `سورۃ ${lr.value}` : `Surah ${lr.value}`;
+          }
+          return (
+            <TouchableOpacity
+              style={styles.resumeCard}
+              activeOpacity={0.85}
+              onPress={() => {
+                if (lr.type === 'page') setSelectedPage(lr.value);
+                else {
+                  const s = SURAH_LIST.find((x) => x.number === lr.value);
+                  if (s) openSurah(s);
+                }
+              }}
+            >
+              <View style={styles.resumeIconBox}>
+                <Text style={styles.resumeIcon}>📖</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.resumeLabel, { fontSize: fs(11) }]}>{label}</Text>
+                <Text style={[styles.resumeTitle, { fontSize: fs(18) }]}>{title}</Text>
+                <Text style={[styles.resumeSub, { fontSize: fs(12) }]}>{sub}</Text>
+              </View>
+              <Text style={styles.resumeArrow}>›</Text>
+            </TouchableOpacity>
+          );
+        })()}
+
+        {(() => {
+          const intent = parseSearchIntent(search);
+          if (!intent) return null;
+          const onTap = () => {
+            if (intent.type === 'page') {
+              setSelectedPage(intent.value);
+              setSearch('');
+            } else if (intent.type === 'verse') {
+              const s = SURAH_LIST.find((x) => x.number === intent.surah);
+              if (s) { openSurah(s); setSearch(''); }
+            }
+          };
+          let line = '';
+          if (intent.type === 'page') {
+            if (intent.viaPara) {
+              line = isUrdu
+                ? `پارہ ${intent.viaPara} (صفحہ ${intent.value}) پر جائیں`
+                : `Open Para ${intent.viaPara} (page ${intent.value})`;
+            } else {
+              line = isUrdu
+                ? `صفحہ ${intent.value} پر جائیں`
+                : `Open page ${intent.value}`;
+            }
+          } else {
+            const s = SURAH_LIST.find((x) => x.number === intent.surah);
+            line = isUrdu
+              ? `${s?.nameUrdu ?? ''} ${intent.surah}:${intent.ayah} کھولیں`
+              : `Open ${s?.nameEnglish ?? `Surah ${intent.surah}`} ${intent.surah}:${intent.ayah}`;
+          }
+          return (
+            <TouchableOpacity
+              style={styles.smartHintCard}
+              activeOpacity={0.85}
+              onPress={onTap}
+            >
+              <Text style={styles.smartHintIcon}>→</Text>
+              <Text style={[styles.smartHintText, { fontSize: fs(13) }]}>{line}</Text>
+            </TouchableOpacity>
+          );
+        })()}
       </View>
 
       <FlatList
@@ -701,7 +945,7 @@ const styles = StyleSheet.create({
   surahInfo: { flex: 1 },
   surahNameAr: {
     color: theme.colors.text,
-    fontFamily: theme.typography.fontBody,
+    fontFamily: theme.typography.fontQuranUthmani,
     fontWeight: '600',
   },
   surahNameEn: {
@@ -725,6 +969,182 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
   },
+  resumeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.md,
+    marginTop: theme.spacing.md,
+    borderWidth: 2,
+    borderColor: theme.colors.accent,
+    gap: theme.spacing.md,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.colors.accent,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  resumeIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.accentMuted,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resumeIcon: {
+    fontSize: 22,
+  },
+  resumeLabel: {
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  resumeTitle: {
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBodyBold,
+    marginTop: 2,
+  },
+  resumeSub: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    marginTop: 1,
+  },
+  resumeArrow: {
+    fontSize: 28,
+    color: theme.colors.accent,
+  },
+  smartHintCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.successMuted,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    marginTop: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 122, 60, 0.3)',
+    gap: theme.spacing.sm,
+  },
+  smartHintIcon: {
+    fontSize: 16,
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBodyBold,
+  },
+  smartHintText: {
+    flex: 1,
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBodyMedium,
+  },
+  pageBrowserContent: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingBottom: theme.spacing.xxxl,
+    paddingTop: theme.spacing.sm,
+  },
+  continueCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.successMuted,
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 122, 60, 0.3)',
+    gap: theme.spacing.md,
+  },
+  continueLabel: {
+    fontSize: 11,
+    color: theme.colors.success,
+    fontFamily: theme.typography.fontBodyBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  continueValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBodyBold,
+    marginTop: 4,
+  },
+  continueArrow: {
+    fontSize: 24,
+    color: theme.colors.success,
+  },
+  pageBrowserSection: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.md,
+  },
+  pageJumpRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+  },
+  pageJumpInput: {
+    flex: 1,
+    fontSize: 18,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBodyBold,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    textAlign: 'center',
+  },
+  pageJumpBtn: {
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.accent,
+    borderRadius: theme.borderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  pageJumpBtnText: {
+    fontSize: 14,
+    color: '#fff',
+    fontFamily: theme.typography.fontBodyBold,
+  },
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  quickGridBtn: {
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 10,
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    minWidth: 88,
+    alignItems: 'center',
+  },
+  quickGridBtnText: {
+    fontSize: 13,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyMedium,
+  },
+  pageBrowserHint: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: theme.spacing.lg,
+    lineHeight: 16,
+  },
   readerHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -746,6 +1166,22 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     fontFamily: theme.typography.fontBodyMedium,
   },
+  legendBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  legendBtnText: {
+    fontSize: 15,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.accent,
+    lineHeight: 18,
+  },
   readerTitleWrap: {
     flex: 1,
     alignItems: 'flex-end',
@@ -753,7 +1189,7 @@ const styles = StyleSheet.create({
   readerArabicTitle: {
     fontSize: 22,
     color: theme.colors.text,
-    fontFamily: theme.typography.fontBody,
+    fontFamily: theme.typography.fontQuranUthmani,
   },
   readerEnglishTitle: {
     fontSize: 12,
@@ -1019,8 +1455,8 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 6,
     backgroundColor: '#1C2E1A',
     borderTopWidth: 1,
     borderTopColor: 'rgba(26,122,60,0.3)',
@@ -1065,22 +1501,22 @@ const styles = StyleSheet.create({
   playerControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   playerBtn: {
-    width: 34,
-    height: 34,
+    width: 28,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   playerBtnIcon: {
-    fontSize: 18,
+    fontSize: 16,
     color: 'rgba(255,255,255,0.85)',
   },
   playerPlayPauseBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: theme.colors.success,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1090,19 +1526,19 @@ const styles = StyleSheet.create({
     }),
   },
   playerPlayPauseIcon: {
-    fontSize: 17,
+    fontSize: 14,
     color: '#FFFFFF',
   },
   playerStopBtn: {
-    width: 30,
-    height: 30,
+    width: 24,
+    height: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 15,
+    borderRadius: 12,
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   playerStopIcon: {
-    fontSize: 13,
+    fontSize: 11,
     color: 'rgba(255,255,255,0.7)',
   },
 

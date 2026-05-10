@@ -42,6 +42,12 @@ export const theme = {
     fontBody: 'PlusJakartaSans_400Regular',
     fontBodyMedium: 'PlusJakartaSans_500Medium',
     fontBodyBold: 'PlusJakartaSans_600SemiBold',
+    // Quran-specific Arabic fonts — bundled in /assets/fonts.
+    // Uthmani = Madinah Mushaf (KFGQPC-style, used in Saudi-printed Qurans).
+    // IndoPak = Pakistani/Indian Mushaf script — what most South-Asian
+    // Muslims grew up reading from a physical Quran.
+    fontQuranUthmani: 'AmiriQuran',
+    fontQuranIndopak: 'NoorehudaQuran',
   },
   shadows: {
     sm: Platform.select({
