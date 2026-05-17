@@ -82,3 +82,23 @@ export function computeStreak(
 
   return { current, longest: Math.max(longest, current) };
 }
+
+// Milestones the user gets a celebratory toast for. Tuned for early wins
+// (1, 3) so first-time users feel rewarded fast, then spaced out enough
+// that long-term users still get meaningful checkpoints.
+export const STREAK_MILESTONES = [1, 3, 7, 14, 30, 60, 100, 365] as const;
+
+// Returns the highest milestone in STREAK_MILESTONES that is <= current and
+// > lastCelebrated. Used by the UI to fire a single Alert when the user
+// crosses a new threshold. Returns null when nothing new has been reached.
+export function nextStreakMilestone(
+  current: number,
+  lastCelebrated: number
+): number | null {
+  if (current <= 0) return null;
+  for (let i = STREAK_MILESTONES.length - 1; i >= 0; i -= 1) {
+    const m = STREAK_MILESTONES[i];
+    if (m <= current && m > lastCelebrated) return m;
+  }
+  return null;
+}

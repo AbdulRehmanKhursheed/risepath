@@ -79,6 +79,8 @@ export type Translations = {
   hanafiBasis: string;
   save: string;
   cancel: string;
+  streakMilestoneTitle: string;
+  streakMilestoneBody: string;
 };
 
 const en: Translations = {
@@ -165,6 +167,8 @@ const en: Translations = {
   hanafiBasis: 'Affects Asr prayer time. Hanafi uses a later time.',
   save: 'Save',
   cancel: 'Cancel',
+  streakMilestoneTitle: 'MashaAllah ✨',
+  streakMilestoneBody: "{n}-day streak — may Allah accept and let you continue.",
 };
 
 const ur: Translations = {
@@ -251,6 +255,8 @@ const ur: Translations = {
   hanafiBasis: 'عصر کے وقت پر اثر ڈالتا ہے۔ حنفی طریقہ بعد میں ہوتا ہے۔',
   save: 'محفوظ کریں',
   cancel: 'منسوخ',
+  streakMilestoneTitle: 'ماشاء اللہ ✨',
+  streakMilestoneBody: '{n} دن کا سلسلہ — اللہ قبول فرمائے اور جاری رکھے۔',
 };
 
 const ar: Translations = {
@@ -337,6 +343,8 @@ const ar: Translations = {
   hanafiBasis: 'يؤثر على وقت صلاة العصر. الحنفي يعتمد وقتاً متأخراً.',
   save: 'حفظ',
   cancel: 'إلغاء',
+  streakMilestoneTitle: 'ما شاء الله ✨',
+  streakMilestoneBody: 'سلسلة {n} يوماً — تقبّل الله منك، وأدم عليك.',
 };
 
 export const translations: Record<Language, Translations> = { en, ur, ar };

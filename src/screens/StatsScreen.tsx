@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AdBanner } from '../components/AdBanner';
 import { storage } from '../services/storage';
@@ -17,51 +18,62 @@ export function StatsScreen() {
   const [goalsThisWeek, setGoalsThisWeek] = useState(0);
   const [moodAvg, setMoodAvg] = useState(0);
 
-  useEffect(() => {
-    (async () => {
-      const prayers = await storage.getPrayers();
-      const { current, longest } = computeStreak(prayers);
-      setStreak(current);
-      setLongest(longest);
+  // useFocusEffect — Stats is reachable from the sidebar; without this the
+  // numbers shown reflect first-mount data and never update after the user
+  // prays, marks a goal, or logs a mood elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const prayers = await storage.getPrayers();
+        if (cancelled) return;
+        const { current, longest: longestRun } = computeStreak(prayers);
+        setStreak(current);
+        setLongest(longestRun);
 
-      const now = new Date();
-      let prayed = 0;
-      let total = 0;
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(now);
-        d.setDate(now.getDate() - i);
-        const key = getLocalDateKey(d);
-        const rec = prayers[key];
-        if (rec) {
-          prayed += [
-            rec.fajr,
-            rec.dhuhr,
-            rec.asr,
-            rec.maghrib,
-            rec.isha,
-          ].filter(Boolean).length;
-          total += 5;
+        const now = new Date();
+        let prayed = 0;
+        let total = 0;
+        for (let i = 0; i < 7; i++) {
+          const d = new Date(now);
+          d.setDate(now.getDate() - i);
+          const key = getLocalDateKey(d);
+          const rec = prayers[key];
+          if (rec) {
+            prayed += [
+              rec.fajr,
+              rec.dhuhr,
+              rec.asr,
+              rec.maghrib,
+              rec.isha,
+            ].filter(Boolean).length;
+            total += 5;
+          }
         }
-      }
-      setPrayerConsistency(total > 0 ? Math.round((prayed / total) * 100) : 0);
+        if (cancelled) return;
+        setPrayerConsistency(total > 0 ? Math.round((prayed / total) * 100) : 0);
 
-      const goals = await storage.getGoals();
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      const completed = goals.filter(
-        (g) => g.completed && g.date && new Date(g.date) >= weekAgo
-      );
-      setGoalsThisWeek(completed.length);
+        const goals = await storage.getGoals();
+        if (cancelled) return;
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        const completed = goals.filter(
+          (g) => g.completed && g.date && new Date(g.date) >= weekAgo
+        );
+        setGoalsThisWeek(completed.length);
 
-      const moods = await storage.getMoods();
-      const recentMoods = moods.slice(0, 7).filter((m) => m.mood);
-      const avg =
-        recentMoods.length > 0
-          ? recentMoods.reduce((s, m) => s + m.mood, 0) / recentMoods.length
-          : 0;
-      setMoodAvg(Math.round(avg * 10) / 10);
-    })();
-  }, []);
+        const moods = await storage.getMoods();
+        if (cancelled) return;
+        const recentMoods = moods.slice(0, 7).filter((m) => m.mood);
+        const avg =
+          recentMoods.length > 0
+            ? recentMoods.reduce((s, m) => s + m.mood, 0) / recentMoods.length
+            : 0;
+        setMoodAvg(Math.round(avg * 10) / 10);
+      })();
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   return (
     <View style={styles.root}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
@@ -32,9 +32,18 @@ export function TodayCard() {
   // Hydrate after mount; null until then — getTodayAct falls back to Sunni
   // rendering, which is the safe default for an unknown user.
   const [sect, setSect] = useState<Sect | null>(null);
-  useEffect(() => {
-    storage.getFiqhSchool().then(setSect);
-  }, []);
+  // useFocusEffect — HomeScreen never unmounts, so a plain useEffect would
+  // freeze the sect at first read. If the user changes calc method (Jafari →
+  // sets fiqh shia) later, this card needs to pick up the new sect.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      storage.getFiqhSchool().then((s) => {
+        if (!cancelled) setSect(s);
+      });
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   const act: DailyAct = useMemo(() => getTodayAct(new Date(), sect), [sect]);
 

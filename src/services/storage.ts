@@ -11,6 +11,7 @@ const KEYS = {
   FIQH_SCHOOL: 'fiqhSchool',
   CALENDAR_REGION: 'calendarRegion',
   SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
+  LAST_STREAK_MILESTONE: 'lastStreakMilestone',
 } as const;
 
 const CALENDAR_REGION_IDS: CalendarRegion[] = [
@@ -160,5 +161,15 @@ export const storage = {
 
   async setSacredCountdownPrefs(prefs: SacredCountdownPrefs): Promise<void> {
     await AsyncStorage.setItem(KEYS.SACRED_COUNTDOWN_PREFS, JSON.stringify(prefs));
+  },
+
+  async getLastStreakMilestone(): Promise<number> {
+    const raw = await AsyncStorage.getItem(KEYS.LAST_STREAK_MILESTONE);
+    const n = raw ? Number(raw) : 0;
+    return Number.isFinite(n) ? n : 0;
+  },
+
+  async setLastStreakMilestone(n: number): Promise<void> {
+    await AsyncStorage.setItem(KEYS.LAST_STREAK_MILESTONE, String(n));
   },
 };

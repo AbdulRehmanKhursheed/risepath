@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
@@ -37,19 +37,27 @@ export function NextEventCard() {
   const [region, setRegion] = useState<CalendarRegion | null>(null);
   const [now, setNow] = useState(new Date());
 
-  useEffect(() => {
-    (async () => {
-      const [fiqh, savedRegion, loc] = await Promise.all([
-        storage.getFiqhSchool(),
-        storage.getCalendarRegion(),
-        storage.getLocation(),
-      ]);
-      setSect(fiqh);
-      const r = savedRegion ?? (loc ? detectRegionFromCoords(loc.latitude, loc.longitude) : 'global');
-      if (!savedRegion) await storage.setCalendarRegion(r);
-      setRegion(r);
-    })();
-  }, []);
+  // useFocusEffect — Home stays mounted, so without this the sect/region
+  // are frozen at first read. Changing calculation method (Jafari toggles
+  // shia) must reflect in this countdown without a cold restart.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      (async () => {
+        const [fiqh, savedRegion, loc] = await Promise.all([
+          storage.getFiqhSchool(),
+          storage.getCalendarRegion(),
+          storage.getLocation(),
+        ]);
+        if (cancelled) return;
+        setSect(fiqh);
+        const r = savedRegion ?? (loc ? detectRegionFromCoords(loc.latitude, loc.longitude) : 'global');
+        if (!savedRegion) await storage.setCalendarRegion(r);
+        if (!cancelled) setRegion(r);
+      })();
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), TICK_MS);

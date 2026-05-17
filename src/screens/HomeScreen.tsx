@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
 import { AdBanner } from '../components/AdBanner';
@@ -12,7 +12,7 @@ import { TodayCard } from '../components/TodayCard';
 import { QuickActions } from '../components/QuickActions';
 import { storage } from '../services/storage';
 import { theme } from '../constants/theme';
-import { computeStreak } from '../utils/streak';
+import { computeStreak, nextStreakMilestone } from '../utils/streak';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
 import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -53,7 +53,7 @@ export function HomeScreen() {
   const { t, language } = useLanguage();
   const navigation = useNavigation();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
-  const hijri = formatHijri(new Date(), language);
+  const hijri = useMemo(() => formatHijri(new Date(), language), [language]);
   // Streak is derived directly from the prayers store — single source of
   // truth, no separate streak record to keep in sync.
   const [streak, setStreak] = useState(0);
@@ -64,21 +64,47 @@ export function HomeScreen() {
 
   const today = getLocalDateKey();
 
-  useEffect(() => {
-    setQuote(getRandomQuote());
-    storage.getPrayers().then((prayers) => {
-      const { current, longest } = computeStreak(prayers);
-      setStreak(current);
-      setLongest(longest);
-    });
-    storage.getGoals().then((data) => {
-      if (data.length > 0) setGoals(data);
-      else {
-        setGoals(defaultGoals);
-        storage.setGoals(defaultGoals);
-      }
-    });
-  }, [language]);
+  // useFocusEffect (not useEffect) — the tab navigator keeps HomeScreen
+  // mounted, so a plain useEffect would only fire on first mount and the
+  // streak/goals would stay frozen when the user returns from Prayers.
+  useFocusEffect(
+    useCallback(() => {
+      setQuote(getRandomQuote());
+      let cancelled = false;
+      (async () => {
+        const prayers = await storage.getPrayers();
+        if (cancelled) return;
+        const { current, longest: longestRun } = computeStreak(prayers);
+        setStreak(current);
+        setLongest(longestRun);
+
+        if (current <= 0) {
+          await storage.setLastStreakMilestone(0);
+        } else {
+          const last = await storage.getLastStreakMilestone();
+          const reached = nextStreakMilestone(current, last);
+          if (reached != null) {
+            await storage.setLastStreakMilestone(reached);
+            if (!cancelled) {
+              Alert.alert(
+                t.streakMilestoneTitle,
+                t.streakMilestoneBody.replace('{n}', String(reached))
+              );
+            }
+          }
+        }
+
+        const data = await storage.getGoals();
+        if (cancelled) return;
+        if (data.length > 0) setGoals(data);
+        else {
+          setGoals(defaultGoals);
+          await storage.setGoals(defaultGoals);
+        }
+      })();
+      return () => { cancelled = true; };
+    }, [language, t.streakMilestoneTitle, t.streakMilestoneBody])
+  );
 
   // A goal counts as completed only if it was checked TODAY. Carrying a
   // checkmark from a previous day was the bug the user hit on first open.
