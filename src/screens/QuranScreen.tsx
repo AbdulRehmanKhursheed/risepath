@@ -628,44 +628,46 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 autoCapitalize="none"
               />
 
-              <ScrollView style={styles.reciterList} keyboardShouldPersistTaps="handled">
-                {(() => {
+              <FlatList
+                style={styles.reciterList}
+                keyboardShouldPersistTaps="handled"
+                data={(() => {
                   const q = reciterSearch.trim().toLowerCase();
-                  const list = q
+                  return q
                     ? RECITERS.filter((r) =>
                         r.nameEn.toLowerCase().includes(q) ||
                         r.nameAr.includes(q) ||
                         r.nameUr.includes(q)
                       )
                     : RECITERS;
-                  if (list.length === 0) {
-                    return (
-                      <Text style={styles.reciterEmpty}>
-                        {isUrdu ? 'کوئی قاری نہیں ملا' : isArabic ? 'لم يتم العثور على قارئ' : 'No reciters found'}
-                      </Text>
-                    );
-                  }
-                  return list.map((r) => {
-                    const selected = r.id === currentReciter.id;
-                    return (
-                      <TouchableOpacity
-                        key={r.id}
-                        style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
-                        onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
-                        activeOpacity={0.8}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
-                            {isUrdu ? r.nameUr : r.nameEn}
-                          </Text>
-                          <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
-                        </View>
-                        {selected && <Text style={styles.reciterCheck}>✓</Text>}
-                      </TouchableOpacity>
-                    );
-                  });
                 })()}
-              </ScrollView>
+                keyExtractor={(r) => r.id}
+                initialNumToRender={10}
+                windowSize={5}
+                ListEmptyComponent={
+                  <Text style={styles.reciterEmpty}>
+                    {isUrdu ? 'کوئی قاری نہیں ملا' : isArabic ? 'لم يتم العثور على قارئ' : 'No reciters found'}
+                  </Text>
+                }
+                renderItem={({ item: r }) => {
+                  const selected = r.id === currentReciter.id;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
+                      onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
+                          {isUrdu ? r.nameUr : r.nameEn}
+                        </Text>
+                        <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
+                      </View>
+                      {selected && <Text style={styles.reciterCheck}>✓</Text>}
+                    </TouchableOpacity>
+                  );
+                }}
+              />
 
               <TouchableOpacity
                 style={styles.modalCloseBtn}

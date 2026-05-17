@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Text, StyleProp, TextStyle } from 'react-native';
 
 // Madinah-Mushaf-aligned palette. Sourced from the Quran.com colour reference
@@ -58,7 +58,10 @@ function parse(raw: string): Segment[] {
 }
 
 export function TajweedText({ text, style }: { text: string; style?: StyleProp<TextStyle> }) {
-  const segs = parse(text);
+  // Tajweed parsing runs a stateful regex over the ayah HTML — without memo
+  // it re-parses on every render of every TajweedText instance, and a long
+  // surah has hundreds of these on screen at once.
+  const segs = useMemo(() => parse(text), [text]);
   return (
     <Text>
       {segs.map((s, i) =>

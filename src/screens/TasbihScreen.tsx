@@ -88,25 +88,28 @@ export function TasbihScreen() {
     })();
   }, []);
 
+  // Persist via a single debounced multiSet. Original code fired three
+  // AsyncStorage writes on every bead tap, which on Android (single-threaded
+  // AsyncStorage) backed up the bridge during fast dhikr and made the
+  // counter feel sticky / drop taps. 600ms window keeps disk writes rare
+  // without losing more than ~half a second of count on app kill.
   useEffect(() => {
     if (!hydrated) return;
-    AsyncStorage.setItem(
-      STORAGE_KEY_STATE,
-      JSON.stringify({ presetId: preset.id, count, target }),
-    );
-  }, [preset, count, target, hydrated]);
+    const handle = setTimeout(() => {
+      AsyncStorage.multiSet([
+        [STORAGE_KEY_STATE, JSON.stringify({ presetId: preset.id, count, target })],
+        [STORAGE_KEY_LIFETIME, String(lifetime)],
+        [STORAGE_KEY_TODAY, JSON.stringify({ date: todayKey(), count: todayCount })],
+      ]).catch(() => {});
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [preset, count, target, lifetime, todayCount, hydrated]);
 
   const increment = () => {
     const next = count + 1;
     setCount(next);
-    const newLife = lifetime + 1;
-    setLifetime(newLife);
-    AsyncStorage.setItem(STORAGE_KEY_LIFETIME, String(newLife));
-
-    const tk = todayKey();
-    const newToday = todayCount + 1;
-    setTodayCount(newToday);
-    AsyncStorage.setItem(STORAGE_KEY_TODAY, JSON.stringify({ date: tk, count: newToday }));
+    setLifetime((l) => l + 1);
+    setTodayCount((c) => c + 1);
 
     if (next === target) {
       Vibration.vibrate(Platform.OS === 'ios' ? [0, 50, 100, 200] : 400);
