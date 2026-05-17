@@ -73,9 +73,15 @@ export function MushafPageReader({
   // FlatList virtualization keeps memory bounded while supporting jumps.
   const pages = useMemo(() => Array.from({ length: TOTAL_PAGES }, (_, i) => i + 1), []);
 
-  // Mark the resumed page each time the user lands here. Subsequent in-reader
-  // swipes update the same record so resume is always accurate.
-  useEffect(() => { saveLastRead({ type: 'page', value: page }); }, [page]);
+  // Debounced save — fast page swipes used to hammer AsyncStorage on every
+  // momentum end, slowing the bridge while the swipe animation was still
+  // running. 500ms lets the user stop on a page before we persist it.
+  useEffect(() => {
+    const handle = setTimeout(() => {
+      saveLastRead({ type: 'page', value: page });
+    }, 500);
+    return () => clearTimeout(handle);
+  }, [page]);
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { theme } from '../constants/theme';
 import { formatPrayerTime } from '../hooks/usePrayerTimes';
@@ -23,29 +23,35 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
   const [expanded, setExpanded] = useState(false);
   const surah = PRAYER_SURAHS[prayerKey];
 
-  const STATUS_CONFIG = {
-    prayed: {
-      label: t.prayed,
-      icon: '✓',
-      bg: theme.colors.successMuted,
-      color: theme.colors.success,
-      border: 'rgba(26, 122, 60, 0.3)',
-    },
-    missed: {
-      label: t.missed,
-      icon: '○',
-      bg: theme.colors.errorMuted,
-      color: theme.colors.error,
-      border: 'rgba(184, 48, 37, 0.3)',
-    },
-    upcoming: {
-      label: t.upcoming,
-      icon: '→',
-      bg: 'rgba(122, 90, 64, 0.08)',
-      color: theme.colors.textMuted,
-      border: theme.colors.border,
-    },
-  };
+  // Stable config table per language; without memo the inner three objects
+  // would be rebuilt on every parent re-render (refresh control, location
+  // load, etc.), forcing all five PrayerRow rows to reconcile.
+  const STATUS_CONFIG = useMemo(
+    () => ({
+      prayed: {
+        label: t.prayed,
+        icon: '✓',
+        bg: theme.colors.successMuted,
+        color: theme.colors.success,
+        border: 'rgba(26, 122, 60, 0.3)',
+      },
+      missed: {
+        label: t.missed,
+        icon: '○',
+        bg: theme.colors.errorMuted,
+        color: theme.colors.error,
+        border: 'rgba(184, 48, 37, 0.3)',
+      },
+      upcoming: {
+        label: t.upcoming,
+        icon: '→',
+        bg: 'rgba(122, 90, 64, 0.08)',
+        color: theme.colors.textMuted,
+        border: theme.colors.border,
+      },
+    }),
+    [t.prayed, t.missed, t.upcoming]
+  );
 
   const config = STATUS_CONFIG[status];
 

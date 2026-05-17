@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, StyleSheet,
   ScrollView, Animated,
@@ -65,13 +65,21 @@ export function HifzScreen() {
     });
   }, []);
 
-  const memorized = SURAH_LIST.filter((s) => progress[s.number] === 'memorized').length;
-  const learning = SURAH_LIST.filter((s) => progress[s.number] === 'learning').length;
-  const progressPct = Math.round((memorized / 114) * 100);
+  // Three 114-item filters fired on every render before memo — cycling a
+  // status or tapping a juz chip caused noticeable lag.
+  const { memorized, learning, progressPct } = useMemo(() => {
+    const m = SURAH_LIST.filter((s) => progress[s.number] === 'memorized').length;
+    const l = SURAH_LIST.filter((s) => progress[s.number] === 'learning').length;
+    return { memorized: m, learning: l, progressPct: Math.round((m / 114) * 100) };
+  }, [progress]);
 
-  const displayedSurahs = activeJuz
-    ? SURAH_LIST.filter((s) => SURAH_JUZ[s.number - 1] === activeJuz)
-    : SURAH_LIST;
+  const displayedSurahs = useMemo(
+    () =>
+      activeJuz
+        ? SURAH_LIST.filter((s) => SURAH_JUZ[s.number - 1] === activeJuz)
+        : SURAH_LIST,
+    [activeJuz]
+  );
 
   const renderSurah = ({ item }: { item: typeof SURAH_LIST[0] }) => {
     const status = progress[item.number] ?? 'none';

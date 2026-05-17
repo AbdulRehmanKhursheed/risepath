@@ -4,6 +4,20 @@ import { storage } from '../services/storage';
 
 const KARACHI_FALLBACK = { latitude: 24.8607, longitude: 67.0011 };
 
+// Module-level dedup so App.tsx's first-launch permission flow and the
+// PrayerTracker's useLocation don't both call the OS prompt — on Android,
+// the second concurrent call returns "denied" even after the user just
+// granted, which silently kicked users to the Karachi fallback.
+let inFlightRequest: Promise<Location.LocationPermissionResponse> | null = null;
+export function requestLocationPermissionOnce() {
+  if (!inFlightRequest) {
+    inFlightRequest = Location.requestForegroundPermissionsAsync().finally(() => {
+      inFlightRequest = null;
+    });
+  }
+  return inFlightRequest;
+}
+
 export function useLocation() {
   const [location, setLocation] = useState<{
     latitude: number;
@@ -22,7 +36,7 @@ export function useLocation() {
           if (mounted) setLocation(cached);
         }
 
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await requestLocationPermissionOnce();
         if (status !== 'granted') {
           if (mounted) {
             setLocation(cached || KARACHI_FALLBACK);

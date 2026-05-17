@@ -31,6 +31,7 @@ import {
   rebuildPrayerScheduleFromStorage,
 } from './src/services/notifications';
 import * as Location from 'expo-location';
+import { requestLocationPermissionOnce } from './src/hooks/useLocation';
 import { storage } from './src/services/storage';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { PrayerTrackerScreen } from './src/screens/PrayerTrackerScreen';
@@ -352,7 +353,7 @@ function AppInner() {
       } catch {}
 
       try {
-        const { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await requestLocationPermissionOnce();
         if (status === 'granted') {
           const result = await Location.getCurrentPositionAsync({
             accuracy: Location.Accuracy.Balanced,

@@ -59,8 +59,19 @@ export function PrayerTrackerScreen() {
 
   const lat = location?.latitude ?? 24.8607;
   const lng = location?.longitude ?? 67.0011;
-  // Stable date: only changes when the calendar day changes, not on every render.
-  const today = useMemo(() => new Date(), [getDateString(new Date())]);
+  // Stable date that only flips when the calendar day rolls over. The
+  // previous useMemo(() => new Date(), [getDateString(new Date())]) looked
+  // right but evaluated `new Date()` inside the memo body too, so the
+  // identity changed on every parent re-render — triggering usePrayerTimes
+  // recompute on every refresh-control toggle / location change.
+  const [today, setToday] = useState(() => new Date());
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = new Date();
+      if (getDateString(now) !== getDateString(today)) setToday(now);
+    }, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [today]);
   const prayerTimes = usePrayerTimes(lat, lng, today, calculationMethod, madhab);
 
   const prayerDisplayNames: Record<PrayerName, string> = {
@@ -171,6 +182,21 @@ export function PrayerTrackerScreen() {
     return () => { cancelled = true; };
   }, [today, language, calculationMethod, madhab, lat, lng]);
 
+  // Stable handlers for PrayerSettingsModal — inline arrows would be a new
+  // reference on every parent render, forcing the modal to reconcile while
+  // closed.
+  const onSettingsClose = useCallback(() => setSettingsVisible(false), []);
+  const onSettingsSave = useCallback(
+    async (method: CalculationMethodId, m: MadhabId) => {
+      const fiqhSchool: 'sunni' | 'shia' = method === 'Jafari' ? 'shia' : 'sunni';
+      setCalculationMethod(method);
+      setMadhab(m);
+      await storage.setFiqhSchool(fiqhSchool);
+      await storage.setPrayerSettings({ calculationMethod: method, madhab: m, fiqhSchool });
+    },
+    []
+  );
+
   const getStatus = (key: PrayerName, prayerTime: Date): 'prayed' | 'missed' | 'upcoming' => {
     if (todayRecord[key]) return 'prayed';
     const now = new Date();
@@ -248,16 +274,10 @@ export function PrayerTrackerScreen() {
 
       <PrayerSettingsModal
         visible={settingsVisible}
-        onClose={() => setSettingsVisible(false)}
+        onClose={onSettingsClose}
         calculationMethod={calculationMethod}
         madhab={madhab}
-        onSave={async (method, m) => {
-          const fiqhSchool = method === 'Jafari' ? 'shia' : 'sunni';
-          setCalculationMethod(method);
-          setMadhab(m);
-          await storage.setFiqhSchool(fiqhSchool);
-          await storage.setPrayerSettings({ calculationMethod: method, madhab: m, fiqhSchool });
-        }}
+        onSave={onSettingsSave}
       />
 
       <View style={styles.weekCard}>

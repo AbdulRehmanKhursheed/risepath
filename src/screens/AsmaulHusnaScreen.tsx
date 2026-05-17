@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Modal, ScrollView, Animated,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -37,6 +38,16 @@ export function AsmaulHusnaScreen() {
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
+
+  // Reset modal on navigation away so it doesn't re-appear on return.
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setModalVisible(false);
+        setSelected(null);
+      };
+    }, [])
+  );
 
   const toggleKnown = async (num: number) => {
     setKnown((prev) => {

@@ -3,6 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   StyleSheet, Modal, ScrollView, Animated,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../constants/theme';
@@ -31,6 +32,17 @@ export function DuaScreen() {
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
+
+  // Dismiss the detail modal when the user navigates away — without this
+  // the modal pops back on return, which feels broken.
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        setModalVisible(false);
+        setSelected(null);
+      };
+    }, [])
+  );
 
   const toggleFavorite = useCallback(async (id: string) => {
     setFavorites((prev) => {
