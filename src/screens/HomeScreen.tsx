@@ -82,14 +82,22 @@ export function HomeScreen() {
           await storage.setLastStreakMilestone(0);
         } else {
           const last = await storage.getLastStreakMilestone();
-          const reached = nextStreakMilestone(current, last);
-          if (reached != null) {
-            await storage.setLastStreakMilestone(reached);
-            if (!cancelled) {
-              Alert.alert(
-                t.streakMilestoneTitle,
-                t.streakMilestoneBody.replace('{n}', String(reached))
-              );
+          if (last === null) {
+            // First run after install/upgrade. Silently sync the milestone
+            // tracker to the user's current state so we don't congratulate
+            // them retroactively for streaks they already had under 1.0.3.
+            const passed = nextStreakMilestone(current, 0) ?? 0;
+            await storage.setLastStreakMilestone(passed);
+          } else {
+            const reached = nextStreakMilestone(current, last);
+            if (reached != null) {
+              await storage.setLastStreakMilestone(reached);
+              if (!cancelled) {
+                Alert.alert(
+                  t.streakMilestoneTitle,
+                  t.streakMilestoneBody.replace('{n}', String(reached))
+                );
+              }
             }
           }
         }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Modal, ScrollView, Animated,
+  StyleSheet, Modal, ScrollView, Animated, AppState,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,13 +33,17 @@ export function DuaScreen() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
 
-  // Dismiss the detail modal when the user navigates away — without this
-  // the modal pops back on return, which feels broken.
+  // Dismiss the detail modal when the user navigates AWAY from the screen
+  // (hardware back, tab switch). Guard against app-background blur so a
+  // user reading a dua and briefly switching apps doesn't lose their place
+  // on return.
   useFocusEffect(
     useCallback(() => {
       return () => {
-        setModalVisible(false);
-        setSelected(null);
+        if (AppState.currentState === 'active') {
+          setModalVisible(false);
+          setSelected(null);
+        }
       };
     }, [])
   );

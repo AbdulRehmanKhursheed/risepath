@@ -163,10 +163,15 @@ export const storage = {
     await AsyncStorage.setItem(KEYS.SACRED_COUNTDOWN_PREFS, JSON.stringify(prefs));
   },
 
-  async getLastStreakMilestone(): Promise<number> {
+  // Returns null when the key has never been written. Lets the caller
+  // distinguish "fresh install / upgrade" from "this user has explicitly
+  // seen milestone 0" so we can silently seed instead of celebrating
+  // retroactively.
+  async getLastStreakMilestone(): Promise<number | null> {
     const raw = await AsyncStorage.getItem(KEYS.LAST_STREAK_MILESTONE);
-    const n = raw ? Number(raw) : 0;
-    return Number.isFinite(n) ? n : 0;
+    if (raw === null) return null;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : null;
   },
 
   async setLastStreakMilestone(n: number): Promise<void> {

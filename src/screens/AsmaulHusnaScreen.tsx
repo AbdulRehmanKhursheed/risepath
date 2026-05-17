@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, Animated,
+  Modal, ScrollView, Animated, AppState,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -40,11 +40,15 @@ export function AsmaulHusnaScreen() {
   }, []);
 
   // Reset modal on navigation away so it doesn't re-appear on return.
+  // Guarded against app-background blur so backgrounding the app doesn't
+  // close a name the user was reading.
   useFocusEffect(
     useCallback(() => {
       return () => {
-        setModalVisible(false);
-        setSelected(null);
+        if (AppState.currentState === 'active') {
+          setModalVisible(false);
+          setSelected(null);
+        }
       };
     }, [])
   );
