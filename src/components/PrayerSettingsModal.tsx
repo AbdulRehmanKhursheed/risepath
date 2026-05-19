@@ -21,7 +21,7 @@ import {
 import { useLanguage } from '../contexts/LanguageContext';
 import { sendTestNotification } from '../services/notifications';
 import { storage } from '../services/storage';
-import { formatHijri } from '../utils/hijri';
+import { formatHijri, computeHijriOffsetFromServer } from '../utils/hijri';
 
 type Props = {
   visible: boolean;
@@ -74,6 +74,25 @@ export function PrayerSettingsModal({
     const next = Math.max(-3, Math.min(3, hijriOffset + delta));
     setHijriOffset(next);
     storage.setHijriOffset(next).catch(() => {});
+  };
+
+  const [autoDetecting, setAutoDetecting] = React.useState(false);
+  const autoDetectHijri = async () => {
+    setAutoDetecting(true);
+    try {
+      const fetched = await computeHijriOffsetFromServer();
+      if (fetched != null) {
+        setHijriOffset(fetched);
+        await storage.setHijriOffset(fetched);
+      } else {
+        Alert.alert(
+          language === 'ur' ? 'انٹرنیٹ سے رابطہ نہیں' : language === 'ar' ? 'تعذّر الاتصال' : 'Could not reach server',
+          language === 'ur' ? 'دستی طور پر ایڈجسٹ کرنے کے لیے −/+ استعمال کریں۔' : language === 'ar' ? 'استخدم −/+ لتعديل التاريخ يدوياً.' : 'Use −/+ to adjust the date manually.'
+        );
+      }
+    } finally {
+      setAutoDetecting(false);
+    }
   };
 
   const hijriPreview = formatHijri(new Date(), language, hijriOffset);
@@ -197,6 +216,18 @@ export function PrayerSettingsModal({
                 <Text style={styles.hijriStepText}>+</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity
+              style={styles.autoDetectBtn}
+              onPress={autoDetectHijri}
+              disabled={autoDetecting}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.autoDetectBtnText}>
+                {autoDetecting
+                  ? (language === 'ur' ? 'انٹرنیٹ سے حاصل کر رہے ہیں…' : language === 'ar' ? 'يتم الجلب…' : 'Fetching…')
+                  : (language === 'ur' ? '↻ انٹرنیٹ سے درست کریں' : language === 'ar' ? '↻ ضبط تلقائي' : '↻ Auto-detect from internet')}
+              </Text>
+            </TouchableOpacity>
 
             <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
               Notifications
@@ -458,5 +489,19 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontBody,
     marginTop: 2,
+  },
+  autoDetectBtn: {
+    marginTop: theme.spacing.sm,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.accentMuted,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+  },
+  autoDetectBtnText: {
+    fontSize: 13,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
   },
 });

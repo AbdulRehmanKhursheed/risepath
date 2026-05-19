@@ -18,7 +18,7 @@ import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
-import { formatHijri } from '../utils/hijri';
+import { formatHijri, computeHijriOffsetFromServer } from '../utils/hijri';
 import { getLocalDateKey } from '../utils/date';
 import { isIndoPakRegion } from '../utils/region';
 
@@ -81,16 +81,23 @@ export function HomeScreen() {
           storage.getHijriOffsetRaw(),
         ]);
         if (cancelled) return;
-        // First-launch Hijri default: in Indo-Pak (Pakistan / India / Bangladesh
-        // / etc.) the tabular Julian algorithm typically reads 1 day ahead of
-        // the Ruet committee's announced date, so silently seed offset = -1.
-        // Users can still adjust ±3 days from Prayer Settings.
+        // First-launch Hijri seed: show a regional best-guess immediately, then
+        // refine asynchronously against Aladhan's authoritative date. Subsequent
+        // launches use the persisted value; users can still tune ±3 days from
+        // Prayer Settings or tap "Auto-detect" there to re-fetch.
         let offset = rawOffset;
         if (rawOffset === null) {
           offset = isIndoPakRegion() ? -1 : 0;
           storage.setHijriOffset(offset).catch(() => {});
         }
         setHijriOffset(offset!);
+        if (rawOffset === null) {
+          computeHijriOffsetFromServer().then((fetched) => {
+            if (cancelled || fetched == null) return;
+            setHijriOffset(fetched);
+            storage.setHijriOffset(fetched).catch(() => {});
+          }).catch(() => {});
+        }
         const { current, longest: longestRun } = computeStreak(prayers, goalDays);
         setStreak(current);
         setLongest(longestRun);

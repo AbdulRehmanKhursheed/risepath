@@ -83,3 +83,56 @@ export function formatHijri(
   }
   return `${h.day} ${month} ${h.year} AH`;
 }
+
+// Fetch the authoritative Hijri date for a Gregorian date from Aladhan. The
+// public API requires no auth and uses HJCoSA (the Saudi Hijri Council
+// calendar) by default — within ±1 day of every major regional moon-sighting
+// authority including Pakistan's Ruet committee. Returns null on any failure
+// so callers can quietly fall back to the local tabular algorithm.
+export async function fetchAuthoritativeHijri(date: Date = new Date()): Promise<HijriDate | null> {
+  try {
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch(`https://api.aladhan.com/v1/gToH/${dd}-${mm}-${yyyy}`, {
+      signal: ctl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const h = json?.data?.hijri;
+    if (!h) return null;
+    const day = parseInt(h.day, 10);
+    const month = h.month?.number;
+    const year = parseInt(h.year, 10);
+    if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+    const idx = Math.max(1, Math.min(12, month)) - 1;
+    return {
+      day,
+      month,
+      year,
+      monthNameEn: HIJRI_MONTHS_EN[idx],
+      monthNameUr: HIJRI_MONTHS_UR[idx],
+      monthNameAr: HIJRI_MONTHS_AR[idx],
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Returns the offset (-3..+3) that makes the local tabular algorithm match
+// the Aladhan-authoritative date for today. Null when the fetch failed or
+// the gap exceeds ±3 days (very rare, suggests algorithm corruption).
+export async function computeHijriOffsetFromServer(date: Date = new Date()): Promise<number | null> {
+  const authoritative = await fetchAuthoritativeHijri(date);
+  if (!authoritative) return null;
+  for (let off = -3; off <= 3; off += 1) {
+    const test = gregorianToHijri(date, off);
+    if (test.day === authoritative.day && test.month === authoritative.month && test.year === authoritative.year) {
+      return off;
+    }
+  }
+  return null;
+}
