@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import * as Location from 'expo-location';
 import { storage } from '../services/storage';
 
 const KARACHI_FALLBACK = { latitude: 24.8607, longitude: 67.0011 };
+export { KARACHI_FALLBACK };
 
 // Module-level dedup so App.tsx's first-launch permission flow and the
 // PrayerTracker's useLocation don't both call the OS prompt — on Android,
@@ -25,15 +26,24 @@ export function useLocation() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const retry = useCallback(() => setRefreshTick((t) => t + 1), []);
 
   useEffect(() => {
     let mounted = true;
 
     async function fetchLocation() {
+      setLoading(true);
       try {
         const cached = await storage.getLocation();
         if (cached) {
-          if (mounted) setLocation(cached);
+          if (mounted) {
+            setLocation(cached);
+            setUsingFallback(false);
+          }
         }
 
         const { status } = await requestLocationPermissionOnce();
@@ -41,6 +51,9 @@ export function useLocation() {
           if (mounted) {
             setLocation(cached || KARACHI_FALLBACK);
             setError('Location permission denied');
+            setPermissionDenied(true);
+            // Fallback when we have no real cached coords to fall back to.
+            setUsingFallback(!cached);
           }
           return;
         }
@@ -57,6 +70,8 @@ export function useLocation() {
         if (mounted) {
           setLocation(coords);
           setError(null);
+          setPermissionDenied(false);
+          setUsingFallback(false);
           await storage.setLocation(coords);
         }
       } catch (err) {
@@ -64,6 +79,7 @@ export function useLocation() {
           const cached = await storage.getLocation();
           setLocation(cached || KARACHI_FALLBACK);
           setError(err instanceof Error ? err.message : 'Location error');
+          setUsingFallback(!cached);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -74,7 +90,7 @@ export function useLocation() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [refreshTick]);
 
-  return { location, loading, error };
+  return { location, loading, error, usingFallback, permissionDenied, retry };
 }

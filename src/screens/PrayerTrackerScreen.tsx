@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Platform,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocation } from '../hooks/useLocation';
@@ -49,7 +50,7 @@ function getWeekDates(): Date[] {
 
 export function PrayerTrackerScreen() {
   const { t, language } = useLanguage();
-  const { location, loading: locationLoading } = useLocation();
+  const { location, loading: locationLoading, usingFallback, permissionDenied, retry: retryLocation } = useLocation();
   const [prayers, setPrayers] = useState<Record<string, PrayerRecord>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -280,6 +281,45 @@ export function PrayerTrackerScreen() {
         onSave={onSettingsSave}
       />
 
+      {usingFallback && (
+        <TouchableOpacity
+          style={styles.locationBanner}
+          onPress={() => {
+            if (permissionDenied) {
+              Linking.openSettings().catch(() => {});
+            } else {
+              retryLocation();
+            }
+          }}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.locationBannerIcon}>📍</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationBannerTitle}>
+              {language === 'ur'
+                ? 'نماز کے اوقات کراچی کے حساب سے دکھائے جا رہے ہیں'
+                : language === 'ar'
+                ? 'تُعرض المواقيت بناءً على كراتشي'
+                : 'Prayer times may be off — using Karachi as a default'}
+            </Text>
+            <Text style={styles.locationBannerSub}>
+              {permissionDenied
+                ? (language === 'ur'
+                    ? 'لوکیشن کی اجازت دینے کے لیے ٹیپ کریں'
+                    : language === 'ar'
+                    ? 'اضغط للسماح بالموقع'
+                    : 'Tap to allow location access in Settings')
+                : (language === 'ur'
+                    ? 'دوبارہ کوشش کے لیے ٹیپ کریں'
+                    : language === 'ar'
+                    ? 'اضغط لإعادة المحاولة'
+                    : 'Tap to retry')}
+            </Text>
+          </View>
+          <Text style={styles.locationBannerArrow}>›</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.weekCard}>
         <Text style={styles.weekLabel}>{t.thisWeek}</Text>
         <View style={styles.weekDots}>
@@ -386,6 +426,35 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     marginTop: 6,
     fontFamily: theme.typography.fontBody,
+  },
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    backgroundColor: '#FFF6E0',
+    borderWidth: 1,
+    borderColor: '#E0B53A',
+    borderRadius: theme.borderRadius.md,
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  locationBannerIcon: {
+    fontSize: 20,
+  },
+  locationBannerTitle: {
+    fontSize: 13,
+    fontFamily: theme.typography.fontBodyBold,
+    color: '#7A5A0E',
+  },
+  locationBannerSub: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontBody,
+    color: '#A0780A',
+    marginTop: 2,
+  },
+  locationBannerArrow: {
+    fontSize: 18,
+    color: '#A0780A',
   },
   weekCard: {
     backgroundColor: theme.colors.surface,
