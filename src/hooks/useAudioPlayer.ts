@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Audio, AVPlaybackStatus } from 'expo-av';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Ayah } from '../services/quran';
+import { storage } from '../services/storage';
 
 export type ReciterConfig = {
   id: string;
@@ -8,7 +10,13 @@ export type ReciterConfig = {
   nameAr: string;
   nameUr: string;
   folder: string;
+  // Surfaces the reciter in the "Popular" section of the picker. Tuned by the
+  // most-listened reciters globally (Alafasy, Sudais, Maher, Ghamidi, Abdul
+  // Basit, Husary). Other reciters still appear under "All reciters" below.
+  popular?: boolean;
 };
+
+const RECITER_PERSIST_KEY = 'quran_reciter_id_v1';
 
 export const RECITERS: ReciterConfig[] = [
   {
@@ -17,6 +25,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'مشاري العفاسي',
     nameUr: 'مشاری العفاسی',
     folder: 'Alafasy_128kbps',
+    popular: true,
   },
   {
     id: 'sudais',
@@ -24,6 +33,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'عبدالرحمن السديس',
     nameUr: 'عبدالرحمن السدیس',
     folder: 'Abdurrahmaan_As-Sudais_192kbps',
+    popular: true,
   },
   {
     id: 'shuraim',
@@ -38,6 +48,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'ماهر المعيقلي',
     nameUr: 'ماہر المعیقلی',
     folder: 'MaherAlMuaiqly128kbps',
+    popular: true,
   },
   {
     id: 'ghamidi',
@@ -45,6 +56,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'سعد الغامدي',
     nameUr: 'سعد الغامدی',
     folder: 'Ghamadi_40kbps',
+    popular: true,
   },
   {
     id: 'abdulbasit',
@@ -52,6 +64,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'عبد الباسط عبد الصمد',
     nameUr: 'عبدالباسط عبدالصمد',
     folder: 'Abdul_Basit_Murattal_192kbps',
+    popular: true,
   },
   {
     id: 'husary',
@@ -59,6 +72,7 @@ export const RECITERS: ReciterConfig[] = [
     nameAr: 'محمود خليل الحصري',
     nameUr: 'محمود الحصری',
     folder: 'Husary_128kbps',
+    popular: true,
   },
   {
     id: 'minshawi',
@@ -195,6 +209,21 @@ export function useAudioPlayer(
   useEffect(() => { surahRef.current = surahNumber; }, [surahNumber]);
   useEffect(() => { reciterIdRef.current = reciterId; }, [reciterId]);
   useEffect(() => { translationPlaybackRef.current = translationPlayback; }, [translationPlayback]);
+
+  // Restore the user's last-selected reciter on mount. Without this, every
+  // app launch reset the reader to Alafasy and the ayah-sheet's reciter lookup
+  // diverged from the surah-reader's.
+  useEffect(() => {
+    AsyncStorage.getItem(RECITER_PERSIST_KEY)
+      .then((id) => {
+        if (id && RECITERS.some((r) => r.id === id)) {
+          setReciterId(id);
+          reciterIdRef.current = id;
+          lastGoodReciterRef.current = id;
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     Audio.setAudioModeAsync({
@@ -367,6 +396,7 @@ export function useAudioPlayer(
   const playAtIndex = useCallback((index: number) => {
     preloadRef.current?.sound.unloadAsync().catch(() => {});
     preloadRef.current = null;
+    storage.incrementReciterPlay(reciterIdRef.current).catch(() => {});
     return playSeg({ index, step: 0 });
   }, [playSeg]);
 
@@ -418,6 +448,8 @@ export function useAudioPlayer(
     const cur = segRef.current;
     setReciterId(id);
     reciterIdRef.current = id;
+    AsyncStorage.setItem(RECITER_PERSIST_KEY, id).catch(() => {});
+    storage.incrementReciterPlay(id).catch(() => {});
     preloadRef.current?.sound.unloadAsync().catch(() => {});
     preloadRef.current = null;
     if (cur) {

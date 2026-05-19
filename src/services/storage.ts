@@ -14,6 +14,7 @@ const KEYS = {
   SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
   LAST_STREAK_MILESTONE: 'lastStreakMilestone',
   HIJRI_OFFSET: 'hijriOffset_v1',
+  RECITER_PLAYS: 'reciterPlays_v1',
 } as const;
 
 const CALENDAR_REGION_IDS: CalendarRegion[] = [
@@ -212,5 +213,19 @@ export const storage = {
   async setHijriOffset(n: number): Promise<void> {
     const clamped = Math.max(-3, Math.min(3, Math.round(n)));
     await AsyncStorage.setItem(KEYS.HIJRI_OFFSET, String(clamped));
+  },
+
+  // Per-reciter play counts. Used to surface "Your favorites" at the top of
+  // the reciter picker, so users see the voices they actually listen to first.
+  async getReciterPlays(): Promise<Record<string, number>> {
+    const raw = await AsyncStorage.getItem(KEYS.RECITER_PLAYS);
+    return parseJson<Record<string, number>>(raw, {});
+  },
+
+  async incrementReciterPlay(id: string): Promise<void> {
+    if (!id) return;
+    const plays = await this.getReciterPlays();
+    plays[id] = (plays[id] ?? 0) + 1;
+    await AsyncStorage.setItem(KEYS.RECITER_PLAYS, JSON.stringify(plays));
   },
 };

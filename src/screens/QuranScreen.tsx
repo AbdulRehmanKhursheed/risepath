@@ -30,6 +30,7 @@ import { JUZ_START_PAGE } from '../constants/juzList';
 import { MushafPageReader } from '../components/MushafPageReader';
 import { TOTAL_PAGES, saveLastRead, loadLastRead, LastRead } from '../services/quran';
 import { isIndoPakRegion } from '../utils/region';
+import { storage } from '../services/storage';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
 
@@ -415,6 +416,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [translationMode, setTranslationMode] = useState<TranslationMode>('urdu');
   const [reciterPickerOpen, setReciterPickerOpen] = useState(false);
   const [reciterSearch, setReciterSearch] = useState('');
+  const [reciterPlays, setReciterPlays] = useState<Record<string, number>>({});
   const [translationAudioEnabled, setTranslationAudioEnabled] = useState(false);
   const [viewMode, setViewMode] = useState<'verse' | 'mushaf'>('verse');
   const [tajweedOn, setTajweedOn] = useState(false);
@@ -878,6 +880,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           visible={reciterPickerOpen}
           transparent
           animationType="fade"
+          onShow={() => { storage.getReciterPlays().then(setReciterPlays).catch(() => {}); }}
           onRequestClose={() => { setReciterPickerOpen(false); setReciterSearch(''); }}
         >
           <View style={styles.modalOverlay}>
@@ -896,46 +899,125 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 autoCapitalize="none"
               />
 
-              <FlatList
-                style={styles.reciterList}
-                keyboardShouldPersistTaps="handled"
-                data={(() => {
-                  const q = reciterSearch.trim().toLowerCase();
-                  return q
-                    ? RECITERS.filter((r) =>
-                        r.nameEn.toLowerCase().includes(q) ||
-                        r.nameAr.includes(q) ||
-                        r.nameUr.includes(q)
-                      )
-                    : RECITERS;
-                })()}
-                keyExtractor={(r) => r.id}
-                initialNumToRender={10}
-                windowSize={5}
-                ListEmptyComponent={
-                  <Text style={styles.reciterEmpty}>
-                    {isUrdu ? 'کوئی قاری نہیں ملا' : isArabic ? 'لم يتم العثور على قارئ' : 'No reciters found'}
-                  </Text>
-                }
-                renderItem={({ item: r }) => {
-                  const selected = r.id === currentReciter.id;
-                  return (
-                    <TouchableOpacity
-                      style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
-                      onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
-                          {isUrdu ? r.nameUr : r.nameEn}
-                        </Text>
-                        <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
-                      </View>
-                      {selected && <Text style={styles.reciterCheck}>✓</Text>}
-                    </TouchableOpacity>
+              {(() => {
+                const q = reciterSearch.trim().toLowerCase();
+                if (q) {
+                  const filtered = RECITERS.filter((r) =>
+                    r.nameEn.toLowerCase().includes(q) ||
+                    r.nameAr.includes(q) ||
+                    r.nameUr.includes(q)
                   );
-                }}
-              />
+                  return (
+                    <FlatList
+                      style={styles.reciterList}
+                      keyboardShouldPersistTaps="handled"
+                      data={filtered}
+                      keyExtractor={(r) => r.id}
+                      initialNumToRender={10}
+                      windowSize={5}
+                      ListEmptyComponent={
+                        <Text style={styles.reciterEmpty}>
+                          {isUrdu ? 'کوئی قاری نہیں ملا' : isArabic ? 'لم يتم العثور على قارئ' : 'No reciters found'}
+                        </Text>
+                      }
+                      renderItem={({ item: r }) => {
+                        const selected = r.id === currentReciter.id;
+                        return (
+                          <TouchableOpacity
+                            style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
+                            onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
+                            activeOpacity={0.8}
+                          >
+                            <View style={{ flex: 1 }}>
+                              <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
+                                {isUrdu ? r.nameUr : r.nameEn}
+                              </Text>
+                              <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
+                            </View>
+                            {selected && <Text style={styles.reciterCheck}>✓</Text>}
+                          </TouchableOpacity>
+                        );
+                      }}
+                    />
+                  );
+                }
+                // Sectioned view: Your favorites (most-played, > 0) → Popular → All
+                const playsArr = RECITERS
+                  .filter((r) => (reciterPlays[r.id] ?? 0) > 0)
+                  .sort((a, b) => (reciterPlays[b.id] ?? 0) - (reciterPlays[a.id] ?? 0));
+                const favorites = playsArr.slice(0, 3);
+                const favoriteIds = new Set(favorites.map((r) => r.id));
+                const popular = RECITERS.filter((r) => r.popular && !favoriteIds.has(r.id));
+                const popularIds = new Set([...favoriteIds, ...popular.map((r) => r.id)]);
+                const others = RECITERS.filter((r) => !popularIds.has(r.id));
+                const sections: { key: string; title: string; data: typeof RECITERS }[] = [];
+                if (favorites.length > 0) {
+                  sections.push({
+                    key: 'fav',
+                    title: isUrdu ? 'آپ کے پسندیدہ' : isArabic ? 'المفضّلة لديك' : 'Your favorites',
+                    data: favorites,
+                  });
+                }
+                sections.push({
+                  key: 'pop',
+                  title: isUrdu ? 'مشہور' : isArabic ? 'شائع' : 'Popular',
+                  data: popular,
+                });
+                sections.push({
+                  key: 'all',
+                  title: isUrdu ? 'تمام قاری' : isArabic ? 'كل القرّاء' : 'All reciters',
+                  data: others,
+                });
+                type SectionItem =
+                  | { kind: 'header'; title: string; key: string }
+                  | { kind: 'row'; r: typeof RECITERS[number]; key: string };
+                const flat: SectionItem[] = [];
+                sections.forEach((s) => {
+                  if (s.data.length === 0) return;
+                  flat.push({ kind: 'header', title: s.title, key: `h-${s.key}` });
+                  s.data.forEach((r) => flat.push({ kind: 'row', r, key: `${s.key}-${r.id}` }));
+                });
+                return (
+                  <FlatList
+                    style={styles.reciterList}
+                    keyboardShouldPersistTaps="handled"
+                    data={flat}
+                    keyExtractor={(it) => it.key}
+                    initialNumToRender={12}
+                    windowSize={5}
+                    renderItem={({ item }) => {
+                      if (item.kind === 'header') {
+                        return (
+                          <Text style={styles.reciterSectionHeader}>{item.title}</Text>
+                        );
+                      }
+                      const r = item.r;
+                      const selected = r.id === currentReciter.id;
+                      const plays = reciterPlays[r.id] ?? 0;
+                      return (
+                        <TouchableOpacity
+                          style={[styles.reciterOption, selected && styles.reciterOptionSelected]}
+                          onPress={() => { changeReciter(r.id); setReciterPickerOpen(false); setReciterSearch(''); }}
+                          activeOpacity={0.8}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.reciterNameEn, { fontSize: fs(14) }, selected && styles.reciterNameSelected]}>
+                              {isUrdu ? r.nameUr : r.nameEn}
+                            </Text>
+                            <Text style={[styles.reciterNameAr, { fontSize: fs(13) }]}>{r.nameAr}</Text>
+                          </View>
+                          {plays > 0 && (
+                            <Text style={styles.reciterPlays}>
+                              {plays}
+                            </Text>
+                          )}
+                          {selected && <Text style={styles.reciterCheck}>✓</Text>}
+                        </TouchableOpacity>
+                      );
+                    }}
+                  />
+                );
+              })()}
 
               <TouchableOpacity
                 style={styles.modalCloseBtn}
@@ -1993,6 +2075,24 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: theme.colors.success,
     fontWeight: '700',
+  },
+  reciterPlays: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyMedium,
+    marginRight: 6,
+    minWidth: 18,
+    textAlign: 'right',
+  },
+  reciterSectionHeader: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: theme.spacing.md,
+    marginBottom: 6,
+    paddingHorizontal: 2,
   },
   modalCloseBtn: {
     marginTop: theme.spacing.md,
