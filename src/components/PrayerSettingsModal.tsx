@@ -43,14 +43,32 @@ export function PrayerSettingsModal({
     React.useState<CalculationMethodId>(calculationMethod);
   const [selectedMadhab, setSelectedMadhab] = React.useState<MadhabId>(madhab);
   const [hijriOffset, setHijriOffset] = React.useState(0);
+  const [fiqhSchool, setFiqhSchool] = React.useState<'sunni' | 'shia'>('sunni');
 
   React.useEffect(() => {
     setSelectedMethod(calculationMethod);
     setSelectedMadhab(madhab);
     if (visible) {
       storage.getHijriOffset().then(setHijriOffset);
+      storage.getFiqhSchool().then((s) => setFiqhSchool(s ?? 'sunni'));
     }
   }, [visible, calculationMethod, madhab]);
+
+  const changeFiqh = (next: 'sunni' | 'shia') => {
+    setFiqhSchool(next);
+    storage.setFiqhSchool(next).catch(() => {});
+    // Auto-flip the calc method so the user doesn't end up with Sunni + Jafari
+    // or Shia + non-Jafari (which both produce wrong prayer times). Commit the
+    // new method to the parent immediately so the change sticks even if the
+    // user closes the modal without tapping Save.
+    let nextMethod = selectedMethod;
+    if (next === 'shia' && selectedMethod !== 'Jafari') nextMethod = 'Jafari';
+    else if (next === 'sunni' && selectedMethod === 'Jafari') nextMethod = 'Karachi';
+    if (nextMethod !== selectedMethod) {
+      setSelectedMethod(nextMethod);
+      onSave(nextMethod, selectedMadhab);
+    }
+  };
 
   const adjustHijri = (delta: number) => {
     const next = Math.max(-3, Math.min(3, hijriOffset + delta));
@@ -80,7 +98,34 @@ export function PrayerSettingsModal({
           </View>
 
           <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-            <Text style={styles.sectionLabel}>{t.calculationMethod}</Text>
+            <Text style={styles.sectionLabel}>
+              {language === 'ur' ? 'مسلک' : language === 'ar' ? 'المذهب' : 'School'}
+            </Text>
+            <Text style={styles.sectionHint}>
+              {language === 'ur'
+                ? 'نماز کے اوقات اسی کے مطابق مرتب ہوں گے۔'
+                : language === 'ar'
+                ? 'سيتم ضبط طريقة الحساب وفقاً لاختيارك.'
+                : 'Switching here automatically picks the matching calculation method.'}
+            </Text>
+            <View style={styles.fiqhRow}>
+              {(['sunni', 'shia'] as const).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[styles.fiqhPill, fiqhSchool === s && styles.fiqhPillActive]}
+                  onPress={() => changeFiqh(s)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.fiqhPillText, fiqhSchool === s && styles.fiqhPillTextActive]}>
+                    {s === 'sunni'
+                      ? (language === 'ur' ? 'سنی' : language === 'ar' ? 'سني' : 'Sunni')
+                      : (language === 'ur' ? 'شیعہ' : language === 'ar' ? 'شيعي' : 'Shia')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>{t.calculationMethod}</Text>
             <Text style={styles.sectionHint}>{t.selectRegionMethod}</Text>
             {CALCULATION_METHODS.map((m) => (
               <TouchableOpacity
@@ -346,6 +391,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontBodyMedium,
+  },
+  fiqhRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.xs,
+  },
+  fiqhPill: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+    backgroundColor: theme.colors.background,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  fiqhPillActive: {
+    backgroundColor: theme.colors.accentMuted,
+    borderColor: theme.colors.accent,
+  },
+  fiqhPillText: {
+    fontSize: 15,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  fiqhPillTextActive: {
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
   },
   hijriRow: {
     flexDirection: 'row',

@@ -184,6 +184,11 @@ export function OnboardingScreen({ onComplete }: Props) {
               <Text style={styles.nextBtnText}>{isUrdu ? 'آگے بڑھیں →' : isArabic ? 'متابعة →' : 'Continue →'}</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.skipLink} onPress={finish}>
+            <Text style={styles.skipLinkText}>
+              {isUrdu ? 'بعد میں منتخب کروں گا — ابھی چھوڑیں' : isArabic ? 'سأختار لاحقاً — تخطّى' : 'Skip — choose later'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -268,6 +273,11 @@ export function OnboardingScreen({ onComplete }: Props) {
               </Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={styles.skipLink} onPress={finish}>
+            <Text style={styles.skipLinkText}>
+              {isUrdu ? 'بعد میں منتخب کروں گا — ابھی چھوڑیں' : isArabic ? 'سأختار لاحقاً — تخطّى' : 'Skip — choose later'}
+            </Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -457,5 +467,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
+  },
+  skipLink: {
+    alignSelf: 'center',
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xs,
+  },
+  skipLinkText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyMedium,
+    textDecorationLine: 'underline',
   },
 });
