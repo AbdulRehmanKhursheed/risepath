@@ -73,6 +73,331 @@ function parseSearchIntent(raw: string): SearchIntent | null {
   return null;
 }
 
+type ReciterRow = { id: string; nameEn: string; nameAr: string; nameUr: string };
+
+type ReaderViewSettingsSheetProps = {
+  visible: boolean;
+  onClose: () => void;
+  isUrdu: boolean;
+  isArabic: boolean;
+  viewMode: 'verse' | 'mushaf';
+  setViewMode: (m: 'verse' | 'mushaf') => void;
+  script: QuranScript;
+  setScript: (s: QuranScript) => void;
+  tajweedOn: boolean;
+  setTajweedOn: (v: boolean) => void;
+  tajweedLoading: boolean;
+  translationMode: TranslationMode;
+  setTranslationMode: (m: TranslationMode) => void;
+  translationAudioEnabled: boolean;
+  setTranslationAudioEnabled: (v: boolean) => void;
+  currentReciter: ReciterRow;
+  onOpenReciterPicker: () => void;
+};
+
+function ReaderViewSettingsSheet({
+  visible,
+  onClose,
+  isUrdu,
+  isArabic,
+  viewMode,
+  setViewMode,
+  script,
+  setScript,
+  tajweedOn,
+  setTajweedOn,
+  tajweedLoading,
+  translationMode,
+  setTranslationMode,
+  translationAudioEnabled,
+  setTranslationAudioEnabled,
+  currentReciter,
+  onOpenReciterPicker,
+}: ReaderViewSettingsSheetProps) {
+  const title = isUrdu ? 'پڑھنے کی ترتیب' : isArabic ? 'إعدادات القراءة' : 'Reading settings';
+  const done = isUrdu ? 'مکمل' : isArabic ? 'تم' : 'Done';
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <TouchableOpacity activeOpacity={1} style={settingsStyles.overlay} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={settingsStyles.sheet} onPress={() => {}}>
+          <View style={settingsStyles.handle} />
+          <View style={settingsStyles.headerRow}>
+            <Text style={settingsStyles.title}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Text style={settingsStyles.doneBtn}>{done}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={settingsStyles.scroll} showsVerticalScrollIndicator={false}>
+            <Text style={settingsStyles.section}>
+              {isUrdu ? 'دیکھنے کا انداز' : isArabic ? 'نمط العرض' : 'Layout'}
+            </Text>
+            <View style={settingsStyles.pillRow}>
+              {(['verse', 'mushaf'] as const).map((mode) => (
+                <TouchableOpacity
+                  key={mode}
+                  style={[settingsStyles.pill, viewMode === mode && settingsStyles.pillActive]}
+                  onPress={() => setViewMode(mode)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[settingsStyles.pillText, viewMode === mode && settingsStyles.pillTextActive]}>
+                    {mode === 'verse'
+                      ? (isUrdu ? 'آیت آیت' : isArabic ? 'آية آية' : 'Verse')
+                      : (isUrdu ? 'متواصل' : isArabic ? 'متّصل' : 'Continuous')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={settingsStyles.section}>
+              {isUrdu ? 'رسم' : isArabic ? 'الرسم' : 'Script'}
+            </Text>
+            <View style={settingsStyles.pillRow}>
+              {(['indopak', 'uthmani'] as const).map((s) => (
+                <TouchableOpacity
+                  key={s}
+                  style={[settingsStyles.pill, script === s && settingsStyles.pillActive]}
+                  onPress={() => setScript(s)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[settingsStyles.pillText, script === s && settingsStyles.pillTextActive]}>
+                    {s === 'indopak' ? (isUrdu ? 'انڈو پاک' : 'Indo-Pak') : (isUrdu ? 'مدینہ' : 'Madinah')}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {script === 'uthmani' && (
+              <TouchableOpacity
+                style={[settingsStyles.toggleRow, tajweedOn && settingsStyles.toggleRowOn]}
+                onPress={() => setTajweedOn(!tajweedOn)}
+                activeOpacity={0.85}
+                disabled={tajweedLoading}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={settingsStyles.toggleTitle}>
+                    {isUrdu ? 'تجوید رنگ' : isArabic ? 'ألوان التجويد' : 'Tajweed colors'}
+                  </Text>
+                  <Text style={settingsStyles.toggleSub}>
+                    {isUrdu ? 'مدینہ رسم پر' : isArabic ? 'مع رسم المدينة' : 'Uthmani only'}
+                  </Text>
+                </View>
+                {tajweedLoading ? (
+                  <ActivityIndicator size="small" color={theme.colors.accent} />
+                ) : (
+                  <View style={[settingsStyles.switch, tajweedOn && settingsStyles.switchOn]}>
+                    <View style={[settingsStyles.knob, tajweedOn && settingsStyles.knobOn]} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            )}
+
+            {viewMode === 'verse' && (
+              <>
+                <Text style={settingsStyles.section}>
+                  {isUrdu ? 'ترجمہ' : isArabic ? 'الترجمة' : 'Translation'}
+                </Text>
+                <View style={settingsStyles.pillRow}>
+                  {(['urdu', 'english', 'both'] as TranslationMode[]).map((mode) => (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[settingsStyles.pill, translationMode === mode && settingsStyles.pillActive]}
+                      onPress={() => setTranslationMode(mode)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[settingsStyles.pillText, translationMode === mode && settingsStyles.pillTextActive]}>
+                        {mode === 'urdu' ? 'اردو' : mode === 'english' ? 'English' : isUrdu ? 'دونوں' : 'Both'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TouchableOpacity
+                  style={[settingsStyles.toggleRow, translationAudioEnabled && settingsStyles.toggleRowOn]}
+                  onPress={() => setTranslationAudioEnabled(!translationAudioEnabled)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={settingsStyles.toggleTitle}>
+                      {isUrdu ? 'ترجمہ بھی سنیں' : isArabic ? 'تشغيل الترجمة صوتياً' : 'Recite translation too'}
+                    </Text>
+                    <Text style={settingsStyles.toggleSub}>
+                      {translationAudioEnabled
+                        ? (isUrdu ? 'عربی کے بعد' : isArabic ? 'بعد العربية' : 'After Arabic')
+                        : (isUrdu ? 'صرف عربی' : isArabic ? 'عربي فقط' : 'Arabic only')}
+                    </Text>
+                  </View>
+                  <View style={[settingsStyles.switch, translationAudioEnabled && settingsStyles.switchOn]}>
+                    <View style={[settingsStyles.knob, translationAudioEnabled && settingsStyles.knobOn]} />
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+
+            <Text style={settingsStyles.section}>
+              {isUrdu ? 'قاری' : isArabic ? 'القارئ' : 'Reciter'}
+            </Text>
+            <TouchableOpacity
+              style={settingsStyles.reciterRow}
+              onPress={onOpenReciterPicker}
+              activeOpacity={0.85}
+            >
+              <Text style={settingsStyles.reciterIcon}>🎙</Text>
+              <Text style={settingsStyles.reciterName} numberOfLines={1}>
+                {isUrdu ? currentReciter.nameUr : isArabic ? currentReciter.nameAr : currentReciter.nameEn}
+              </Text>
+              <Text style={settingsStyles.reciterArrow}>›</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+const settingsStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: theme.borderRadius.xl,
+    borderTopRightRadius: theme.borderRadius.xl,
+    maxHeight: '85%',
+    paddingBottom: theme.spacing.xxl,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.border,
+    alignSelf: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+  },
+  title: {
+    fontSize: 18,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontHeadingBold,
+  },
+  doneBtn: {
+    fontSize: 14,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+  },
+  scroll: {
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: theme.spacing.lg,
+  },
+  section: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyBold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  pillRow: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.background,
+    borderRadius: theme.borderRadius.md,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    gap: 3,
+  },
+  pill: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    borderRadius: theme.borderRadius.sm,
+  },
+  pillActive: { backgroundColor: theme.colors.success },
+  pillText: {
+    fontSize: 13,
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.textMuted,
+  },
+  pillTextActive: { color: '#fff' },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: theme.spacing.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.background,
+    gap: theme.spacing.md,
+  },
+  toggleRowOn: {
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.successMuted,
+  },
+  toggleTitle: {
+    fontSize: 14,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  toggleSub: {
+    fontSize: 12,
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 2,
+  },
+  switch: {
+    width: 44,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: theme.colors.border,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  switchOn: { backgroundColor: theme.colors.success },
+  knob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+  },
+  knobOn: { alignSelf: 'flex-end' },
+  reciterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: 12,
+    gap: theme.spacing.md,
+  },
+  reciterIcon: { fontSize: 18 },
+  reciterName: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  reciterArrow: {
+    fontSize: 18,
+    color: theme.colors.textMuted,
+  },
+});
+
 export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const insets = useSafeAreaInsets();
   const { language } = useLanguage();
@@ -106,6 +431,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
   const [indopakTexts, setIndopakTexts] = useState<string[] | null>(null);
   const [indopakLoading, setIndopakLoading] = useState(false);
   const [legendOpen, setLegendOpen] = useState(false);
+  const [viewSettingsOpen, setViewSettingsOpen] = useState(false);
   const [selectedPage, setSelectedPage] = useState<number | null>(null);
   const [lastRead, setLastRead] = useState<LastRead | null>(null);
   const arabicFont =
@@ -290,6 +616,14 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           >
             <Text style={styles.legendBtnText}>?</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={() => setViewSettingsOpen(true)}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel={isUrdu ? 'پڑھنے کی ترتیب' : 'Reading settings'}
+          >
+            <Text style={styles.settingsBtnText}>⚙</Text>
+          </TouchableOpacity>
           <View style={styles.readerTitleWrap}>
             <Text style={styles.readerArabicTitle}>{selectedSurah.nameArabic}</Text>
             <Text style={styles.readerEnglishTitle}>
@@ -305,136 +639,70 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           language={language}
         />
 
-        <View style={styles.viewModeRow}>
-          <View style={styles.viewModePills}>
-            {(['verse', 'mushaf'] as const).map(mode => (
-              <TouchableOpacity
-                key={mode}
-                style={[styles.viewModeBtn, viewMode === mode && styles.viewModeBtnActive]}
-                onPress={() => {
-                  setViewMode(mode);
-                  AsyncStorage.setItem('quran_view_mode', mode).catch(() => {});
-                }}
-              >
-                <Text style={[styles.viewModeBtnText, viewMode === mode && styles.viewModeBtnTextActive]}>
-                  {mode === 'verse' ? (isUrdu ? 'آیت آیت' : 'Verse') : (isUrdu ? 'قرآن' : 'Quran')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+        <ReaderViewSettingsSheet
+          visible={viewSettingsOpen}
+          onClose={() => setViewSettingsOpen(false)}
+          isUrdu={isUrdu}
+          isArabic={isArabic}
+          viewMode={viewMode}
+          setViewMode={(mode) => {
+            setViewMode(mode);
+            AsyncStorage.setItem('quran_view_mode', mode).catch(() => {});
+          }}
+          script={script}
+          setScript={(s) => {
+            setScript(s);
+            AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
+            if (s === 'indopak' && tajweedOn) {
+              setTajweedOn(false);
+              AsyncStorage.setItem('quran_tajweed_v2', 'off').catch(() => {});
+            }
+          }}
+          tajweedOn={tajweedOn}
+          setTajweedOn={(next) => {
+            setTajweedOn(next);
+            AsyncStorage.setItem('quran_tajweed_v2', next ? 'on' : 'off').catch(() => {});
+          }}
+          tajweedLoading={tajweedLoading}
+          translationMode={translationMode}
+          setTranslationMode={setTranslationMode}
+          translationAudioEnabled={translationAudioEnabled}
+          setTranslationAudioEnabled={setTranslationAudioEnabled}
+          currentReciter={currentReciter}
+          onOpenReciterPicker={() => {
+            setViewSettingsOpen(false);
+            setReciterPickerOpen(true);
+          }}
+        />
 
-        <View style={styles.viewModeRow}>
-          <View style={styles.viewModePills}>
-            {(['indopak', 'uthmani'] as const).map(s => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.viewModeBtn, script === s && styles.viewModeBtnActive]}
-                onPress={() => {
-                  setScript(s);
-                  AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
-                  // Tajweed coloring is Uthmani-only; flipping to IndoPak
-                  // disables it so we don't paint colors on a different text.
-                  if (s === 'indopak' && tajweedOn) {
-                    setTajweedOn(false);
-                    AsyncStorage.setItem('quran_tajweed_v2', 'off').catch(() => {});
-                  }
-                }}
-              >
-                <Text style={[styles.viewModeBtnText, script === s && styles.viewModeBtnTextActive]}>
-                  {s === 'indopak'
-                    ? (isUrdu ? 'انڈو پاک' : 'Indo-Pak')
-                    : (isUrdu ? 'مدینہ' : 'Madinah')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          {script === 'uthmani' && (
-            <TouchableOpacity
-              style={[styles.tajweedBtn, tajweedOn && styles.tajweedBtnOn]}
-              onPress={() => {
-                const next = !tajweedOn;
-                setTajweedOn(next);
-                AsyncStorage.setItem('quran_tajweed_v2', next ? 'on' : 'off').catch(() => {});
-              }}
-            >
-              {tajweedLoading
-                ? <ActivityIndicator size="small" color="#FF8000" />
-                : <Text style={[styles.tajweedBtnText, tajweedOn && styles.tajweedBtnTextOn]}>
-                    {isUrdu ? 'تجوید' : 'Tajweed'}
-                  </Text>
-              }
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {viewMode === 'verse' && (
-        <View style={styles.toggleRow}>
-          {(['urdu', 'english', 'both'] as TranslationMode[]).map((mode) => (
-            <TouchableOpacity
-              key={mode}
-              style={[styles.toggleBtn, translationMode === mode && styles.toggleBtnActive]}
-              onPress={() => setTranslationMode(mode)}
-            >
-              <Text style={[styles.toggleBtnText, translationMode === mode && styles.toggleBtnTextActive]}>
-                {mode === 'urdu' ? 'اردو' : mode === 'english' ? 'English' : isUrdu ? 'دونوں' : 'Both'}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        )}
-
-        <TouchableOpacity
-          style={styles.reciterChip}
-          onPress={() => setReciterPickerOpen(true)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.reciterChipIcon}>🎙</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.reciterChipLabel, { fontSize: fs(11) }]}>
-              {isUrdu ? 'قاری' : isArabic ? 'القارئ' : 'RECITER'}
-            </Text>
-            <Text style={[styles.reciterChipName, { fontSize: fs(14) }]} numberOfLines={1}>
+        <View style={styles.miniBarRow}>
+          <TouchableOpacity
+            style={styles.miniBarChip}
+            onPress={() => setReciterPickerOpen(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.miniBarIcon}>🎙</Text>
+            <Text style={[styles.miniBarText, { fontSize: fs(12) }]} numberOfLines={1}>
               {isUrdu ? currentReciter.nameUr : isArabic ? currentReciter.nameAr : currentReciter.nameEn}
             </Text>
-          </View>
-          <Text style={styles.reciterChipArrow}>›</Text>
-        </TouchableOpacity>
-
-        {viewMode === 'verse' && (
-        <TouchableOpacity
-          style={[styles.transAudioRow, translationAudioEnabled && styles.transAudioRowOn]}
-          onPress={() => setTranslationAudioEnabled((v) => !v)}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.transAudioIcon}>{translationAudioEnabled ? '🔊' : '🔇'}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.transAudioTitle, { fontSize: fs(13) }, translationAudioEnabled && styles.transAudioTitleOn]}>
-              {isUrdu
-                ? 'ترجمہ بھی سنیں'
-                : isArabic
-                ? 'تشغيل ترجمة صوتية'
-                : 'Recite translation too'}
+          </TouchableOpacity>
+          <View style={styles.miniBarDivider} />
+          <TouchableOpacity
+            style={styles.miniBarChip}
+            onPress={() => setViewSettingsOpen(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.miniBarText, { fontSize: fs(12) }]} numberOfLines={1}>
+              {viewMode === 'verse'
+                ? (isUrdu ? 'آیت' : isArabic ? 'آية' : 'Verse')
+                : (isUrdu ? 'متواصل' : isArabic ? 'متّصل' : 'Cont.')}
+              {' · '}
+              {script === 'indopak' ? (isUrdu ? 'انڈو پاک' : 'Indo-Pak') : (isUrdu ? 'مدینہ' : 'Madinah')}
+              {viewMode === 'verse' ? ` · ${translationMode === 'urdu' ? 'اردو' : translationMode === 'english' ? 'EN' : isUrdu ? 'دونوں' : 'Both'}` : ''}
             </Text>
-            <Text style={[styles.transAudioSub, { fontSize: fs(11) }]}>
-              {translationAudioEnabled
-                ? (isUrdu
-                    ? `عربی کے بعد ${translationMode === 'both' ? 'اردو + انگریزی' : translationMode === 'english' ? 'انگریزی' : 'اردو'}`
-                    : isArabic
-                    ? 'بعد العربية'
-                    : `After Arabic · ${translationMode === 'both' ? 'Urdu + English' : translationMode === 'english' ? 'English' : 'Urdu'}`)
-                : (isUrdu
-                    ? 'صرف عربی تلاوت'
-                    : isArabic
-                    ? 'عربي فقط'
-                    : 'Arabic only')}
-            </Text>
-          </View>
-          <View style={[styles.toggleSwitch, translationAudioEnabled && styles.toggleSwitchOn]}>
-            <View style={[styles.toggleKnob, translationAudioEnabled && styles.toggleKnobOn]} />
-          </View>
-        </TouchableOpacity>
-        )}
+            <Text style={styles.miniBarArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
 
         {loading && (
           <View style={styles.loadingWrap}>
@@ -1183,6 +1451,57 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBodyBold,
     color: theme.colors.accent,
     lineHeight: 18,
+  },
+  settingsBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  settingsBtnText: {
+    fontSize: 16,
+    color: theme.colors.accent,
+    lineHeight: 18,
+  },
+  miniBarRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  miniBarChip: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    gap: 8,
+  },
+  miniBarDivider: {
+    width: 1,
+    height: 18,
+    backgroundColor: theme.colors.border,
+  },
+  miniBarIcon: { fontSize: 14 },
+  miniBarText: {
+    flex: 1,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBodyMedium,
+  },
+  miniBarArrow: {
+    fontSize: 14,
+    color: theme.colors.textMuted,
   },
   readerTitleWrap: {
     flex: 1,
