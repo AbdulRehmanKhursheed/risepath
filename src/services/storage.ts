@@ -201,13 +201,19 @@ export const storage = {
   // Hijri-date day offset (range -3..+3). The tabular Julian-Day algorithm
   // used by formatHijri can drift ±1-2 days from a user's regional moon-
   // sighting authority (e.g. Pakistan's Ruet committee). Users adjust here
-  // until the displayed date matches their masjid.
-  async getHijriOffset(): Promise<number> {
+  // until the displayed date matches their masjid. Returns null when the
+  // user has never set it — callers default to 0 (or a region-specific
+  // first-launch guess) themselves.
+  async getHijriOffsetRaw(): Promise<number | null> {
     const raw = await AsyncStorage.getItem(KEYS.HIJRI_OFFSET);
-    if (raw === null) return 0;
+    if (raw === null) return null;
     const n = Number(raw);
-    if (!Number.isFinite(n)) return 0;
+    if (!Number.isFinite(n)) return null;
     return Math.max(-3, Math.min(3, Math.round(n)));
+  },
+
+  async getHijriOffset(): Promise<number> {
+    return (await this.getHijriOffsetRaw()) ?? 0;
   },
 
   async setHijriOffset(n: number): Promise<void> {

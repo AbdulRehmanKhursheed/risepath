@@ -20,6 +20,7 @@ import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { formatHijri } from '../utils/hijri';
 import { getLocalDateKey } from '../utils/date';
+import { isIndoPakRegion } from '../utils/region';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   const hour = new Date().getHours();
@@ -74,13 +75,22 @@ export function HomeScreen() {
       setQuote(getRandomQuote());
       let cancelled = false;
       (async () => {
-        const [prayers, goalDays, offset] = await Promise.all([
+        const [prayers, goalDays, rawOffset] = await Promise.all([
           storage.getPrayers(),
           storage.getGoalDays(),
-          storage.getHijriOffset(),
+          storage.getHijriOffsetRaw(),
         ]);
         if (cancelled) return;
-        setHijriOffset(offset);
+        // First-launch Hijri default: in Indo-Pak (Pakistan / India / Bangladesh
+        // / etc.) the tabular Julian algorithm typically reads 1 day ahead of
+        // the Ruet committee's announced date, so silently seed offset = -1.
+        // Users can still adjust ±3 days from Prayer Settings.
+        let offset = rawOffset;
+        if (rawOffset === null) {
+          offset = isIndoPakRegion() ? -1 : 0;
+          storage.setHijriOffset(offset).catch(() => {});
+        }
+        setHijriOffset(offset!);
         const { current, longest: longestRun } = computeStreak(prayers, goalDays);
         setStreak(current);
         setLongest(longestRun);
