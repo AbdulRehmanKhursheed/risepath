@@ -7,34 +7,27 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { theme } from '../constants/theme';
-import { PageVerse } from '../services/quran';
+import { PageVerse, QuranScript } from '../services/quran';
 import { SURAH_LIST } from '../constants/surahList';
+import { RECITERS } from '../hooks/useAudioPlayer';
 
 type Lang = 'en' | 'ur' | 'ar';
 
 const RECITER_KEY = 'quran_reciter_id_v1';
-// Default reciter matches the surah reader's first option, Alafasy.
-const DEFAULT_RECITER_FOLDER = 'Alafasy_128kbps';
+const DEFAULT_RECITER_FOLDER = RECITERS[0].folder;
 
-// Resolves a stored reciter id to its everyayah folder. Kept simple so the
-// sheet doesn't depend on the larger useAudioPlayer hook (which is surah-
-// scoped); per-ayah audio here is one-shot.
-const RECITER_FOLDERS: Record<string, string> = {
-  alafasy: 'Alafasy_128kbps',
-  sudais: 'Abdurrahmaan_As-Sudais_192kbps',
-  shuraim: 'Saood_ash-Shuraym_128kbps',
-  maher: 'MaherAlMuaiqly128kbps',
-  ghamidi: 'Ghamadi_40kbps',
-  abdulbasit: 'Abdul_Basit_Murattal_192kbps',
-  husary: 'Husary_128kbps',
-  minshawi: 'Minshawy_Murattal_128kbps',
-  hanirifai: 'Hani_Rifai_192kbps',
-  shatri: 'Abu_Bakr_Ash-Shaatree_128kbps',
-};
+// Resolve a reciter id to its everyayah folder via the single RECITERS source
+// of truth — previously a divergent hardcoded map silently fell back to
+// Alafasy for any reciter not in its (incomplete) list.
+function folderForReciterId(id: string | null): string {
+  if (!id) return DEFAULT_RECITER_FOLDER;
+  return RECITERS.find((r) => r.id === id)?.folder ?? DEFAULT_RECITER_FOLDER;
+}
 
 function buildAyahUrl(folder: string, surah: number, ayah: number): string {
   const s = String(surah).padStart(3, '0');
@@ -47,11 +40,13 @@ export function AyahSheet({
   onClose,
   language,
   translationMode,
+  script = 'uthmani',
 }: {
   verse: PageVerse | null;
   onClose: () => void;
   language: Lang;
   translationMode: 'english' | 'urdu' | 'both';
+  script?: QuranScript;
 }) {
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
@@ -60,13 +55,14 @@ export function AyahSheet({
   const [loadingAudio, setLoadingAudio] = useState(false);
   const soundRef = useRef<Audio.Sound | null>(null);
 
+  // Refresh the reciter every time the sheet opens (not just on mount) — the
+  // user may have changed it in the main reader between sheet opens.
   useEffect(() => {
+    if (!verse) return;
     AsyncStorage.getItem(RECITER_KEY)
-      .then((id) => {
-        if (id && RECITER_FOLDERS[id]) setFolder(RECITER_FOLDERS[id]);
-      })
+      .then((id) => setFolder(folderForReciterId(id)))
       .catch(() => {});
-  }, []);
+  }, [verse?.verseKey]);
 
   // Unload any sound when the sheet closes or the selected verse changes.
   useEffect(() => {
@@ -75,6 +71,23 @@ export function AyahSheet({
       soundRef.current = null;
     };
   }, [verse?.verseKey]);
+
+  // Stop audio + dismiss the sheet when the app is backgrounded — without
+  // this, audio keeps playing under the lock screen and the sheet stays open
+  // on resume.
+  useEffect(() => {
+    if (!verse) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') {
+        soundRef.current?.stopAsync().catch(() => {});
+        soundRef.current?.unloadAsync().catch(() => {});
+        soundRef.current = null;
+        setPlaying(false);
+        onClose();
+      }
+    });
+    return () => sub.remove();
+  }, [verse?.verseKey, onClose]);
 
   const playAyah = async () => {
     if (!verse) return;
@@ -169,7 +182,19 @@ export function AyahSheet({
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
               >
-                <Text style={styles.arabic}>{verse.textUthmani}</Text>
+                <Text
+                  style={[
+                    styles.arabic,
+                    {
+                      fontFamily:
+                        script === 'indopak'
+                          ? theme.typography.fontQuranIndopak
+                          : theme.typography.fontQuranUthmani,
+                    },
+                  ]}
+                >
+                  {script === 'indopak' && verse.textIndopak ? verse.textIndopak : verse.textUthmani}
+                </Text>
 
                 {showUr && (
                   <View style={styles.transBlock}>

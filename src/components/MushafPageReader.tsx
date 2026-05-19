@@ -185,6 +185,7 @@ export function MushafPageReader({
         onClose={() => setSelectedVerse(null)}
         language={language}
         translationMode={translationMode}
+        script={script}
       />
 
       <Modal
