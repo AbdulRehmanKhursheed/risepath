@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Vibration,
   Modal,
   TextInput,
+  Alert,
+  AppState,
+  KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -88,22 +91,54 @@ export function TasbihScreen() {
     })();
   }, []);
 
-  // Persist via a single debounced multiSet. Original code fired three
-  // AsyncStorage writes on every bead tap, which on Android (single-threaded
-  // AsyncStorage) backed up the bridge during fast dhikr and made the
-  // counter feel sticky / drop taps. 600ms window keeps disk writes rare
-  // without losing more than ~half a second of count on app kill.
+  // Persist via a debounced multiSet. Three AsyncStorage writes per bead
+  // backed up the bridge during fast dhikr on Android. 600ms window keeps
+  // disk writes rare; flushPending() forces an immediate flush so we don't
+  // lose the in-flight beads on app background / kill.
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stateRef = useRef({ preset, count, target, lifetime, todayCount });
+  useEffect(() => {
+    stateRef.current = { preset, count, target, lifetime, todayCount };
+  }, [preset, count, target, lifetime, todayCount]);
+
+  const flushPending = () => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    const s = stateRef.current;
+    AsyncStorage.multiSet([
+      [STORAGE_KEY_STATE, JSON.stringify({ presetId: s.preset.id, count: s.count, target: s.target })],
+      [STORAGE_KEY_LIFETIME, String(s.lifetime)],
+      [STORAGE_KEY_TODAY, JSON.stringify({ date: todayKey(), count: s.todayCount })],
+    ]).catch(() => {});
+  };
+
   useEffect(() => {
     if (!hydrated) return;
-    const handle = setTimeout(() => {
-      AsyncStorage.multiSet([
-        [STORAGE_KEY_STATE, JSON.stringify({ presetId: preset.id, count, target })],
-        [STORAGE_KEY_LIFETIME, String(lifetime)],
-        [STORAGE_KEY_TODAY, JSON.stringify({ date: todayKey(), count: todayCount })],
-      ]).catch(() => {});
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      debounceRef.current = null;
+      flushPending();
     }, 600);
-    return () => clearTimeout(handle);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [preset, count, target, lifetime, todayCount, hydrated]);
+
+  // Flush on background/inactive — otherwise an app swipe-away mid-dhikr
+  // loses up to 600 ms of beads (and the entire current count if the user
+  // hasn't paused tapping). Also flush on screen unmount.
+  useEffect(() => {
+    if (!hydrated) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') flushPending();
+    });
+    return () => {
+      sub.remove();
+      flushPending();
+    };
+  }, [hydrated]);
 
   const increment = () => {
     const next = count + 1;
@@ -119,6 +154,20 @@ export function TasbihScreen() {
   };
 
   const reset = () => {
+    // Past ~10 beads a stray reset tap erases real progress. Confirm before
+    // wiping — match the destructiveness of the Sidebar reset-all-data flow.
+    if (count > 10) {
+      const labels = locale === 'ur'
+        ? { title: `گنتی ${count} مٹا دیں؟`, msg: 'یہ عمل واپس نہیں ہو سکتا۔', cancel: 'منسوخ', confirm: 'دوبارہ' }
+        : locale === 'ar'
+        ? { title: `إعادة العدّ من ${count}؟`, msg: 'لا يمكن التراجع.', cancel: 'إلغاء', confirm: 'إعادة' }
+        : { title: `Reset count of ${count}?`, msg: "You'll lose your current dhikr count. Lifetime and today totals are kept.", cancel: 'Cancel', confirm: 'Reset' };
+      Alert.alert(labels.title, labels.msg, [
+        { text: labels.cancel, style: 'cancel' },
+        { text: labels.confirm, style: 'destructive', onPress: () => { setCount(0); Vibration.vibrate(20); } },
+      ]);
+      return;
+    }
     setCount(0);
     Vibration.vibrate(20);
   };
@@ -244,7 +293,10 @@ export function TasbihScreen() {
         animationType="fade"
         onRequestClose={() => setTargetModalOpen(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalBox}>
             <Text style={[styles.modalTitle, { fontSize: fs(16) }]}>{label.target}</Text>
             <View style={styles.targetOptions}>
@@ -285,7 +337,7 @@ export function TasbihScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
