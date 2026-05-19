@@ -13,6 +13,8 @@ import {
   Dimensions,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { theme } from '../constants/theme';
 import {
@@ -194,7 +196,10 @@ export function MushafPageReader({
         animationType="fade"
         onRequestClose={() => setJumpOpen(false)}
       >
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalSheet}>
             <Text style={styles.modalTitle}>
               {isUrdu ? 'صفحہ نمبر درج کریں' : 'Jump to Page'}
@@ -229,7 +234,7 @@ export function MushafPageReader({
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

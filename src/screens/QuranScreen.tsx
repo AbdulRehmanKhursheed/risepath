@@ -11,6 +11,7 @@ import {
   Platform,
   Modal,
   BackHandler,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -883,7 +884,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           onShow={() => { storage.getReciterPlays().then(setReciterPlays).catch(() => {}); }}
           onRequestClose={() => { setReciterPickerOpen(false); setReciterSearch(''); }}
         >
-          <View style={styles.modalOverlay}>
+          <KeyboardAvoidingView
+            style={styles.modalOverlay}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
             <View style={styles.modalBox}>
               <Text style={[styles.modalTitle, { fontSize: fs(17) }]}>
                 {isUrdu ? 'قاری منتخب کریں' : isArabic ? 'اختر القارئ' : 'Choose Reciter'}
@@ -1028,7 +1032,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 </Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       </View>
     );
