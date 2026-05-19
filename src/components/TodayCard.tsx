@@ -32,20 +32,24 @@ export function TodayCard() {
   // Hydrate after mount; null until then — getTodayAct falls back to Sunni
   // rendering, which is the safe default for an unknown user.
   const [sect, setSect] = useState<Sect | null>(null);
+  const [hijriOffset, setHijriOffset] = useState(0);
   // useFocusEffect — HomeScreen never unmounts, so a plain useEffect would
   // freeze the sect at first read. If the user changes calc method (Jafari →
   // sets fiqh shia) later, this card needs to pick up the new sect.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      storage.getFiqhSchool().then((s) => {
-        if (!cancelled) setSect(s);
+      Promise.all([storage.getFiqhSchool(), storage.getHijriOffset()]).then(([s, off]) => {
+        if (!cancelled) {
+          setSect(s);
+          setHijriOffset(off);
+        }
       });
       return () => { cancelled = true; };
     }, [])
   );
 
-  const act: DailyAct = useMemo(() => getTodayAct(new Date(), sect), [sect]);
+  const act: DailyAct = useMemo(() => getTodayAct(new Date(), sect, hijriOffset), [sect, hijriOffset]);
 
   const title = isUrdu ? act.titleUr : isArabic ? act.titleAr : act.titleEn;
   const action = isUrdu ? act.actionUr : isArabic ? act.actionAr : act.actionEn;

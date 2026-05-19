@@ -136,8 +136,8 @@ const JUMUAH: DailyAct = {
 // being the primary case (Sunni: voluntary fast; Shia: day of mourning for
 // Husayn (RA)). Pass null for unknown / not yet selected; default falls back
 // to the Sunni rendering since that's what most generic Muslim users expect.
-function hijriOverride(now: Date, sect: 'sunni' | 'shia' | null): DailyAct | null {
-  const h = gregorianToHijri(now);
+function hijriOverride(now: Date, sect: 'sunni' | 'shia' | null, hijriOffset = 0): DailyAct | null {
+  const h = gregorianToHijri(now, hijriOffset);
 
   // Dhul Hijjah (month 12) — first 10 days are the most virtuous of the year.
   if (h.month === 12) {
@@ -287,9 +287,10 @@ function hijriOverride(now: Date, sect: 'sunni' | 'shia' | null): DailyAct | nul
 // ─── Public selector ────────────────────────────────────────────────────────
 export function getTodayAct(
   now: Date = new Date(),
-  sect: 'sunni' | 'shia' | null = null
+  sect: 'sunni' | 'shia' | null = null,
+  hijriOffset = 0
 ): DailyAct {
-  const override = hijriOverride(now, sect);
+  const override = hijriOverride(now, sect, hijriOffset);
   if (override) return override;
 
   // JS Date.getDay(): Sunday=0 ... Friday=5, Saturday=6

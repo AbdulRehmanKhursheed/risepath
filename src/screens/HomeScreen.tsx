@@ -53,11 +53,13 @@ export function HomeScreen() {
   const { t, language } = useLanguage();
   const navigation = useNavigation();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
-  const hijri = useMemo(() => formatHijri(new Date(), language), [language]);
-  // Streak is derived directly from the prayers store — single source of
-  // truth, no separate streak record to keep in sync.
+  // Streak + Hijri are derived from storage. useFocusEffect re-reads them
+  // every time the tab gets focus (HomeScreen never unmounts in the tab
+  // navigator, so a plain useEffect would freeze the values).
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
+  const [hijriOffset, setHijriOffset] = useState(0);
+  const hijri = useMemo(() => formatHijri(new Date(), language, hijriOffset), [language, hijriOffset]);
   const defaultGoals = DEFAULT_GOALS_BY_LANG[language] ?? DEFAULT_GOALS_BY_LANG.en;
   const [goals, setGoals] = useState(defaultGoals);
   const [quote, setQuote] = useState<QuoteEntry>(getRandomQuote);
@@ -72,9 +74,14 @@ export function HomeScreen() {
       setQuote(getRandomQuote());
       let cancelled = false;
       (async () => {
-        const prayers = await storage.getPrayers();
+        const [prayers, goalDays, offset] = await Promise.all([
+          storage.getPrayers(),
+          storage.getGoalDays(),
+          storage.getHijriOffset(),
+        ]);
         if (cancelled) return;
-        const { current, longest: longestRun } = computeStreak(prayers);
+        setHijriOffset(offset);
+        const { current, longest: longestRun } = computeStreak(prayers, goalDays);
         setStreak(current);
         setLongest(longestRun);
 
@@ -126,6 +133,20 @@ export function HomeScreen() {
     });
     setGoals(updated);
     await storage.setGoals(updated);
+    // Log "user did something today" the first time any goal is checked off,
+    // so the streak ring grows from goal completion too — not only from
+    // marking prayers. addGoalDay is idempotent.
+    const completedToday = updated.some((g) => g.completed && g.date === today);
+    if (completedToday) {
+      await storage.addGoalDay(today);
+      const [prayers, goalDays] = await Promise.all([
+        storage.getPrayers(),
+        storage.getGoalDays(),
+      ]);
+      const { current, longest: longestRun } = computeStreak(prayers, goalDays);
+      setStreak(current);
+      setLongest(longestRun);
+    }
   };
 
   return (

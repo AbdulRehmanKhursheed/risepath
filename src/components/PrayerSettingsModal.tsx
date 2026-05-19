@@ -20,6 +20,8 @@ import {
 } from '../constants/prayerMethods';
 import { useLanguage } from '../contexts/LanguageContext';
 import { sendTestNotification } from '../services/notifications';
+import { storage } from '../services/storage';
+import { formatHijri } from '../utils/hijri';
 
 type Props = {
   visible: boolean;
@@ -36,15 +38,27 @@ export function PrayerSettingsModal({
   madhab,
   onSave,
 }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMethod, setSelectedMethod] =
     React.useState<CalculationMethodId>(calculationMethod);
   const [selectedMadhab, setSelectedMadhab] = React.useState<MadhabId>(madhab);
+  const [hijriOffset, setHijriOffset] = React.useState(0);
 
   React.useEffect(() => {
     setSelectedMethod(calculationMethod);
     setSelectedMadhab(madhab);
+    if (visible) {
+      storage.getHijriOffset().then(setHijriOffset);
+    }
   }, [visible, calculationMethod, madhab]);
+
+  const adjustHijri = (delta: number) => {
+    const next = Math.max(-3, Math.min(3, hijriOffset + delta));
+    setHijriOffset(next);
+    storage.setHijriOffset(next).catch(() => {});
+  };
+
+  const hijriPreview = formatHijri(new Date(), language, hijriOffset);
 
   const handleSave = () => {
     onSave(selectedMethod, selectedMadhab);
@@ -101,6 +115,43 @@ export function PrayerSettingsModal({
                 <Text style={styles.optionRegion}>{m.region}</Text>
               </TouchableOpacity>
             ))}
+
+            <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
+              {language === 'ur' ? 'ہجری تاریخ' : language === 'ar' ? 'التاريخ الهجري' : 'Hijri date'}
+            </Text>
+            <Text style={styles.sectionHint}>
+              {language === 'ur'
+                ? 'اگر آپ کے علاقے میں اعلان شدہ تاریخ مختلف ہے تو ±3 دن تک ایڈجسٹ کریں۔'
+                : language === 'ar'
+                ? 'اضبط ±٣ أيام إذا كانت رؤية الهلال في منطقتك مختلفة.'
+                : 'If your local moon-sighting date differs from what the app shows, adjust by ±3 days.'}
+            </Text>
+            <View style={styles.hijriRow}>
+              <TouchableOpacity
+                style={[styles.hijriStep, hijriOffset <= -3 && styles.hijriStepDisabled]}
+                onPress={() => adjustHijri(-1)}
+                disabled={hijriOffset <= -3}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.hijriStepText}>−</Text>
+              </TouchableOpacity>
+              <View style={styles.hijriPreviewWrap}>
+                <Text style={styles.hijriPreview}>{hijriPreview}</Text>
+                <Text style={styles.hijriOffsetLabel}>
+                  {hijriOffset === 0
+                    ? (language === 'ur' ? 'کوئی ایڈجسٹمنٹ نہیں' : language === 'ar' ? 'بدون تعديل' : 'No adjustment')
+                    : `${hijriOffset > 0 ? '+' : ''}${hijriOffset} ${language === 'ur' ? 'دن' : language === 'ar' ? 'يوم' : hijriOffset === 1 || hijriOffset === -1 ? 'day' : 'days'}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.hijriStep, hijriOffset >= 3 && styles.hijriStepDisabled]}
+                onPress={() => adjustHijri(1)}
+                disabled={hijriOffset >= 3}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.hijriStepText}>+</Text>
+              </TouchableOpacity>
+            </View>
 
             <Text style={[styles.sectionLabel, { marginTop: theme.spacing.xl }]}>
               Notifications
@@ -295,5 +346,45 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontBodyMedium,
+  },
+  hijriRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.xs,
+  },
+  hijriStep: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.accentMuted,
+    borderWidth: 1.5,
+    borderColor: theme.colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  hijriStepDisabled: {
+    opacity: 0.4,
+  },
+  hijriStepText: {
+    fontSize: 22,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+    lineHeight: 24,
+  },
+  hijriPreviewWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  hijriPreview: {
+    fontSize: 15,
+    fontFamily: theme.typography.fontBodyBold,
+    color: theme.colors.text,
+  },
+  hijriOffsetLabel: {
+    fontSize: 12,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    marginTop: 2,
   },
 });

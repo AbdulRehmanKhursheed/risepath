@@ -28,10 +28,14 @@ export type HijriDate = {
   monthNameAr: string;
 };
 
-export function gregorianToHijri(date: Date = new Date()): HijriDate {
-  const y = date.getFullYear();
-  const m = date.getMonth() + 1;
-  const d = date.getDate();
+// Optional offset (days). The tabular algorithm can drift ±1-2 days from
+// regional moon-sighting (Pakistan's Ruet committee in particular); users
+// adjust this in Prayer Settings until the date matches their masjid.
+export function gregorianToHijri(date: Date = new Date(), offsetDays = 0): HijriDate {
+  const shifted = offsetDays !== 0 ? new Date(date.getTime() + offsetDays * 86400000) : date;
+  const y = shifted.getFullYear();
+  const m = shifted.getMonth() + 1;
+  const d = shifted.getDate();
 
   const jd =
     Math.floor((1461 * (y + 4800 + Math.floor((m - 14) / 12))) / 4) +
@@ -66,8 +70,12 @@ export function gregorianToHijri(date: Date = new Date()): HijriDate {
   };
 }
 
-export function formatHijri(date: Date, locale: 'en' | 'ur' | 'ar' = 'en'): string {
-  const h = gregorianToHijri(date);
+export function formatHijri(
+  date: Date,
+  locale: 'en' | 'ur' | 'ar' = 'en',
+  offsetDays = 0
+): string {
+  const h = gregorianToHijri(date, offsetDays);
   const month =
     locale === 'ar' ? h.monthNameAr : locale === 'ur' ? h.monthNameUr : h.monthNameEn;
   if (locale === 'ur' || locale === 'ar') {

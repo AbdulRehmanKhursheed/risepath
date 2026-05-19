@@ -5,6 +5,7 @@ const KEYS = {
   STREAK: 'streak',
   PRAYERS: 'prayers',
   GOALS: 'goals',
+  GOAL_DAYS: 'goalDays_v1',
   MOODS: 'moods',
   LOCATION: 'location',
   PRAYER_SETTINGS: 'prayerSettings',
@@ -12,6 +13,7 @@ const KEYS = {
   CALENDAR_REGION: 'calendarRegion',
   SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
   LAST_STREAK_MILESTONE: 'lastStreakMilestone',
+  HIJRI_OFFSET: 'hijriOffset_v1',
 } as const;
 
 const CALENDAR_REGION_IDS: CalendarRegion[] = [
@@ -109,6 +111,23 @@ export const storage = {
     await AsyncStorage.setItem(KEYS.GOALS, JSON.stringify(goals));
   },
 
+  // Days the user completed ≥1 goal — feed into computeStreak so the streak
+  // grows from goal completion too, not only prayer marking. Goals don't keep
+  // historical state per-day in the Goal record, so this is a separate
+  // monotonic log of YYYY-MM-DD strings.
+  async getGoalDays(): Promise<string[]> {
+    const raw = await AsyncStorage.getItem(KEYS.GOAL_DAYS);
+    return parseJson<string[]>(raw, []);
+  },
+
+  async addGoalDay(date: string): Promise<void> {
+    const days = await this.getGoalDays();
+    if (!days.includes(date)) {
+      days.push(date);
+      await AsyncStorage.setItem(KEYS.GOAL_DAYS, JSON.stringify(days));
+    }
+  },
+
   async getMoods(): Promise<MoodEntry[]> {
     const raw = await AsyncStorage.getItem(KEYS.MOODS);
     return parseJson<MoodEntry[]>(raw, []);
@@ -176,5 +195,22 @@ export const storage = {
 
   async setLastStreakMilestone(n: number): Promise<void> {
     await AsyncStorage.setItem(KEYS.LAST_STREAK_MILESTONE, String(n));
+  },
+
+  // Hijri-date day offset (range -3..+3). The tabular Julian-Day algorithm
+  // used by formatHijri can drift ±1-2 days from a user's regional moon-
+  // sighting authority (e.g. Pakistan's Ruet committee). Users adjust here
+  // until the displayed date matches their masjid.
+  async getHijriOffset(): Promise<number> {
+    const raw = await AsyncStorage.getItem(KEYS.HIJRI_OFFSET);
+    if (raw === null) return 0;
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(-3, Math.min(3, Math.round(n)));
+  },
+
+  async setHijriOffset(n: number): Promise<void> {
+    const clamped = Math.max(-3, Math.min(3, Math.round(n)));
+    await AsyncStorage.setItem(KEYS.HIJRI_OFFSET, String(clamped));
   },
 };

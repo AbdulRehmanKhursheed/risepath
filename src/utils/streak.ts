@@ -24,30 +24,33 @@ function dayKey(d: Date): string {
 }
 
 function daysApart(a: string, b: string): number {
-  const da = new Date(a);
-  da.setHours(0, 0, 0, 0);
-  const db = new Date(b);
-  db.setHours(0, 0, 0, 0);
-  return Math.round((db.getTime() - da.getTime()) / (1000 * 60 * 60 * 24));
+  // Parse YYYY-MM-DD explicitly as a local date rather than letting
+  // `new Date('YYYY-MM-DD')` interpret it as UTC midnight — that can shift a
+  // day in negative-UTC zones and breaks streak math near DST boundaries.
+  const [ya, ma, da_] = a.split('-').map(Number);
+  const [yb, mb, db_] = b.split('-').map(Number);
+  const dA = new Date(ya, (ma ?? 1) - 1, da_ ?? 1);
+  const dB = new Date(yb, (mb ?? 1) - 1, db_ ?? 1);
+  return Math.round((dB.getTime() - dA.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// Compute current and longest streak directly from the prayers map.
+// Compute current and longest streak from prayers + goal-completion days.
+//
+// A day counts toward the streak if EITHER:
+//   • the user marked ≥3 of 5 prayers that day, OR
+//   • the day appears in `goalDays` (logged when the user completed at least
+//     one Home goal that day; goals themselves don't keep historical state).
 //
 // `current` — the run of consecutive active days ending **today or yesterday**.
 //   Today not yet active does NOT break the streak (the user still has time).
-//   A miss yesterday with no entry today resets to 0.
-//
-// `longest` — the longest consecutive run anywhere in the user's prayer history.
-//
-// Source-of-truth is `storage.getPrayers()`. There is no separate streak record
-// to keep in sync — the previous architecture had a separate `streak` store
-// with a writer hook that was never invoked, leaving stale data on devices.
+// `longest` — the longest consecutive run anywhere in history.
 export function computeStreak(
-  prayers: Record<string, PrayerRecord>
+  prayers: Record<string, PrayerRecord>,
+  goalDays: string[] = []
 ): { current: number; longest: number } {
-  const activeDates = Object.keys(prayers)
-    .filter((d) => isDayActive(prayers[d]))
-    .sort(); // ascending YYYY-MM-DD
+  const prayerActive = Object.keys(prayers).filter((d) => isDayActive(prayers[d]));
+  const merged = new Set<string>([...prayerActive, ...goalDays]);
+  const activeDates = Array.from(merged).sort(); // ascending YYYY-MM-DD
 
   if (activeDates.length === 0) return { current: 0, longest: 0 };
 
