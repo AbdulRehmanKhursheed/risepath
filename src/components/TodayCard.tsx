@@ -16,11 +16,20 @@ import { getTodayAct, DailyAct } from '../constants/dailyAct';
 import { storage } from '../services/storage';
 import type { Sect } from '../constants/islamicCalendar';
 
+type TodayCardProps = {
+  // Hijri offset passed down from HomeScreen — single source of truth so
+  // the card's day-of-Dhul-Hijjah always matches the header's Hijri date.
+  // Previously this component read storage independently, which caused
+  // a 2-day drift after HomeScreen refreshed the offset from Aladhan but
+  // TodayCard kept its stale local copy.
+  hijriOffset?: number;
+};
+
 // "Today's Recommended Act" — the most time-sensitive, sacred-day-aware,
 // retention-driving card on Home. Picks one of: Hijri-event override (Eid,
 // Arafah, Ramadan, last 10 nights, Ashura, etc.), Friday Jumu'ah, or a daily
 // rotation. Tap → opens the relevant in-app screen.
-export function TodayCard() {
+export function TodayCard({ hijriOffset = 0 }: TodayCardProps = {}) {
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const navigation = useNavigation();
@@ -32,18 +41,14 @@ export function TodayCard() {
   // Hydrate after mount; null until then — getTodayAct falls back to Sunni
   // rendering, which is the safe default for an unknown user.
   const [sect, setSect] = useState<Sect | null>(null);
-  const [hijriOffset, setHijriOffset] = useState(0);
   // useFocusEffect — HomeScreen never unmounts, so a plain useEffect would
   // freeze the sect at first read. If the user changes calc method (Jafari →
   // sets fiqh shia) later, this card needs to pick up the new sect.
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
-      Promise.all([storage.getFiqhSchool(), storage.getHijriOffset()]).then(([s, off]) => {
-        if (!cancelled) {
-          setSect(s);
-          setHijriOffset(off);
-        }
+      storage.getFiqhSchool().then((s) => {
+        if (!cancelled) setSect(s);
       });
       return () => { cancelled = true; };
     }, [])

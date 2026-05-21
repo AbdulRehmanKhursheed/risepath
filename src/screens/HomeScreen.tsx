@@ -209,7 +209,7 @@ export function HomeScreen() {
         </View>
       </View>
 
-      <TodayCard />
+      <TodayCard hijriOffset={hijriOffset} />
       <EidHubCard />
       <NextEventCard />
       <QuickActions />
