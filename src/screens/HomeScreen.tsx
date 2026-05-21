@@ -184,9 +184,9 @@ export function HomeScreen() {
         const msg = String(err);
         const isFull = msg.includes('SQLITE_FULL') || msg.includes('disk is full');
         Alert.alert(
-          isFull ? 'Phone storage is full' : 'Could not save',
+          isFull ? "Noor's storage is full" : 'Could not save',
           isFull
-            ? "Your device is out of free space, so Noor couldn't save this. Free up some storage in Settings, then try again."
+            ? "Noor's internal cache filled up (this is the app's own storage, not your phone). Please fully close and re-open the app — it'll clean itself up on next launch."
             : 'Something went wrong saving your progress. Try again in a moment.'
         );
       }

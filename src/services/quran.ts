@@ -395,29 +395,46 @@ function buildPrefetchOrder(): number[] {
 
 let allPrefetchStarted = false;
 
-export async function prefetchAllSurahs(options?: { gapMs?: number }): Promise<void> {
+// Disabled. The previous behavior — trickle-prefetching every surah at
+// app start — was filling AsyncStorage past Android's 6 MB SQLite cap
+// (114 surahs × 3 editions ≈ 5–6 MB), which then caused EVERY OTHER
+// write in the app (streak, goals, prayer marks, hijri offset) to fail
+// with SQLITE_FULL. Cache is now strictly on-demand: a surah is fetched
+// + cached only when the user opens it, and the cap is unlikely to be
+// reached unless the user reads dozens of surahs.
+//
+// Kept exported with the same signature so the App.tsx call site can
+// stay unchanged for now.
+export async function prefetchAllSurahs(_options?: { gapMs?: number }): Promise<void> {
   if (allPrefetchStarted) return;
   allPrefetchStarted = true;
+  return;
+}
 
+// One-shot migration: delete every cached surah JSON from AsyncStorage to
+// reclaim space for the rest of the app. Idempotent; tracked by a flag so
+// it only runs once per install. Safe to call early in app startup — runs
+// in the background and does not block the UI. Surahs the user opens
+// after this point are refetched on demand and cached individually.
+const PURGE_FLAG_KEY = 'quran_cache_purged_v1';
+
+export async function purgeQuranCacheOnce(): Promise<void> {
   try {
-    const storedVersion = await AsyncStorage.getItem(CACHE_VERSION_KEY);
-    if (storedVersion !== String(CACHE_VERSION)) {
-      await AsyncStorage.setItem(CACHE_VERSION_KEY, String(CACHE_VERSION));
+    const done = await AsyncStorage.getItem(PURGE_FLAG_KEY);
+    if (done === '1') return;
+    const allKeys = await AsyncStorage.getAllKeys();
+    const cacheKeys = allKeys.filter(
+      (k) =>
+        k.startsWith(CACHE_PREFIX) ||
+        k.startsWith(INDOPAK_PREFIX) ||
+        k.startsWith('quran_page_v'),
+    );
+    if (cacheKeys.length > 0) {
+      await AsyncStorage.multiRemove(cacheKeys);
     }
+    await AsyncStorage.setItem(PURGE_FLAG_KEY, '1');
   } catch {
-    // ignore
-  }
-
-  const gap = options?.gapMs ?? 200;
-  const order = buildPrefetchOrder();
-
-  for (const n of order) {
-    if (await hasCachedSurah(n)) continue;
-    try {
-      await fetchSurah(n);
-    } catch {
-      // A single failure shouldn't abort the trickle — try the next.
-    }
-    await new Promise((r) => setTimeout(r, gap));
+    // If the purge itself fails (rare), leave the flag unset so we
+    // retry next launch. Either way the app remains functional.
   }
 }

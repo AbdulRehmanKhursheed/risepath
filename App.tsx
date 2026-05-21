@@ -19,7 +19,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
-import { prefetchAllSurahs } from './src/services/quran';
+import { prefetchAllSurahs, purgeQuranCacheOnce } from './src/services/quran';
 import { captureError } from './src/services/sentry';
 import { requestAdsConsent } from './src/services/consent';
 import { trackAppOpen, maybePromptReview } from './src/services/review';
@@ -325,8 +325,14 @@ function AppInner() {
 
   useEffect(() => {
     if (!fontsLoaded || onboardingDone !== true) return;
-    // Delay trickle-prefetch so first-paint network stays clear. Runs once
-    // per app-install and is a no-op when surahs are already cached.
+    // One-time purge of the bulk Quran cache for users upgrading from an
+    // earlier build whose trickle-prefetch filled AsyncStorage to the 6MB
+    // SQLite cap (which then blocked streak/goal/prayer writes with
+    // SQLITE_FULL). Idempotent; the flag inside makes this a no-op after
+    // the first successful run.
+    purgeQuranCacheOnce().catch(() => {});
+    // prefetchAllSurahs is now a no-op (kept for signature compat); the
+    // call stays so a future re-enable point is visible in this file.
     const t = setTimeout(() => { prefetchAllSurahs().catch(() => {}); }, 4000);
     let reviewTimer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
