@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
   description: { fontSize: 14, color: theme.colors.textSecondary, fontFamily: theme.typography.fontBody, lineHeight: 22, marginBottom: theme.spacing.lg },
   duaCard: { backgroundColor: theme.colors.backgroundSoft, borderRadius: theme.borderRadius.md, padding: theme.spacing.lg, borderLeftWidth: 3, borderLeftColor: theme.colors.success, borderWidth: 1, borderColor: 'rgba(26, 122, 60, 0.15)', marginBottom: theme.spacing.lg },
   duaLabel: { fontSize: 11, color: theme.colors.success, fontFamily: theme.typography.fontBodyBold, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 },
-  duaArabic: { fontSize: 20, color: theme.colors.text, textAlign: 'right', lineHeight: 34, marginBottom: 8, fontFamily: theme.typography.fontBody },
+  duaArabic: { fontSize: 20, color: theme.colors.text, textAlign: 'right', lineHeight: 34, marginBottom: 8, fontFamily: theme.typography.fontQuranUthmani },
   duaTranslit: { fontSize: 13, color: theme.colors.accent, fontStyle: 'italic', fontFamily: theme.typography.fontBody, marginBottom: 6, lineHeight: 20 },
   duaTrans: { fontSize: 13, color: theme.colors.textMuted, fontFamily: theme.typography.fontBody, lineHeight: 20 },
   tipsSection: { marginBottom: theme.spacing.lg },

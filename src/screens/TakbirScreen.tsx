@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   takbirArabic: {
-    fontFamily: 'System',
+    fontFamily: theme.typography.fontQuranUthmani,
     fontSize: 24,
     lineHeight: 44,
     color: theme.colors.text,

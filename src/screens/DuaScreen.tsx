@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
   favIcon: { fontSize: 16 },
   favIconActive: {},
   cardTitle: { fontFamily: theme.typography.fontBodyBold, fontSize: 14, color: theme.colors.text, marginBottom: 6 },
-  cardArabic: { fontFamily: 'System', fontSize: 18, color: theme.colors.textSecondary, textAlign: 'right', lineHeight: 30, marginBottom: 6 },
+  cardArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 18, color: theme.colors.textSecondary, textAlign: 'right', lineHeight: 30, marginBottom: 6 },
   cardTap: { fontFamily: theme.typography.fontBody, fontSize: 11, color: theme.colors.accent },
 
   empty: { alignItems: 'center', paddingTop: 60 },
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accentMuted, borderRadius: theme.borderRadius.md,
     padding: 16, marginBottom: 14, borderWidth: 1, borderColor: theme.colors.border,
   },
-  modalArabic: { fontFamily: 'System', fontSize: 22, color: theme.colors.textSecondary, textAlign: 'right', lineHeight: 38 },
+  modalArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 22, color: theme.colors.textSecondary, textAlign: 'right', lineHeight: 38 },
   modalTranslit: { fontFamily: theme.typography.fontBody, fontSize: 14, color: theme.colors.textMuted, fontStyle: 'italic', marginBottom: 12, lineHeight: 22 },
   divider: { height: 1, backgroundColor: theme.colors.borderSoft, marginBottom: 12 },
   modalTranslation: { fontFamily: theme.typography.fontBody, fontSize: 15, color: theme.colors.textSecondary, lineHeight: 24, marginBottom: 10 },

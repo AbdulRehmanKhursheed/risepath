@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   surahNum: { fontFamily: theme.typography.fontBodyBold, fontSize: 12, color: theme.colors.accent },
   surahInfo: { flex: 1 },
-  surahArabic: { fontFamily: 'System', fontSize: 15, color: theme.colors.textSecondary },
+  surahArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 15, color: theme.colors.textSecondary },
   surahEnglish: { fontFamily: theme.typography.fontBody, fontSize: 11, color: theme.colors.textMuted },
   statusBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,

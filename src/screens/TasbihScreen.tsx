@@ -376,6 +376,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   dhikrArabic: {
+    fontFamily: theme.typography.fontQuranUthmani,
     fontSize: 32,
     color: theme.colors.text,
     textAlign: 'center',

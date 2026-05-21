@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   niyyahArabic: {
-    fontFamily: 'System',
+    fontFamily: theme.typography.fontQuranUthmani,
     fontSize: 22,
     color: theme.colors.text,
     textAlign: 'right',

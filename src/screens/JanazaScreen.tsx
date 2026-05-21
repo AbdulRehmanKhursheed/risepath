@@ -557,7 +557,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     lineHeight: 36,
     marginBottom: 8,
-    fontFamily: theme.typography.fontBody,
+    fontFamily: theme.typography.fontQuranUthmani,
   },
   translitText: {
     fontSize: 12,

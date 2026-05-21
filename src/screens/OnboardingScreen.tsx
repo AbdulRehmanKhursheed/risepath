@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: theme.colors.textMuted,
     marginBottom: theme.spacing.xxxl,
-    fontFamily: theme.typography.fontBody,
+    fontFamily: theme.typography.fontQuranUthmani,
     textAlign: 'center',
   },
   stepNum: {

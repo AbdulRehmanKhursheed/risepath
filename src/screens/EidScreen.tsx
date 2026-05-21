@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   duaArabic: {
-    fontFamily: 'System',
+    fontFamily: theme.typography.fontQuranUthmani,
     fontSize: 20,
     color: theme.colors.text,
     textAlign: 'right',

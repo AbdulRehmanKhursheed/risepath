@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
 
   headerGradient: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16 },
   headerTitle: { fontFamily: theme.typography.fontHeadingBold, fontSize: 24, color: theme.colors.text },
-  headerArabic: { fontFamily: 'System', fontSize: 18, color: theme.colors.accent, textAlign: 'right', marginTop: 2, marginBottom: 12 },
+  headerArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 18, color: theme.colors.accent, textAlign: 'right', marginTop: 2, marginBottom: 12 },
 
   progressRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 },
   progressBar: {
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
   },
   dailyLeft: { flex: 1 },
   dailyLabel: { fontFamily: theme.typography.fontBodyMedium, fontSize: 11, color: theme.colors.accent, marginBottom: 4 },
-  dailyArabic: { fontFamily: 'System', fontSize: 22, color: theme.colors.text, marginBottom: 2 },
+  dailyArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 22, color: theme.colors.text, marginBottom: 2 },
   dailyTranslit: { fontFamily: theme.typography.fontBody, fontSize: 12, color: theme.colors.textMuted, fontStyle: 'italic' },
   dailyRight: { alignItems: 'flex-end' },
   dailyMeaning: { fontFamily: theme.typography.fontBodyBold, fontSize: 13, color: theme.colors.textSecondary, textAlign: 'right', maxWidth: 110 },
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   numText: { fontFamily: theme.typography.fontBodyBold, fontSize: 10, color: theme.colors.textMuted },
   numTextKnown: { color: '#fff' },
   numTextDaily: { color: '#fff' },
-  nameArabic: { fontFamily: 'System', fontSize: 18, color: theme.colors.textSecondary, marginBottom: 4, textAlign: 'center' },
+  nameArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 18, color: theme.colors.textSecondary, marginBottom: 4, textAlign: 'center' },
   nameTranslit: { fontFamily: theme.typography.fontBodyMedium, fontSize: 10, color: theme.colors.accent, marginBottom: 2, textAlign: 'center' },
   nameMeaning: { fontFamily: theme.typography.fontBody, fontSize: 10, color: theme.colors.textMuted, textAlign: 'center' },
   dailyBadge: {
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   knownBtnActive: { backgroundColor: theme.colors.successMuted, borderColor: theme.colors.success },
   knownBtnText: { fontFamily: theme.typography.fontBodyMedium, fontSize: 13, color: theme.colors.textMuted },
   knownBtnTextActive: { color: theme.colors.success },
-  modalArabic: { fontFamily: 'System', fontSize: 36, color: theme.colors.text, textAlign: 'center', marginBottom: 6 },
+  modalArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 36, color: theme.colors.text, textAlign: 'center', marginBottom: 6 },
   modalTranslit: { fontFamily: theme.typography.fontBodyMedium, fontSize: 16, color: theme.colors.accent, textAlign: 'center', marginBottom: 16 },
   meaningCard: {
     backgroundColor: theme.colors.accentMuted, borderRadius: theme.borderRadius.md,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   },
   dhikrTitle: { fontFamily: theme.typography.fontBodyBold, fontSize: 13, color: theme.colors.text, marginBottom: 4 },
   dhikrSub: { fontFamily: theme.typography.fontBody, fontSize: 12, color: theme.colors.textMuted, marginBottom: 8, textAlign: 'center' },
-  dhikrArabic: { fontFamily: 'System', fontSize: 24, color: theme.colors.accent },
+  dhikrArabic: { fontFamily: theme.typography.fontQuranUthmani, fontSize: 24, color: theme.colors.accent },
   modalClose: {
     backgroundColor: theme.colors.accent, borderRadius: theme.borderRadius.md,
     paddingVertical: 14, alignItems: 'center', marginTop: 4,
