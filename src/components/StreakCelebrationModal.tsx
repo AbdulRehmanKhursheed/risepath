@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   Animated,
+  Dimensions,
   Easing,
   Modal,
   StyleSheet,
@@ -8,8 +9,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../constants/theme';
+
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 
 type Props = {
   visible: boolean;
@@ -52,6 +56,45 @@ export function StreakCelebrationModal({ visible, title, body, cta, onClose }: P
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
       <Animated.View style={[styles.overlay, { opacity }]}>
+        {/* Confetti rendered above the card with pointerEvents off so it
+            doesn't block the CTA tap. Two cannons firing from opposite top
+            corners create a wide arc that covers the whole screen. */}
+        {visible && (
+          <>
+            <View style={styles.confettiLayer} pointerEvents="none">
+              <ConfettiCannon
+                count={120}
+                origin={{ x: -10, y: 0 }}
+                fadeOut
+                fallSpeed={2800}
+                explosionSpeed={420}
+                colors={[
+                  theme.colors.accent,
+                  theme.colors.accentLight,
+                  '#F2C57C',
+                  '#5CB85C',
+                  '#FFFFFF',
+                ]}
+              />
+            </View>
+            <View style={styles.confettiLayer} pointerEvents="none">
+              <ConfettiCannon
+                count={120}
+                origin={{ x: SCREEN_W + 10, y: 0 }}
+                fadeOut
+                fallSpeed={2800}
+                explosionSpeed={420}
+                colors={[
+                  theme.colors.accent,
+                  theme.colors.accentLight,
+                  '#F2C57C',
+                  '#5CB85C',
+                  '#FFFFFF',
+                ]}
+              />
+            </View>
+          </>
+        )}
         <Animated.View style={[styles.card, { transform: [{ scale }] }]}>
           <LinearGradient
             colors={[theme.colors.accentMuted, theme.colors.surface]}
@@ -77,6 +120,9 @@ const styles = StyleSheet.create({
     flex: 1, alignItems: 'center', justifyContent: 'center',
     padding: 24,
     backgroundColor: 'rgba(28,15,6,0.55)',
+  },
+  confettiLayer: {
+    ...StyleSheet.absoluteFillObject,
   },
   card: {
     width: '100%', maxWidth: 380,
