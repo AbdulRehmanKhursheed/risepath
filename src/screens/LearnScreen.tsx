@@ -82,6 +82,7 @@ export function LearnScreen() {
                     <Text style={styles.arabic}>{k.arabic}</Text>
                     <Text style={styles.transliteration}>{k.transliteration}</Text>
                     <Text style={styles.translation}>"{k.translation}"</Text>
+                    <Text style={styles.reference}>— {k.reference}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -115,6 +116,7 @@ export function LearnScreen() {
                     <Text style={styles.arabic}>{d.arabic}</Text>
                     <Text style={styles.transliteration}>{d.transliteration}</Text>
                     <Text style={styles.translation}>"{d.translation}"</Text>
+                    <Text style={styles.reference}>— {d.reference}</Text>
                   </View>
                 )}
               </TouchableOpacity>
@@ -283,5 +285,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
     lineHeight: 22,
     fontFamily: theme.typography.fontBody,
+  },
+  reference: {
+    fontSize: 11,
+    color: theme.colors.textMuted,
+    marginTop: theme.spacing.sm,
+    fontFamily: theme.typography.fontBodyMedium,
+    fontStyle: 'italic',
   },
 });
