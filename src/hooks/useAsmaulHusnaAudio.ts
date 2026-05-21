@@ -1,31 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AudioModule,
-  setAudioModeAsync,
-  useAudioPlayer,
-  useAudioPlayerStatus,
-} from 'expo-audio';
+import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 
 // Mishary Rashid Alafasy reciting all 99 names back-to-back.
-// We try a list of URLs in order — archive.org's canonical /download/ URL
-// (302 redirects to whichever mirror is closest) plus a few stable mirror
-// fallbacks for clients that don't follow redirects gracefully.
+// We try a list of URLs in order — the resolved archive.org mirror first
+// (no redirect), with the canonical /download/ URL as a fallback.
 const SOURCE_URIS = [
   'https://ia801407.us.archive.org/5/items/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
   'https://archive.org/download/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
 ];
 
-// Lightweight verbose logging so the user can see in Metro what's
-// happening when the audio doesn't behave. Tagged so it's easy to grep.
-const LOG = (...args: unknown[]) => console.log('[asma-audio]', ...args);
-
-// Fallback per-name slice length until the player reports its true duration.
-// File is ~200s for 99 names → ~2.02s per name.
+// Fallback per-name slice (s) until we know the true duration.
 const FALLBACK_NAME_LENGTH_S = 2.02;
 
-// If the player doesn't reach isLoaded within this window after a play
-// request, surface an error instead of a loading state forever.
-const LOAD_TIMEOUT_MS = 15000;
+// If loading hasn't completed within this many ms, try the next source URL,
+// and if that also fails surface an error state to the UI.
+const LOAD_TIMEOUT_MS = 20000;
+
+const LOG = (...args: unknown[]) => console.log('[asma-audio]', ...args);
 
 export type AudioState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
@@ -46,62 +37,70 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
+// Async load helper — creates an Audio.Sound from a URL with a status
+// callback wired up so we can react to playback progress + completion.
+async function loadSound(
+  uri: string,
+  onStatus: (s: AVPlaybackStatus) => void,
+): Promise<Audio.Sound> {
+  LOG('loading', uri);
+  const { sound } = await Audio.Sound.createAsync(
+    { uri },
+    { shouldPlay: false, progressUpdateIntervalMillis: 250 },
+    onStatus,
+    /* downloadFirst */ false,
+  );
+  return sound;
+}
+
 export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
-  const [sourceIdx, setSourceIdx] = useState(0);
-  const player = useAudioPlayer(SOURCE_URIS[sourceIdx]);
-  const status = useAudioPlayerStatus(player);
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const durationMsRef = useRef<number>(0);
+  // Active source index — incremented when a load fails, so the next load
+  // attempt picks up the fallback URL.
+  const sourceIdxRef = useRef<number>(0);
 
   const [state, setState] = useState<AudioState>('idle');
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
   const modeRef = useRef<Mode>('idle');
-  // Seconds at which to auto-pause single-name playback (otherwise we'd
-  // bleed into the next name).
-  const stopAtRef = useRef<number | null>(null);
-  // Offset we want to seek to as soon as the player reports isLoaded.
-  // Set imperatively on play()/playAll(); cleared after the seek completes.
-  const pendingSeekRef = useRef<number | null>(null);
-  // Timer that flips us to 'error' if load never completes.
+  // Auto-pause boundary for single-name playback (in ms).
+  const stopAtMsRef = useRef<number | null>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Background audio mode + iOS silent-mode override, set once.
+  // Set audio mode once.
   useEffect(() => {
-    LOG('init: setting audio mode, source =', SOURCE_URIS[sourceIdx]);
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      shouldPlayInBackground: true,
-      interruptionMode: 'duckOthers',
-    }).then(() => LOG('audio mode set OK')).catch((e) => LOG('audio mode error:', String(e)));
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: true,
+      shouldDuckAndroid: true,
+      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+    })
+      .then(() => LOG('audio mode set OK'))
+      .catch((e) => LOG('audio mode error:', String(e)));
     return () => {
-      try { player.pause(); } catch {}
       if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+      soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
     };
-  }, [player, sourceIdx]);
+  }, []);
 
-  const nameLength =
-    status.duration && status.duration > 0
-      ? status.duration / 99
-      : FALLBACK_NAME_LENGTH_S;
+  const nameLengthMs =
+    durationMsRef.current > 0 ? durationMsRef.current / 99 : FALLBACK_NAME_LENGTH_S * 1000;
 
-  // React to playback progress. Three responsibilities:
-  //   1. Apply a deferred seek as soon as the player reports isLoaded.
-  //   2. Map raw status flags onto our coarser state machine.
-  //   3. Auto-pause single-name play at the next-name boundary,
-  //      and track current-name index during play-all.
-  useEffect(() => {
-    if (status.isLoaded && state === 'loading') {
-      LOG('status: isLoaded=true, duration=', status.duration, 'playing=', status.playing);
+  // Single status handler shared across loads. Runs in the native callback
+  // thread; keep it cheap and don't synchronously do heavy work.
+  const onStatus = useCallback((status: AVPlaybackStatus) => {
+    if (!status.isLoaded) {
+      if (status.error) LOG('status error:', status.error);
+      return;
+    }
+    if (durationMsRef.current === 0 && status.durationMillis) {
+      durationMsRef.current = status.durationMillis;
+      LOG('duration learned:', status.durationMillis, 'ms');
     }
 
-    // (1) Apply a deferred seek once the audio is actually loaded.
-    if (status.isLoaded && pendingSeekRef.current != null) {
-      const target = pendingSeekRef.current;
-      LOG('applying deferred seek to', target);
-      pendingSeekRef.current = null;
-      player.seekTo(target).catch((e) => LOG('seek failed:', String(e)));
-    }
-
-    // (2) Coarse state machine.
-    if (status.playing) {
+    if (status.isPlaying) {
       if (state !== 'playing') {
         LOG('→ playing');
         setState('playing');
@@ -110,117 +109,128 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
         clearTimeout(loadTimerRef.current);
         loadTimerRef.current = null;
       }
-    } else if (status.isLoaded && modeRef.current !== 'idle' && state === 'playing') {
-      setState('paused');
     }
 
-    // (3) Boundary detection — needs isLoaded for currentTime to be valid.
-    if (!status.isLoaded) return;
-    const t = status.currentTime ?? 0;
+    const tMs = status.positionMillis ?? 0;
 
-    if (modeRef.current === 'one' && stopAtRef.current != null) {
-      if (t >= stopAtRef.current) {
-        player.pause();
-        stopAtRef.current = null;
+    if (modeRef.current === 'one' && stopAtMsRef.current != null) {
+      if (tMs >= stopAtMsRef.current) {
+        soundRef.current?.pauseAsync().catch(() => {});
+        stopAtMsRef.current = null;
         modeRef.current = 'idle';
         setState('idle');
       }
     } else if (modeRef.current === 'all') {
-      const idx = clamp(Math.floor(t / nameLength) + 1, 1, 99);
-      if (idx !== currentNumber) setCurrentNumber(idx);
-      if (status.didJustFinish || (status.duration && t >= status.duration - 0.05)) {
+      const idx = clamp(Math.floor(tMs / nameLengthMs) + 1, 1, 99);
+      setCurrentNumber((prev) => (prev === idx ? prev : idx));
+      if (status.didJustFinish) {
         modeRef.current = 'idle';
         setState('idle');
         setCurrentNumber(null);
       }
     }
-  }, [status, state, currentNumber, nameLength, player]);
+  }, [state, nameLengthMs]);
 
-  const startLoadTimer = useCallback(() => {
-    if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
-    loadTimerRef.current = setTimeout(() => {
-      if (modeRef.current !== 'idle' && !status.playing) {
-        LOG('load timeout — trying next source');
-        // First failure: try the next URL in the fallback list.
-        if (sourceIdx < SOURCE_URIS.length - 1) {
-          setSourceIdx((i) => i + 1);
-          // Replay the same intent against the new player on next render.
+  // Lazy-load + start playing. Idempotent — if already loaded, just plays.
+  // Handles the source-fallback chain on load failure.
+  const ensureLoadedAndPlay = useCallback(
+    async (seekMs: number | null) => {
+      if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
+      loadTimerRef.current = setTimeout(async () => {
+        // Load timeout: unload, try the next source.
+        if (sourceIdxRef.current < SOURCE_URIS.length - 1) {
+          sourceIdxRef.current += 1;
+          LOG('load timeout, falling back to source idx', sourceIdxRef.current);
+          await soundRef.current?.unloadAsync().catch(() => {});
+          soundRef.current = null;
+          if (modeRef.current !== 'idle') {
+            ensureLoadedAndPlay(seekMs).catch(() => {});
+          }
         } else {
-          LOG('all sources exhausted, surfacing error');
+          LOG('all sources exhausted');
+          setState('error');
+          modeRef.current = 'idle';
+        }
+      }, LOAD_TIMEOUT_MS);
+
+      try {
+        if (!soundRef.current) {
+          const sound = await loadSound(SOURCE_URIS[sourceIdxRef.current], onStatus);
+          soundRef.current = sound;
+        }
+        if (seekMs != null && seekMs > 0) {
+          await soundRef.current.setPositionAsync(seekMs);
+        }
+        await soundRef.current.playAsync();
+        LOG('play started');
+      } catch (e) {
+        LOG('load/play threw:', String(e));
+        // Try fallback on exception too.
+        if (sourceIdxRef.current < SOURCE_URIS.length - 1) {
+          sourceIdxRef.current += 1;
+          await soundRef.current?.unloadAsync().catch(() => {});
+          soundRef.current = null;
+          if (modeRef.current !== 'idle') {
+            ensureLoadedAndPlay(seekMs).catch(() => {});
+          }
+        } else {
           setState('error');
           modeRef.current = 'idle';
         }
       }
-    }, LOAD_TIMEOUT_MS);
-  }, [status.playing, sourceIdx]);
+    },
+    [onStatus],
+  );
 
   const play = useCallback(
     (number: number) => {
       const n = clamp(number, 1, 99);
-      const offset = (n - 1) * nameLength;
-      LOG('play() name=', n, 'offset=', offset, 'isLoaded=', status.isLoaded);
+      const offsetMs = (n - 1) * nameLengthMs;
+      LOG('play() name=', n, 'offsetMs=', offsetMs);
       modeRef.current = 'one';
-      stopAtRef.current = n * nameLength;
+      stopAtMsRef.current = n * nameLengthMs;
       setCurrentNumber(n);
       setState('loading');
-      pendingSeekRef.current = offset;
-      try {
-        player.volume = 1;
-        player.play();
-        LOG('play() called');
-      } catch (e) {
-        LOG('play() threw:', String(e));
-        setState('error');
-      }
-      startLoadTimer();
+      ensureLoadedAndPlay(offsetMs).catch(() => {});
     },
-    [player, nameLength, startLoadTimer, status.isLoaded],
+    [nameLengthMs, ensureLoadedAndPlay],
   );
 
   const playAll = useCallback(
     (startFrom: number = 1) => {
       const n = clamp(startFrom, 1, 99);
-      LOG('playAll() startFrom=', n, 'isLoaded=', status.isLoaded, 'duration=', status.duration);
+      LOG('playAll() startFrom=', n);
       modeRef.current = 'all';
-      stopAtRef.current = null;
+      stopAtMsRef.current = null;
       setCurrentNumber(n);
       setState('loading');
-      pendingSeekRef.current = n > 1 ? (n - 1) * nameLength : null;
-      try {
-        player.volume = 1;
-        player.play();
-        LOG('playAll() called');
-      } catch (e) {
-        LOG('playAll() threw:', String(e));
-        setState('error');
-      }
-      startLoadTimer();
+      const seekMs = n > 1 ? (n - 1) * nameLengthMs : null;
+      ensureLoadedAndPlay(seekMs).catch(() => {});
     },
-    [player, nameLength, startLoadTimer, status.isLoaded, status.duration],
+    [nameLengthMs, ensureLoadedAndPlay],
   );
 
   const pause = useCallback(() => {
-    try { player.pause(); } catch {}
+    soundRef.current?.pauseAsync().catch(() => {});
     setState('paused');
-  }, [player]);
+  }, []);
 
   const resume = useCallback(() => {
-    try { player.play(); } catch {}
+    soundRef.current?.playAsync().catch(() => {});
     setState('playing');
-  }, [player]);
+  }, []);
 
   const stop = useCallback(() => {
-    try { player.pause(); } catch {}
+    soundRef.current?.pauseAsync().catch(() => {});
     modeRef.current = 'idle';
-    stopAtRef.current = null;
-    pendingSeekRef.current = null;
+    stopAtMsRef.current = null;
     if (loadTimerRef.current) {
       clearTimeout(loadTimerRef.current);
       loadTimerRef.current = null;
     }
     setCurrentNumber(null);
     setState('idle');
-  }, [player]);
+  }, []);
 
   return {
     state,
@@ -233,5 +243,3 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
     stop,
   };
 }
-
-export { AudioModule };
