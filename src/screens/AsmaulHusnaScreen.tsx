@@ -1,7 +1,7 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, Animated, AppState, ActivityIndicator,
+  Modal, ScrollView, Animated, AppState,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +11,6 @@ import { theme } from '../constants/theme';
 import { ASMAUL_HUSNA, type Name99 } from '../constants/asmaulHusna';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
-import { useAsmaulHusnaAudio } from '../hooks/useAsmaulHusnaAudio';
 
 const KNOWN_KEY = 'asmaul_husna_known';
 
@@ -21,8 +20,6 @@ export function AsmaulHusnaScreen() {
   const [selected, setSelected] = useState<Name99 | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const audio = useAsmaulHusnaAudio();
-
   useEffect(() => {
     AsyncStorage.getItem(KNOWN_KEY).then((raw) => {
       if (!raw) return;
@@ -33,19 +30,47 @@ export function AsmaulHusnaScreen() {
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
   }, []);
 
-  // Reset modal on navigation away so it doesn't re-appear on return.
-  // Also stops audio so the recitation doesn't keep playing on other screens.
+  // Reset detail modal on navigation away so it doesn't re-appear on return.
   useFocusEffect(
     useCallback(() => {
       return () => {
         if (AppState.currentState === 'active') {
           setModalVisible(false);
           setSelected(null);
-          audio.stop();
         }
       };
-    }, [audio])
+    }, [])
   );
+
+  const [comingSoonVisible, setComingSoonVisible] = useState(false);
+  const cardScale = useRef(new Animated.Value(0.88)).current;
+  const cardOpacity = useRef(new Animated.Value(0)).current;
+  const iconFloat = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!comingSoonVisible) {
+      cardScale.setValue(0.88);
+      cardOpacity.setValue(0);
+      iconFloat.setValue(0);
+      return;
+    }
+    Animated.parallel([
+      Animated.spring(cardScale, { toValue: 1, friction: 7, useNativeDriver: true }),
+      Animated.timing(cardOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(iconFloat, { toValue: 1, duration: 1400, useNativeDriver: true }),
+        Animated.timing(iconFloat, { toValue: 0, duration: 1400, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => { loop.stop(); };
+  }, [comingSoonVisible, cardScale, cardOpacity, iconFloat]);
+
+  const iconTranslateY = iconFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
+
+  const onPressPlay = useCallback(() => setComingSoonVisible(true), []);
 
   const toggleKnown = async (num: number) => {
     setKnown((prev) => {
@@ -83,11 +108,12 @@ export function AsmaulHusnaScreen() {
     );
   };
 
-  const isAudioOn = audio.state === 'playing' || audio.state === 'loading';
 
-  return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Header */}
+  // Header lives inside ListHeaderComponent so it scrolls with the grid
+  // instead of staying pinned — the user wanted more room for the names as
+  // they scroll down. RN will still show it again when they scroll back up.
+  const listHeader = (
+    <>
       <LinearGradient
         colors={[theme.colors.accentMuted, theme.colors.background]}
         style={styles.headerGradient}
@@ -101,26 +127,24 @@ export function AsmaulHusnaScreen() {
           </View>
           <Text style={styles.progressText}>{known.size}/99 known</Text>
           <TouchableOpacity
-            style={[styles.playAllPill, isAudioOn && styles.playAllPillActive]}
-            onPress={audio.toggle}
+            style={styles.playAllPill}
+            onPress={onPressPlay}
             activeOpacity={0.85}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            {audio.state === 'loading' ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={[styles.playAllPillText, isAudioOn && styles.playAllPillTextActive]} allowFontScaling={false}>
-                {isAudioOn ? '⏸ Pause' : '▶ Play'}
-              </Text>
-            )}
+            <Text style={styles.playAllPillText} allowFontScaling={false}>
+              ▶ Play
+            </Text>
           </TouchableOpacity>
         </View>
-
       </LinearGradient>
 
       <AdBanner unitId={AD_UNITS.bannerNames} />
+    </>
+  );
 
-      {/* Grid */}
+  return (
+    <View style={[styles.root, { paddingTop: insets.top }]}>
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         <FlatList
           data={ASMAUL_HUSNA}
@@ -128,6 +152,7 @@ export function AsmaulHusnaScreen() {
           renderItem={renderItem}
           numColumns={2}
           columnWrapperStyle={styles.row}
+          ListHeaderComponent={listHeader}
           contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 16 }]}
           showsVerticalScrollIndicator={false}
         />
@@ -172,6 +197,47 @@ export function AsmaulHusnaScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Coming-soon modal for the recitation feature */}
+      <Modal
+        visible={comingSoonVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setComingSoonVisible(false)}
+      >
+        <Animated.View style={[styles.comingOverlay, { opacity: cardOpacity }]}>
+          <Animated.View style={[styles.comingCard, { transform: [{ scale: cardScale }] }]}>
+            <LinearGradient
+              colors={[theme.colors.accentMuted, theme.colors.surface]}
+              style={styles.comingGradient}
+            >
+              <View style={styles.comingBadge}>
+                <Text style={styles.comingBadgeText}>COMING SOON</Text>
+              </View>
+              <Animated.View style={{ transform: [{ translateY: iconTranslateY }] }}>
+                <Text style={styles.comingIcon}>🎧</Text>
+              </Animated.View>
+              <Text style={styles.comingTitle}>Recitation is on the way</Text>
+              <Text style={styles.comingBody}>
+                Mishary Alafasy's beautiful recitation of all 99 names will be available in the next update —
+                we're polishing it to play smoothly on every device, InshaAllah.
+              </Text>
+              <View style={styles.comingFooterRow}>
+                <Text style={styles.comingFooterIcon}>🌙</Text>
+                <Text style={styles.comingFooterText}>Stay tuned</Text>
+                <Text style={styles.comingFooterIcon}>✨</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.comingCta}
+                onPress={() => setComingSoonVisible(false)}
+                activeOpacity={0.86}
+              >
+                <Text style={styles.comingCtaText}>Got it</Text>
+              </TouchableOpacity>
+            </LinearGradient>
+          </Animated.View>
+        </Animated.View>
       </Modal>
     </View>
   );
@@ -314,4 +380,52 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginTop: 4,
   },
   modalCloseText: { fontFamily: theme.typography.fontBodyBold, fontSize: 15, color: '#fff' },
+
+  comingOverlay: {
+    flex: 1, alignItems: 'center', justifyContent: 'center',
+    padding: 24,
+    backgroundColor: 'rgba(28,15,6,0.55)',
+  },
+  comingCard: {
+    width: '100%', maxWidth: 380,
+    borderRadius: 24, overflow: 'hidden',
+    borderWidth: 1.5, borderColor: theme.colors.accent,
+  },
+  comingGradient: { padding: 28, alignItems: 'center' },
+  comingBadge: {
+    paddingHorizontal: 12, paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: theme.colors.accent,
+    marginBottom: 18,
+  },
+  comingBadgeText: {
+    fontFamily: theme.typography.fontBodyBold, fontSize: 10,
+    color: '#fff', letterSpacing: 1.4,
+  },
+  comingIcon: { fontSize: 60, marginBottom: 12 },
+  comingTitle: {
+    fontFamily: theme.typography.fontHeadingBold, fontSize: 22,
+    color: theme.colors.text, textAlign: 'center', marginBottom: 10,
+  },
+  comingBody: {
+    fontFamily: theme.typography.fontBody, fontSize: 14,
+    color: theme.colors.textSecondary, textAlign: 'center',
+    lineHeight: 21, marginBottom: 18,
+  },
+  comingFooterRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 22,
+  },
+  comingFooterIcon: { fontSize: 18 },
+  comingFooterText: {
+    fontFamily: theme.typography.fontBodyMedium, fontSize: 12,
+    color: theme.colors.accent, letterSpacing: 1,
+  },
+  comingCta: {
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: 30, paddingVertical: 13,
+    borderRadius: theme.borderRadius.full,
+  },
+  comingCtaText: {
+    fontFamily: theme.typography.fontBodyBold, fontSize: 15, color: '#fff',
+  },
 });
