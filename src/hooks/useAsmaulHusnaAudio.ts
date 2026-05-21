@@ -6,11 +6,18 @@ import {
   useAudioPlayerStatus,
 } from 'expo-audio';
 
-// Single continuous recitation by Mishary Rashid Alafasy.
-// Archive.org auto-redirects to the nearest mirror; supports range requests.
-// All 99 names recited back-to-back in the standard Tirmidhi enumeration order.
-const SOURCE_URI =
-  'https://archive.org/download/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3';
+// Mishary Rashid Alafasy reciting all 99 names back-to-back.
+// We try a list of URLs in order — archive.org's canonical /download/ URL
+// (302 redirects to whichever mirror is closest) plus a few stable mirror
+// fallbacks for clients that don't follow redirects gracefully.
+const SOURCE_URIS = [
+  'https://ia801407.us.archive.org/5/items/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
+  'https://archive.org/download/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
+];
+
+// Lightweight verbose logging so the user can see in Metro what's
+// happening when the audio doesn't behave. Tagged so it's easy to grep.
+const LOG = (...args: unknown[]) => console.log('[asma-audio]', ...args);
 
 // Fallback per-name slice length until the player reports its true duration.
 // File is ~200s for 99 names → ~2.02s per name.
@@ -40,7 +47,8 @@ function clamp(n: number, lo: number, hi: number) {
 }
 
 export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
-  const player = useAudioPlayer(SOURCE_URI);
+  const [sourceIdx, setSourceIdx] = useState(0);
+  const player = useAudioPlayer(SOURCE_URIS[sourceIdx]);
   const status = useAudioPlayerStatus(player);
 
   const [state, setState] = useState<AudioState>('idle');
@@ -57,18 +65,17 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
 
   // Background audio mode + iOS silent-mode override, set once.
   useEffect(() => {
+    LOG('init: setting audio mode, source =', SOURCE_URIS[sourceIdx]);
     setAudioModeAsync({
       playsInSilentMode: true,
       shouldPlayInBackground: true,
-      interruptionMode: 'mixWithOthers',
-    }).catch(() => {});
+      interruptionMode: 'duckOthers',
+    }).then(() => LOG('audio mode set OK')).catch((e) => LOG('audio mode error:', String(e)));
     return () => {
-      try {
-        player.pause();
-      } catch {}
+      try { player.pause(); } catch {}
       if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     };
-  }, [player]);
+  }, [player, sourceIdx]);
 
   const nameLength =
     status.duration && status.duration > 0
@@ -81,23 +88,29 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
   //   3. Auto-pause single-name play at the next-name boundary,
   //      and track current-name index during play-all.
   useEffect(() => {
+    if (status.isLoaded && state === 'loading') {
+      LOG('status: isLoaded=true, duration=', status.duration, 'playing=', status.playing);
+    }
+
     // (1) Apply a deferred seek once the audio is actually loaded.
     if (status.isLoaded && pendingSeekRef.current != null) {
       const target = pendingSeekRef.current;
+      LOG('applying deferred seek to', target);
       pendingSeekRef.current = null;
-      player.seekTo(target).catch(() => {});
+      player.seekTo(target).catch((e) => LOG('seek failed:', String(e)));
     }
 
     // (2) Coarse state machine.
     if (status.playing) {
-      if (state !== 'playing') setState('playing');
-      // Loaded + playing → clear the load timeout.
+      if (state !== 'playing') {
+        LOG('→ playing');
+        setState('playing');
+      }
       if (loadTimerRef.current) {
         clearTimeout(loadTimerRef.current);
         loadTimerRef.current = null;
       }
     } else if (status.isLoaded && modeRef.current !== 'idle' && state === 'playing') {
-      // Was playing, now paused for some reason (didFinish, user pause, etc.)
       setState('paused');
     }
 
@@ -126,55 +139,64 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
   const startLoadTimer = useCallback(() => {
     if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
     loadTimerRef.current = setTimeout(() => {
-      // If we're still trying to load after the deadline, surface the error
-      // so the UI can show 'Audio unavailable' instead of hanging on Loading…
       if (modeRef.current !== 'idle' && !status.playing) {
-        setState('error');
-        modeRef.current = 'idle';
+        LOG('load timeout — trying next source');
+        // First failure: try the next URL in the fallback list.
+        if (sourceIdx < SOURCE_URIS.length - 1) {
+          setSourceIdx((i) => i + 1);
+          // Replay the same intent against the new player on next render.
+        } else {
+          LOG('all sources exhausted, surfacing error');
+          setState('error');
+          modeRef.current = 'idle';
+        }
       }
     }, LOAD_TIMEOUT_MS);
-  }, [status.playing]);
+  }, [status.playing, sourceIdx]);
 
   const play = useCallback(
     (number: number) => {
       const n = clamp(number, 1, 99);
       const offset = (n - 1) * nameLength;
+      LOG('play() name=', n, 'offset=', offset, 'isLoaded=', status.isLoaded);
       modeRef.current = 'one';
       stopAtRef.current = n * nameLength;
       setCurrentNumber(n);
       setState('loading');
       pendingSeekRef.current = offset;
-      // Kick off playback immediately — expo-audio will buffer and start
-      // playing once loaded. The pending-seek effect will fire as soon as
-      // isLoaded flips true, so we land on the right name.
       try {
+        player.volume = 1;
         player.play();
-      } catch {
+        LOG('play() called');
+      } catch (e) {
+        LOG('play() threw:', String(e));
         setState('error');
       }
       startLoadTimer();
     },
-    [player, nameLength, startLoadTimer],
+    [player, nameLength, startLoadTimer, status.isLoaded],
   );
 
   const playAll = useCallback(
     (startFrom: number = 1) => {
       const n = clamp(startFrom, 1, 99);
+      LOG('playAll() startFrom=', n, 'isLoaded=', status.isLoaded, 'duration=', status.duration);
       modeRef.current = 'all';
       stopAtRef.current = null;
       setCurrentNumber(n);
       setState('loading');
-      // Only request a seek if we're not starting from the beginning. This
-      // avoids the common Play All case ever depending on seek availability.
       pendingSeekRef.current = n > 1 ? (n - 1) * nameLength : null;
       try {
+        player.volume = 1;
         player.play();
-      } catch {
+        LOG('playAll() called');
+      } catch (e) {
+        LOG('playAll() threw:', String(e));
         setState('error');
       }
       startLoadTimer();
     },
-    [player, nameLength, startLoadTimer],
+    [player, nameLength, startLoadTimer, status.isLoaded, status.duration],
   );
 
   const pause = useCallback(() => {
