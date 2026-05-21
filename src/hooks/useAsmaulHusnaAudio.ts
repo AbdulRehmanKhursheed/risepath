@@ -1,20 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useState } from 'react';
 import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
 
-// Mishary Rashid Alafasy reciting all 99 names back-to-back.
-// We try a list of URLs in order — the resolved archive.org mirror first
-// (no redirect), with the canonical /download/ URL as a fallback.
-const SOURCE_URIS = [
-  'https://ia801407.us.archive.org/5/items/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
-  'https://archive.org/download/asmaul-husna-mishary/Asmaul_Husna_Mishary.mp3',
-];
+// Mishary Rashid Alafasy reciting all 99 names back-to-back. Bundled as a
+// local asset (3.8 MB, 128kbps mono) — earlier streaming attempts from
+// archive.org repeatedly stalled on the user's mobile network, so we accept
+// the APK size hit for guaranteed playback.
+const LOCAL_SOURCE = require('../../assets/audio/asmaul-husna.mp3');
 
 // Fallback per-name slice (s) until we know the true duration.
 const FALLBACK_NAME_LENGTH_S = 2.02;
 
-// If loading hasn't completed within this many ms, try the next source URL,
-// and if that also fails surface an error state to the UI.
-const LOAD_TIMEOUT_MS = 20000;
+// Load-watchdog timeout. With a local asset this should never be needed,
+// but kept as a safety net in case the bundled require somehow stalls.
+const LOAD_TIMEOUT_MS = 10000;
 
 // Set to true to re-enable verbose debug logging.
 const DEBUG_LOG = false;
@@ -39,18 +38,16 @@ function clamp(n: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, n));
 }
 
-// Async load helper — creates an Audio.Sound from a URL with a status
-// callback wired up so we can react to playback progress + completion.
+// Async load helper — loads the bundled MP3 with a status callback wired
+// up so the hook can react to playback progress + completion.
 async function loadSound(
-  uri: string,
   onStatus: (s: AVPlaybackStatus) => void,
 ): Promise<Audio.Sound> {
-  LOG('loading', uri);
+  LOG('loading local asset');
   const { sound } = await Audio.Sound.createAsync(
-    { uri },
+    LOCAL_SOURCE,
     { shouldPlay: false, progressUpdateIntervalMillis: 250 },
     onStatus,
-    /* downloadFirst */ false,
   );
   return sound;
 }
@@ -58,9 +55,6 @@ async function loadSound(
 export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
   const soundRef = useRef<Audio.Sound | null>(null);
   const durationMsRef = useRef<number>(0);
-  // Active source index — incremented when a load fails, so the next load
-  // attempt picks up the fallback URL.
-  const sourceIdxRef = useRef<number>(0);
 
   const [state, setState] = useState<AudioState>('idle');
   const [currentNumber, setCurrentNumber] = useState<number | null>(null);
@@ -147,23 +141,15 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
     }
   }, [state, nameLengthMs]);
 
-  // Lazy-load + start playing. Idempotent — if already loaded, just plays.
-  // Handles the source-fallback chain on load failure.
+  // Lazy-load + start playing. Idempotent — if the bundled asset is
+  // already loaded, just plays. With a local require() this should never
+  // realistically fail, but the load watchdog stays as a safety net.
   const ensureLoadedAndPlay = useCallback(
     async (seekMs: number | null) => {
       if (loadTimerRef.current) clearTimeout(loadTimerRef.current);
-      loadTimerRef.current = setTimeout(async () => {
-        // Load timeout: unload, try the next source.
-        if (sourceIdxRef.current < SOURCE_URIS.length - 1) {
-          sourceIdxRef.current += 1;
-          LOG('load timeout, falling back to source idx', sourceIdxRef.current);
-          await soundRef.current?.unloadAsync().catch(() => {});
-          soundRef.current = null;
-          if (modeRef.current !== 'idle') {
-            ensureLoadedAndPlay(seekMs).catch(() => {});
-          }
-        } else {
-          LOG('all sources exhausted');
+      loadTimerRef.current = setTimeout(() => {
+        if (modeRef.current !== 'idle') {
+          LOG('load watchdog tripped');
           setState('error');
           modeRef.current = 'idle';
         }
@@ -171,7 +157,7 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
 
       try {
         if (!soundRef.current) {
-          const sound = await loadSound(SOURCE_URIS[sourceIdxRef.current], onStatus);
+          const sound = await loadSound(onStatus);
           soundRef.current = sound;
         }
         if (seekMs != null && seekMs > 0) {
@@ -181,18 +167,8 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
         LOG('play started');
       } catch (e) {
         LOG('load/play threw:', String(e));
-        // Try fallback on exception too.
-        if (sourceIdxRef.current < SOURCE_URIS.length - 1) {
-          sourceIdxRef.current += 1;
-          await soundRef.current?.unloadAsync().catch(() => {});
-          soundRef.current = null;
-          if (modeRef.current !== 'idle') {
-            ensureLoadedAndPlay(seekMs).catch(() => {});
-          }
-        } else {
-          setState('error');
-          modeRef.current = 'idle';
-        }
+        setState('error');
+        modeRef.current = 'idle';
       }
     },
     [onStatus],
