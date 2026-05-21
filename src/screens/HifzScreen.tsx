@@ -155,7 +155,7 @@ export function HifzScreen() {
       <AdBanner unitId={AD_UNITS.bannerHifz} />
 
       {/* Juz filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.juzRow}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.juzRow} style={styles.juzScroll}>
         <TouchableOpacity
           style={[styles.juzChip, activeJuz === null && styles.juzChipActive]}
           onPress={() => setActiveJuz(null)}
@@ -223,14 +223,18 @@ const styles = StyleSheet.create({
   legendLabel: { fontFamily: theme.typography.fontBodyMedium, fontSize: 11, color: theme.colors.textSecondary },
   legendHint: { fontFamily: theme.typography.fontBody, fontSize: 10, color: theme.colors.textMuted },
 
-  juzRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
+  juzScroll: { flexGrow: 0, maxHeight: 38, marginBottom: 4 },
+  juzRow: { paddingHorizontal: 16, gap: 6, alignItems: 'center' },
   juzChip: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.full,
+    height: 28,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+    borderRadius: 14,
     backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border,
   },
   juzChipActive: { backgroundColor: theme.colors.accentMuted, borderColor: theme.colors.accent },
   juzChipDone: { borderColor: theme.colors.success + '80', backgroundColor: theme.colors.successMuted },
-  juzChipText: { fontFamily: theme.typography.fontBodyMedium, fontSize: 12, color: theme.colors.textMuted },
+  juzChipText: { fontFamily: theme.typography.fontBodyMedium, fontSize: 11, lineHeight: 14, color: theme.colors.textMuted, includeFontPadding: false },
   juzChipTextActive: { color: theme.colors.accent },
 
   list: { paddingHorizontal: 16, paddingTop: 4 },

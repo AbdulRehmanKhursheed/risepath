@@ -124,18 +124,25 @@ export function DuaScreen() {
       </View>
 
       {/* Category filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catRow}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.catRow}
+        // Pin the row's vertical size so it can't stretch with the parent
+        // flex — that was making the chips render as oversized capsules.
+        style={styles.catScroll}
+      >
         <TouchableOpacity
           style={[styles.catChip, activeCategory === null && styles.catChipActive]}
           onPress={() => setActiveCategory(null)}
         >
-          <Text style={[styles.catChipText, activeCategory === null && styles.catChipTextActive]}>All</Text>
+          <Text style={[styles.catChipText, activeCategory === null && styles.catChipTextActive]} allowFontScaling={false}>All</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.catChip, activeCategory === 'favorites' && styles.catChipActive]}
           onPress={() => setActiveCategory(activeCategory === 'favorites' ? null : 'favorites')}
         >
-          <Text style={[styles.catChipText, activeCategory === 'favorites' && styles.catChipTextActive]}>❤️ Saved</Text>
+          <Text style={[styles.catChipText, activeCategory === 'favorites' && styles.catChipTextActive]} allowFontScaling={false}>♥ Saved</Text>
         </TouchableOpacity>
         {ALL_CATS.map((cat) => {
           const m = DUA_CATEGORY_META[cat];
@@ -146,8 +153,11 @@ export function DuaScreen() {
               style={[styles.catChip, isActive && styles.catChipActive, isActive && { borderColor: m.color }]}
               onPress={() => setActiveCategory(isActive ? null : cat)}
             >
-              <Text style={styles.catChipEmoji}>{m.icon}</Text>
-              <Text style={[styles.catChipText, isActive && styles.catChipTextActive, isActive && { color: m.color }]}>
+              <Text style={styles.catChipEmoji} allowFontScaling={false}>{m.icon}</Text>
+              <Text
+                style={[styles.catChipText, isActive && styles.catChipTextActive, isActive && { color: m.color }]}
+                allowFontScaling={false}
+              >
                 {m.label}
               </Text>
             </TouchableOpacity>
@@ -230,16 +240,18 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: theme.typography.fontBody, fontSize: 14, color: theme.colors.text },
   searchClear: { fontSize: 14, color: theme.colors.textMuted, padding: 4 },
 
-  catRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
+  catScroll: { flexGrow: 0, maxHeight: 38, marginBottom: 4 },
+  catRow: { paddingHorizontal: 16, gap: 6, alignItems: 'center' },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    paddingHorizontal: 12, paddingVertical: 7,
-    backgroundColor: theme.colors.surface, borderRadius: theme.borderRadius.full,
+    height: 28,
+    paddingHorizontal: 10,
+    backgroundColor: theme.colors.surface, borderRadius: 14,
     borderWidth: 1, borderColor: theme.colors.border,
   },
   catChipActive: { backgroundColor: theme.colors.accentMuted, borderColor: theme.colors.accent },
-  catChipEmoji: { fontSize: 12 },
-  catChipText: { fontFamily: theme.typography.fontBodyMedium, fontSize: 12, color: theme.colors.textMuted },
+  catChipEmoji: { fontSize: 11, lineHeight: 14 },
+  catChipText: { fontFamily: theme.typography.fontBodyMedium, fontSize: 11, lineHeight: 14, color: theme.colors.textMuted, includeFontPadding: false },
   catChipTextActive: { color: theme.colors.accent },
 
   list: { paddingHorizontal: 16, paddingTop: 4 },

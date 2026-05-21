@@ -207,6 +207,7 @@ export function TasbihScreen() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.presetRow}
+          style={styles.presetScroll}
         >
           {TASBIH_PRESETS.map((p) => {
             const active = p.id === preset.id;
@@ -346,11 +347,19 @@ export function TasbihScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.background },
   scrollContent: { padding: theme.spacing.xl, paddingBottom: 40 },
-  presetRow: { gap: 8, paddingVertical: theme.spacing.sm, paddingLeft: theme.spacing.xl, paddingRight: theme.spacing.xl },
+  presetScroll: { flexGrow: 0, maxHeight: 44 },
+  presetRow: {
+    gap: 8,
+    paddingVertical: theme.spacing.sm,
+    paddingLeft: theme.spacing.xl,
+    paddingRight: theme.spacing.xl,
+    alignItems: 'center',
+  },
   presetChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    height: 30,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+    borderRadius: 15,
     backgroundColor: theme.colors.surface,
     borderWidth: 1,
     borderColor: theme.colors.border,
