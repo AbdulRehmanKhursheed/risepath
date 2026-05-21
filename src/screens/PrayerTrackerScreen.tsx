@@ -11,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useLocation } from '../hooks/useLocation';
 import { usePrayerTimes, PrayerName } from '../hooks/usePrayerTimes';
 import { PrayerRow } from '../components/PrayerRow';
@@ -97,9 +98,14 @@ export function PrayerTrackerScreen() {
     setPrayers(data);
   }, []);
 
-  useEffect(() => {
-    loadPrayers().finally(() => setLoading(false));
-  }, [loadPrayers]);
+  // PrayerTracker is a tab screen, so it stays mounted on tab switches.
+  // useFocusEffect re-reads storage when the user comes back from Sidebar /
+  // Stats / Sacred Countdown, where prayers can be marked off elsewhere.
+  useFocusEffect(
+    useCallback(() => {
+      loadPrayers().finally(() => setLoading(false));
+    }, [loadPrayers])
+  );
 
   const todayKey = getDateString(today);
   const todayRecord = prayers[todayKey] ?? {
