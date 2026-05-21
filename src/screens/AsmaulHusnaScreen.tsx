@@ -1,7 +1,7 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  Modal, ScrollView, Animated, AppState,
+  Modal, ScrollView, Animated, AppState, ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { theme } from '../constants/theme';
 import { ASMAUL_HUSNA, type Name99 } from '../constants/asmaulHusna';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { useAsmaulHusnaAudio } from '../hooks/useAsmaulHusnaAudio';
 
 const KNOWN_KEY = 'asmaul_husna_known';
 
@@ -28,6 +29,8 @@ export function AsmaulHusnaScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const daily = getDailyName();
+  const audio = useAsmaulHusnaAudio();
+  const listRef = useRef<FlatList<Name99>>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(KNOWN_KEY).then((raw) => {
@@ -41,17 +44,31 @@ export function AsmaulHusnaScreen() {
 
   // Reset modal on navigation away so it doesn't re-appear on return.
   // Guarded against app-background blur so backgrounding the app doesn't
-  // close a name the user was reading.
+  // close a name the user was reading. Also stops audio so a name doesn't
+  // keep reciting while the user is on a different screen.
   useFocusEffect(
     useCallback(() => {
       return () => {
         if (AppState.currentState === 'active') {
           setModalVisible(false);
           setSelected(null);
+          audio.stop();
         }
       };
-    }, [])
+    }, [audio])
   );
+
+  // During play-all, auto-scroll the grid so the currently-playing name
+  // stays visible. viewPosition 0.3 keeps it in the upper third where
+  // the user's eye naturally lands.
+  useEffect(() => {
+    if (!audio.isPlayAll || audio.currentNumber == null) return;
+    listRef.current?.scrollToIndex({
+      index: audio.currentNumber - 1,
+      viewPosition: 0.3,
+      animated: true,
+    });
+  }, [audio.isPlayAll, audio.currentNumber]);
 
   const toggleKnown = async (num: number) => {
     setKnown((prev) => {
@@ -72,24 +89,53 @@ export function AsmaulHusnaScreen() {
   const renderItem = ({ item, index }: { item: Name99; index: number }) => {
     const isKnown = known.has(item.number);
     const isDaily = item.number === daily.number;
+    const isPlaying = audio.isPlayAll && audio.currentNumber === item.number;
     return (
       <TouchableOpacity
-        style={[styles.nameCard, isKnown && styles.nameCardKnown, isDaily && styles.nameCardDaily]}
+        style={[
+          styles.nameCard,
+          isKnown && styles.nameCardKnown,
+          isDaily && styles.nameCardDaily,
+          isPlaying && styles.nameCardPlaying,
+        ]}
         onPress={() => openName(item)}
         activeOpacity={0.82}
       >
-        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown, isDaily && styles.numBadgeDaily]}>
-          <Text style={[styles.numText, isKnown && styles.numTextKnown, isDaily && styles.numTextDaily]}>
+        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown, isDaily && styles.numBadgeDaily, isPlaying && styles.numBadgePlaying]}>
+          <Text style={[styles.numText, isKnown && styles.numTextKnown, isDaily && styles.numTextDaily, isPlaying && styles.numTextPlaying]}>
             {item.number}
           </Text>
         </View>
         <Text style={styles.nameArabic}>{item.arabic}</Text>
         <Text style={styles.nameTranslit}>{item.transliteration}</Text>
         <Text style={styles.nameMeaning} numberOfLines={1}>{item.meaning}</Text>
-        {isDaily && <Text style={styles.dailyBadge}>Today</Text>}
+        {isDaily && !isPlaying && <Text style={styles.dailyBadge}>Today</Text>}
+        {isPlaying && <Text style={styles.playingBadge}>▶ Playing</Text>}
       </TouchableOpacity>
     );
   };
+
+  const onPressListen = useCallback(
+    (name: Name99) => {
+      const sameAndPlaying =
+        audio.currentNumber === name.number &&
+        (audio.state === 'playing' || audio.state === 'loading');
+      if (sameAndPlaying) {
+        audio.pause();
+      } else {
+        audio.play(name.number);
+      }
+    },
+    [audio],
+  );
+
+  const onPressPlayAll = useCallback(() => {
+    if (audio.isPlayAll && (audio.state === 'playing' || audio.state === 'loading')) {
+      audio.stop();
+    } else {
+      audio.playAll(1);
+    }
+  }, [audio]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -108,6 +154,24 @@ export function AsmaulHusnaScreen() {
           </View>
           <Text style={styles.progressText}>{known.size}/99 known</Text>
         </View>
+
+        {/* Play all 99 */}
+        <TouchableOpacity
+          style={[styles.playAllChip, audio.isPlayAll && styles.playAllChipActive]}
+          onPress={onPressPlayAll}
+          activeOpacity={0.85}
+        >
+          {audio.isPlayAll && audio.state === 'loading' && (
+            <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginRight: 6 }} />
+          )}
+          <Text style={[styles.playAllChipText, audio.isPlayAll && styles.playAllChipTextActive]}>
+            {audio.isPlayAll
+              ? audio.state === 'loading'
+                ? 'Buffering…'
+                : `⏸ Stop  (${audio.currentNumber ?? 1} / 99)`
+              : '▶ Play all 99 (Mishary Alafasy)'}
+          </Text>
+        </TouchableOpacity>
 
         {/* Daily Name */}
         <TouchableOpacity style={styles.dailyCard} onPress={() => openName(daily)} activeOpacity={0.9}>
@@ -128,6 +192,7 @@ export function AsmaulHusnaScreen() {
       {/* Grid */}
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         <FlatList
+          ref={listRef}
           data={ASMAUL_HUSNA}
           keyExtractor={(item) => String(item.number)}
           renderItem={renderItem}
@@ -135,6 +200,13 @@ export function AsmaulHusnaScreen() {
           columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 16 }]}
           showsVerticalScrollIndicator={false}
+          // Scrolling to an offscreen index can fail silently; this fallback
+          // makes scrollToIndex tolerant of unmeasured rows during play-all.
+          onScrollToIndexFailed={(info) => {
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({ index: info.index, viewPosition: 0.3, animated: true });
+            }, 200);
+          }}
         />
       </Animated.View>
 
@@ -160,6 +232,28 @@ export function AsmaulHusnaScreen() {
                 </View>
                 <Text style={styles.modalArabic}>{selected.arabic}</Text>
                 <Text style={styles.modalTranslit}>{selected.transliteration}</Text>
+                {(() => {
+                  const isMine = audio.currentNumber === selected.number && !audio.isPlayAll;
+                  const isLoading = isMine && audio.state === 'loading';
+                  const isPlaying = isMine && audio.state === 'playing';
+                  return (
+                    <TouchableOpacity
+                      style={[styles.listenBtn, (isPlaying || isLoading) && styles.listenBtnActive]}
+                      onPress={() => onPressListen(selected)}
+                      activeOpacity={0.85}
+                    >
+                      {isLoading && (
+                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
+                      )}
+                      <Text style={styles.listenBtnText}>
+                        {isLoading ? 'Loading…' : isPlaying ? '⏸  Pause' : '▶  Listen'}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })()}
+                {audio.state === 'error' && (
+                  <Text style={styles.audioErrorText}>Audio unavailable — check your connection.</Text>
+                )}
                 <View style={styles.meaningCard}>
                   <Text style={styles.meaningLabel}>Meaning</Text>
                   <Text style={styles.meaningText}>{selected.meaning}</Text>
@@ -235,6 +329,47 @@ const styles = StyleSheet.create({
     marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
     backgroundColor: theme.colors.accentMuted, fontFamily: theme.typography.fontBodyMedium,
     fontSize: 9, color: theme.colors.accent,
+  },
+  playingBadge: {
+    marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 10,
+    backgroundColor: theme.colors.accent, fontFamily: theme.typography.fontBodyBold,
+    fontSize: 9, color: '#fff',
+  },
+  nameCardPlaying: {
+    borderColor: theme.colors.accent, borderWidth: 2,
+    backgroundColor: theme.colors.accentMuted,
+  },
+  numBadgePlaying: { backgroundColor: theme.colors.accent },
+  numTextPlaying: { color: '#fff' },
+
+  playAllChip: {
+    marginTop: 4,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1.5, borderColor: theme.colors.accent,
+  },
+  playAllChipActive: { backgroundColor: theme.colors.accent },
+  playAllChipText: {
+    fontFamily: theme.typography.fontBodyBold, fontSize: 13,
+    color: theme.colors.accent,
+  },
+  playAllChipTextActive: { color: '#fff' },
+
+  listenBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.accent, borderRadius: theme.borderRadius.md,
+    paddingVertical: 12, marginBottom: 12,
+  },
+  listenBtnActive: { opacity: 0.92 },
+  listenBtnText: {
+    fontFamily: theme.typography.fontBodyBold, fontSize: 15, color: '#fff',
+  },
+  audioErrorText: {
+    fontFamily: theme.typography.fontBody, fontSize: 12,
+    color: '#b00',
+    textAlign: 'center', marginBottom: 12,
   },
 
   modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,15,6,0.5)' },

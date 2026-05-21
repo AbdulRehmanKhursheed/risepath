@@ -61,7 +61,8 @@
         }
       ],
       "./plugins/withAdiRegistration",
-      "./plugins/withStripActivityRecognition"
+      "./plugins/withStripActivityRecognition",
+      "expo-audio"
     ],
     "extra": {
       "eas": {
