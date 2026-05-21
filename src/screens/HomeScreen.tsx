@@ -176,6 +176,22 @@ export function HomeScreen() {
         const { current, longest: longestRun } = computeStreak(prayers, goalDays);
         setStreak(current);
         setLongest(longestRun);
+        // Fire the milestone alert here too — the useFocusEffect-only path
+        // delayed the Day-1 celebration until the user navigated away and
+        // back to Home. Now it pops the instant the threshold is crossed.
+        const last = (await storage.getLastStreakMilestone()) ?? 0;
+        const reached = nextStreakMilestone(current, last);
+        if (reached != null) {
+          await storage.setLastStreakMilestone(reached);
+          if (reached === 1) {
+            setDay1CelebrationVisible(true);
+          } else {
+            Alert.alert(
+              t.streakMilestoneTitle,
+              t.streakMilestoneBody.replace('{n}', String(reached))
+            );
+          }
+        }
       } catch (err) {
         // Most common cause on Android is SQLITE_FULL — the device is out
         // of storage and AsyncStorage can't persist anything. Surface it

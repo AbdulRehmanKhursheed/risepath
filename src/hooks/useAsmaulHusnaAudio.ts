@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useState } from 'react';
-import { Audio, AVPlaybackStatus, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 
 // Mishary Rashid Alafasy reciting all 99 names back-to-back. Bundled as a
 // local asset (3.8 MB, 128kbps mono) — earlier streaming attempts from
@@ -63,14 +63,14 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
   const stopAtMsRef = useRef<number | null>(null);
   const loadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Set audio mode once.
+  // Set audio mode once. Matches the Quran reader's setup exactly — that
+  // hook plays expo-av audio reliably on the same devices that broke our
+  // earlier Duck/InterruptionMode config.
   useEffect(() => {
     Audio.setAudioModeAsync({
       playsInSilentModeIOS: true,
       staysActiveInBackground: true,
       shouldDuckAndroid: true,
-      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
     })
       .then(() => LOG('audio mode set OK'))
       .catch((e) => LOG('audio mode error:', String(e)));
@@ -105,21 +105,12 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
         clearTimeout(loadTimerRef.current);
         loadTimerRef.current = null;
       }
-    } else if (
-      // Keep-alive: if expo-av silently paused (network blip, audio focus
-      // tug, etc.) but we're still mid-track during play-all and the user
-      // hasn't stopped, resume immediately. Without this guard the audio
-      // would freeze and the user would have to tap play again every time
-      // the stream hiccupped.
-      modeRef.current === 'all' &&
-      !status.didJustFinish &&
-      status.positionMillis != null &&
-      status.durationMillis != null &&
-      status.positionMillis > 0 &&
-      status.positionMillis < status.durationMillis - 500
-    ) {
-      soundRef.current?.playAsync().catch(() => {});
     }
+    // No keep-alive resume here. We had one for the streaming version to
+    // recover from buffer stalls, but with a bundled local asset every
+    // isPlaying=false status is a real pause/finish — re-issuing playAsync
+    // each time stuttered the audio (the user reported 'starts and
+    // immediately stops, only the first name highlights').
 
     const tMs = status.positionMillis ?? 0;
 
