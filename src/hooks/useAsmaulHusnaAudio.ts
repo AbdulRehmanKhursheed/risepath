@@ -111,6 +111,20 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
         clearTimeout(loadTimerRef.current);
         loadTimerRef.current = null;
       }
+    } else if (
+      // Keep-alive: if expo-av silently paused (network blip, audio focus
+      // tug, etc.) but we're still mid-track during play-all and the user
+      // hasn't stopped, resume immediately. Without this guard the audio
+      // would freeze and the user would have to tap play again every time
+      // the stream hiccupped.
+      modeRef.current === 'all' &&
+      !status.didJustFinish &&
+      status.positionMillis != null &&
+      status.durationMillis != null &&
+      status.positionMillis > 0 &&
+      status.positionMillis < status.durationMillis - 500
+    ) {
+      soundRef.current?.playAsync().catch(() => {});
     }
 
     const tMs = status.positionMillis ?? 0;

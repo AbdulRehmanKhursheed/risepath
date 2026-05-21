@@ -15,20 +15,12 @@ import { useAsmaulHusnaAudio } from '../hooks/useAsmaulHusnaAudio';
 
 const KNOWN_KEY = 'asmaul_husna_known';
 
-function getDailyName(): Name99 {
-  const dayOfYear = Math.floor(
-    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
-  );
-  return ASMAUL_HUSNA[dayOfYear % 99];
-}
-
 export function AsmaulHusnaScreen() {
   const insets = useSafeAreaInsets();
   const [known, setKnown] = useState<Set<number>>(new Set());
   const [selected, setSelected] = useState<Name99 | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
-  const daily = getDailyName();
   const audio = useAsmaulHusnaAudio();
   const listRef = useRef<FlatList<Name99>>(null);
 
@@ -88,28 +80,25 @@ export function AsmaulHusnaScreen() {
 
   const renderItem = ({ item, index }: { item: Name99; index: number }) => {
     const isKnown = known.has(item.number);
-    const isDaily = item.number === daily.number;
     const isPlaying = audio.isPlayAll && audio.currentNumber === item.number;
     return (
       <TouchableOpacity
         style={[
           styles.nameCard,
           isKnown && styles.nameCardKnown,
-          isDaily && styles.nameCardDaily,
           isPlaying && styles.nameCardPlaying,
         ]}
         onPress={() => openName(item)}
         activeOpacity={0.82}
       >
-        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown, isDaily && styles.numBadgeDaily, isPlaying && styles.numBadgePlaying]}>
-          <Text style={[styles.numText, isKnown && styles.numTextKnown, isDaily && styles.numTextDaily, isPlaying && styles.numTextPlaying]}>
+        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown, isPlaying && styles.numBadgePlaying]}>
+          <Text style={[styles.numText, isKnown && styles.numTextKnown, isPlaying && styles.numTextPlaying]}>
             {item.number}
           </Text>
         </View>
         <Text style={styles.nameArabic}>{item.arabic}</Text>
         <Text style={styles.nameTranslit}>{item.transliteration}</Text>
         <Text style={styles.nameMeaning} numberOfLines={1}>{item.meaning}</Text>
-        {isDaily && !isPlaying && <Text style={styles.dailyBadge}>Today</Text>}
         {isPlaying && <Text style={styles.playingBadge}>▶ Playing</Text>}
       </TouchableOpacity>
     );
@@ -172,18 +161,6 @@ export function AsmaulHusnaScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Daily Name */}
-        <TouchableOpacity style={styles.dailyCard} onPress={() => openName(daily)} activeOpacity={0.9}>
-          <View style={styles.dailyLeft}>
-            <Text style={styles.dailyLabel}>Name of the Day</Text>
-            <Text style={styles.dailyArabic}>{daily.arabic}</Text>
-            <Text style={styles.dailyTranslit}>{daily.transliteration}</Text>
-          </View>
-          <View style={styles.dailyRight}>
-            <Text style={styles.dailyMeaning}>{daily.meaning}</Text>
-            <Text style={styles.dailyNum}>#{daily.number}</Text>
-          </View>
-        </TouchableOpacity>
       </LinearGradient>
 
       <AdBanner unitId={AD_UNITS.bannerNames} />
