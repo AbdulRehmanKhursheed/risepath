@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   Modal, ScrollView, Animated, AppState, ActivityIndicator,
@@ -22,7 +22,6 @@ export function AsmaulHusnaScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
   const audio = useAsmaulHusnaAudio();
-  const listRef = useRef<FlatList<Name99>>(null);
 
   useEffect(() => {
     AsyncStorage.getItem(KNOWN_KEY).then((raw) => {
@@ -35,9 +34,7 @@ export function AsmaulHusnaScreen() {
   }, []);
 
   // Reset modal on navigation away so it doesn't re-appear on return.
-  // Guarded against app-background blur so backgrounding the app doesn't
-  // close a name the user was reading. Also stops audio so a name doesn't
-  // keep reciting while the user is on a different screen.
+  // Also stops audio so the recitation doesn't keep playing on other screens.
   useFocusEffect(
     useCallback(() => {
       return () => {
@@ -49,18 +46,6 @@ export function AsmaulHusnaScreen() {
       };
     }, [audio])
   );
-
-  // During play-all, auto-scroll the grid so the currently-playing name
-  // stays visible. viewPosition 0.3 keeps it in the upper third where
-  // the user's eye naturally lands.
-  useEffect(() => {
-    if (!audio.isPlayAll || audio.currentNumber == null) return;
-    listRef.current?.scrollToIndex({
-      index: audio.currentNumber - 1,
-      viewPosition: 0.3,
-      animated: true,
-    });
-  }, [audio.isPlayAll, audio.currentNumber]);
 
   const toggleKnown = async (num: number) => {
     setKnown((prev) => {
@@ -78,53 +63,27 @@ export function AsmaulHusnaScreen() {
 
   const progressPct = Math.round((known.size / 99) * 100);
 
-  const renderItem = ({ item, index }: { item: Name99; index: number }) => {
+  const renderItem = ({ item }: { item: Name99 }) => {
     const isKnown = known.has(item.number);
-    const isPlaying = audio.isPlayAll && audio.currentNumber === item.number;
     return (
       <TouchableOpacity
-        style={[
-          styles.nameCard,
-          isKnown && styles.nameCardKnown,
-          isPlaying && styles.nameCardPlaying,
-        ]}
+        style={[styles.nameCard, isKnown && styles.nameCardKnown]}
         onPress={() => openName(item)}
         activeOpacity={0.82}
       >
-        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown, isPlaying && styles.numBadgePlaying]}>
-          <Text style={[styles.numText, isKnown && styles.numTextKnown, isPlaying && styles.numTextPlaying]}>
+        <View style={[styles.numBadge, isKnown && styles.numBadgeKnown]}>
+          <Text style={[styles.numText, isKnown && styles.numTextKnown]}>
             {item.number}
           </Text>
         </View>
         <Text style={styles.nameArabic}>{item.arabic}</Text>
         <Text style={styles.nameTranslit}>{item.transliteration}</Text>
         <Text style={styles.nameMeaning} numberOfLines={1}>{item.meaning}</Text>
-        {isPlaying && <Text style={styles.playingBadge}>▶ Playing</Text>}
       </TouchableOpacity>
     );
   };
 
-  const onPressListen = useCallback(
-    (name: Name99) => {
-      const sameAndPlaying =
-        audio.currentNumber === name.number &&
-        (audio.state === 'playing' || audio.state === 'loading');
-      if (sameAndPlaying) {
-        audio.pause();
-      } else {
-        audio.play(name.number);
-      }
-    },
-    [audio],
-  );
-
-  const onPressPlayAll = useCallback(() => {
-    if (audio.isPlayAll && (audio.state === 'playing' || audio.state === 'loading')) {
-      audio.stop();
-    } else {
-      audio.playAll(1);
-    }
-  }, [audio]);
+  const isAudioOn = audio.state === 'playing' || audio.state === 'loading';
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -136,26 +95,22 @@ export function AsmaulHusnaScreen() {
         <Text style={styles.headerTitle}>99 Names of Allah</Text>
         <Text style={styles.headerArabic}>أسماء الله الحسنى</Text>
 
-        {/* Progress + small Play-all pill on the right.
-            The pill stays minimal because the now-playing card in the grid
-            (highlighted + auto-scrolled into view) already communicates
-            which name is being recited. */}
         <View style={styles.progressRow}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
           </View>
           <Text style={styles.progressText}>{known.size}/99 known</Text>
           <TouchableOpacity
-            style={[styles.playAllPill, audio.isPlayAll && styles.playAllPillActive]}
-            onPress={onPressPlayAll}
+            style={[styles.playAllPill, isAudioOn && styles.playAllPillActive]}
+            onPress={audio.toggle}
             activeOpacity={0.85}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            {audio.isPlayAll && audio.state === 'loading' ? (
+            {audio.state === 'loading' ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={[styles.playAllPillText, audio.isPlayAll && styles.playAllPillTextActive]} allowFontScaling={false}>
-                {audio.isPlayAll ? '⏸ Stop' : '▶ Play all'}
+              <Text style={[styles.playAllPillText, isAudioOn && styles.playAllPillTextActive]} allowFontScaling={false}>
+                {isAudioOn ? '⏸ Pause' : '▶ Play'}
               </Text>
             )}
           </TouchableOpacity>
@@ -168,7 +123,6 @@ export function AsmaulHusnaScreen() {
       {/* Grid */}
       <Animated.View style={[{ flex: 1 }, { opacity: fadeAnim }]}>
         <FlatList
-          ref={listRef}
           data={ASMAUL_HUSNA}
           keyExtractor={(item) => String(item.number)}
           renderItem={renderItem}
@@ -176,13 +130,6 @@ export function AsmaulHusnaScreen() {
           columnWrapperStyle={styles.row}
           contentContainerStyle={[styles.grid, { paddingBottom: insets.bottom + 16 }]}
           showsVerticalScrollIndicator={false}
-          // Scrolling to an offscreen index can fail silently; this fallback
-          // makes scrollToIndex tolerant of unmeasured rows during play-all.
-          onScrollToIndexFailed={(info) => {
-            setTimeout(() => {
-              listRef.current?.scrollToIndex({ index: info.index, viewPosition: 0.3, animated: true });
-            }, 200);
-          }}
         />
       </Animated.View>
 
@@ -208,28 +155,6 @@ export function AsmaulHusnaScreen() {
                 </View>
                 <Text style={styles.modalArabic}>{selected.arabic}</Text>
                 <Text style={styles.modalTranslit}>{selected.transliteration}</Text>
-                {(() => {
-                  const isMine = audio.currentNumber === selected.number && !audio.isPlayAll;
-                  const isLoading = isMine && audio.state === 'loading';
-                  const isPlaying = isMine && audio.state === 'playing';
-                  return (
-                    <TouchableOpacity
-                      style={[styles.listenBtn, (isPlaying || isLoading) && styles.listenBtnActive]}
-                      onPress={() => onPressListen(selected)}
-                      activeOpacity={0.85}
-                    >
-                      {isLoading && (
-                        <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-                      )}
-                      <Text style={styles.listenBtnText}>
-                        {isLoading ? 'Loading…' : isPlaying ? '⏸  Pause' : '▶  Listen'}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })()}
-                {audio.state === 'error' && (
-                  <Text style={styles.audioErrorText}>Audio unavailable — check your connection.</Text>
-                )}
                 <View style={styles.meaningCard}>
                   <Text style={styles.meaningLabel}>Meaning</Text>
                   <Text style={styles.meaningText}>{selected.meaning}</Text>
