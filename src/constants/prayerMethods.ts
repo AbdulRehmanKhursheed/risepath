@@ -37,7 +37,7 @@ export const CALCULATION_METHODS: {
   { id: 'Singapore', label: 'Singapore', region: 'Singapore' },
   { id: 'Tehran', label: 'Institute of Geophysics, Tehran', region: 'Iran' },
   { id: 'Turkey', label: 'Turkey', region: 'Turkey' },
-  { id: 'Jafari', label: 'Jafari / Shia (Leva Research Institute, Qum)', region: 'Global Shia communities' },
+  { id: 'Jafari', label: 'Jafari (Shia Ithna-Ashari)', region: 'Global Shia communities' },
   { id: 'Other', label: 'Other', region: 'Custom' },
 ];
 
