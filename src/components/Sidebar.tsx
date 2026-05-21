@@ -558,6 +558,25 @@ export function Sidebar() {
               <Text style={styles.aboutVersion}>  ·  v1.0.2</Text>
             </Text>
           </TouchableOpacity>
+
+          {/* Dev-only zero-friction wipe. Stripped from production bundles
+              (__DEV__ is true under Metro/Expo Go, false in EAS builds). */}
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.devWipeBtn}
+              onPress={async () => {
+                try {
+                  await Notifications.cancelAllScheduledNotificationsAsync().catch(() => {});
+                  await AsyncStorage.clear();
+                } catch {}
+                closeSidebar();
+                if (Platform.OS === 'android') BackHandler.exitApp();
+              }}
+              activeOpacity={0.6}
+            >
+              <Text style={styles.devWipeBtnText}>🧹 DEV: wipe everything &amp; exit</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
     </View>
@@ -840,6 +859,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 15,
+  },
+  devWipeBtn: {
+    marginTop: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    backgroundColor: '#330',
+    borderWidth: 1,
+    borderColor: '#660',
+    alignSelf: 'center',
+  },
+  devWipeBtnText: {
+    color: '#FFD86C',
+    fontSize: 11,
+    fontFamily: 'monospace',
   },
   resetStatsBtn: {
     backgroundColor: theme.colors.surface,
