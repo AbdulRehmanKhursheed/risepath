@@ -22,13 +22,10 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
   const soundRef = useRef<Audio.Sound | null>(null);
   const [state, setState] = useState<AudioState>('idle');
 
-  // Set audio mode once. Matches the Quran reader's known-working setup.
+  // Cleanup the sound on unmount. (setAudioModeAsync moved into toggle()
+  // so it's awaited right before load, matching the Quran-reader pattern
+  // that works reliably on the same devices that broke this hook.)
   useEffect(() => {
-    Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      staysActiveInBackground: true,
-      shouldDuckAndroid: true,
-    }).catch(() => {});
     return () => {
       soundRef.current?.unloadAsync().catch(() => {});
       soundRef.current = null;
@@ -59,24 +56,40 @@ export function useAsmaulHusnaAudio(): AsmaulHusnaAudio {
       try {
         if (!soundRef.current) {
           setState('loading');
+          // Await the audio mode BEFORE creating the sound. With this in
+          // useEffect it could race the first tap and silently leave the
+          // sound created without a proper audio session.
+          await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: true,
+            shouldDuckAndroid: true,
+          }).catch((e) => LOG('audio mode error:', String(e)));
           LOG('createAsync starting…');
+          // Create with shouldPlay:false; explicitly play afterwards so
+          // we can log + handle the play call independently.
           const { sound } = await Audio.Sound.createAsync(
             LOCAL_SOURCE,
-            { shouldPlay: true },
+            { shouldPlay: false, volume: 1.0 },
             onStatus,
           );
-          LOG('createAsync resolved, sound created');
+          LOG('createAsync resolved');
           soundRef.current = sound;
+          await sound.setVolumeAsync(1.0).catch(() => {});
+          const playRes = await sound.playAsync();
+          LOG('first playAsync result isPlaying=', (playRes as any).isPlaying, 'isBuffering=', (playRes as any).isBuffering);
           setState('playing');
           return;
         }
         const status = await soundRef.current.getStatusAsync();
         LOG('toggle on existing sound, isLoaded=', status.isLoaded, 'isPlaying=', (status as any).isPlaying);
-        if (status.isLoaded && status.isPlaying) {
+        if (status.isLoaded && (status as any).isPlaying) {
           await soundRef.current.pauseAsync();
           setState('paused');
         } else {
-          await soundRef.current.playAsync();
+          await soundRef.current.setPositionAsync(0).catch(() => {});
+          await soundRef.current.setVolumeAsync(1.0).catch(() => {});
+          const r = await soundRef.current.playAsync();
+          LOG('replay playAsync result isPlaying=', (r as any).isPlaying);
           setState('playing');
         }
       } catch (e) {
