@@ -81,6 +81,9 @@ export type Translations = {
   cancel: string;
   streakMilestoneTitle: string;
   streakMilestoneBody: string;
+  day1CelebrationTitle: string;
+  day1CelebrationBody: string;
+  day1CelebrationCta: string;
 };
 
 const en: Translations = {
@@ -169,6 +172,9 @@ const en: Translations = {
   cancel: 'Cancel',
   streakMilestoneTitle: 'MashaAllah ✨',
   streakMilestoneBody: "{n}-day streak — may Allah accept and let you continue.",
+  day1CelebrationTitle: '🎉 You\'ve started the path!',
+  day1CelebrationBody: 'Day 1 of your streak — may Allah make every next day easier than the last. 🌙✨',
+  day1CelebrationCta: 'Bismillah, let\'s keep going',
 };
 
 const ur: Translations = {
@@ -257,6 +263,9 @@ const ur: Translations = {
   cancel: 'منسوخ',
   streakMilestoneTitle: 'ماشاء اللہ ✨',
   streakMilestoneBody: '{n} دن کا سلسلہ — اللہ قبول فرمائے اور جاری رکھے۔',
+  day1CelebrationTitle: '🎉 آپ نے راہ پر قدم رکھ دیا!',
+  day1CelebrationBody: 'آپ کا پہلا دن مکمل ہوا — اللہ ہر اگلا دن آسان فرمائے۔ 🌙✨',
+  day1CelebrationCta: 'بسم اللہ، جاری رکھیں',
 };
 
 const ar: Translations = {
@@ -345,6 +354,9 @@ const ar: Translations = {
   cancel: 'إلغاء',
   streakMilestoneTitle: 'ما شاء الله ✨',
   streakMilestoneBody: 'سلسلة {n} يوماً — تقبّل الله منك، وأدم عليك.',
+  day1CelebrationTitle: '🎉 لقد بدأت الطريق!',
+  day1CelebrationBody: 'اليوم الأول من سلسلتك — جعل الله كل يومٍ تالٍ أيسر من سابقه. 🌙✨',
+  day1CelebrationCta: 'بسم الله، نواصل',
 };
 
 export const translations: Record<Language, Translations> = { en, ur, ar };

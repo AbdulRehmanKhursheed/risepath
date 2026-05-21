@@ -18,6 +18,7 @@ import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
+import { StreakCelebrationModal } from '../components/StreakCelebrationModal';
 import { formatHijri, computeHijriOffsetFromServer } from '../utils/hijri';
 import { getLocalDateKey } from '../utils/date';
 import { isIndoPakRegion } from '../utils/region';
@@ -60,6 +61,7 @@ export function HomeScreen() {
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
   const [hijriOffset, setHijriOffset] = useState(0);
+  const [day1CelebrationVisible, setDay1CelebrationVisible] = useState(false);
   const hijri = useMemo(() => formatHijri(new Date(), language, hijriOffset), [language, hijriOffset]);
   const defaultGoals = DEFAULT_GOALS_BY_LANG[language] ?? DEFAULT_GOALS_BY_LANG.en;
   const [goals, setGoals] = useState(defaultGoals);
@@ -106,21 +108,31 @@ export function HomeScreen() {
           await storage.setLastStreakMilestone(0);
         } else {
           const last = await storage.getLastStreakMilestone();
-          if (last === null) {
-            // First run after install/upgrade. Silently sync the milestone
-            // tracker to the user's current state so we don't congratulate
-            // them retroactively for streaks they already had under 1.0.3.
+          // When `last === null` the milestone tracker has never been written
+          // — either a true fresh install or an upgrade from a build that
+          // didn't track milestones. We want to celebrate Day 1 for a fresh
+          // install but not retroactively congratulate an upgrade user who
+          // already had a long streak. Heuristic: if their current streak is
+          // exactly 1, treat as fresh install and let Day-1 fire; for any
+          // larger current value, silently seed (their data clearly pre-dates
+          // this build, so a sudden "10-day streak!" pop would be jarring).
+          if (last === null && current > 1) {
             const passed = nextStreakMilestone(current, 0) ?? 0;
             await storage.setLastStreakMilestone(passed);
           } else {
-            const reached = nextStreakMilestone(current, last);
+            const baseline = last ?? 0;
+            const reached = nextStreakMilestone(current, baseline);
             if (reached != null) {
               await storage.setLastStreakMilestone(reached);
               if (!cancelled) {
-                Alert.alert(
-                  t.streakMilestoneTitle,
-                  t.streakMilestoneBody.replace('{n}', String(reached))
-                );
+                if (reached === 1) {
+                  setDay1CelebrationVisible(true);
+                } else {
+                  Alert.alert(
+                    t.streakMilestoneTitle,
+                    t.streakMilestoneBody.replace('{n}', String(reached))
+                  );
+                }
               }
             }
           }
@@ -224,6 +236,13 @@ export function HomeScreen() {
       </View>
     </ScrollView>
     <AdBanner unitId={AD_UNITS.bannerHome} />
+    <StreakCelebrationModal
+      visible={day1CelebrationVisible}
+      title={t.day1CelebrationTitle}
+      body={t.day1CelebrationBody}
+      cta={t.day1CelebrationCta}
+      onClose={() => setDay1CelebrationVisible(false)}
+    />
     </View>
   );
 }
