@@ -175,6 +175,49 @@ export function Sidebar() {
     }
   };
 
+  // Focused wipe: prayers, goals, streak milestone cursor — keeps your
+  // language / location / prayer settings / sect intact. For the user who
+  // just wants the streak counters reset without re-onboarding from scratch.
+  const onResetStatsOnly = () => {
+    const title = isUrdu ? 'صرف اعداد و شمار حذف کریں؟' : isArabic ? 'إعادة تعيين الإحصائيات فقط؟' : 'Reset stats only?';
+    const body = isUrdu
+      ? 'یہ آپ کی نمازوں، اہداف اور سلسلے کی پوری تاریخ حذف کر دے گا، لیکن زبان، مقام اور دیگر ترتیبات محفوظ رہیں گی۔'
+      : isArabic
+      ? 'سيمسح صلواتك وأهدافك وكامل تاريخ السلسلة، لكن اللغة والموقع والإعدادات الأخرى ستبقى.'
+      : 'Wipes your prayers, goals, and entire streak history. Keeps language, location, sect, and other settings.';
+    const cancel = isUrdu ? 'منسوخ' : isArabic ? 'إلغاء' : 'Cancel';
+    const confirm = isUrdu ? 'ہاں، حذف کریں' : isArabic ? 'نعم، احذف' : 'Yes, reset stats';
+    Alert.alert(title, body, [
+      { text: cancel, style: 'cancel' },
+      {
+        text: confirm,
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await AsyncStorage.multiRemove([
+              'prayers',
+              'goals',
+              'goalDays_v1',
+              'streak',
+              'lastStreakMilestone',
+            ]);
+          } catch {
+            // best-effort wipe; partial success still resets most of the stats
+          }
+          setDisclaimerVisible(false);
+          Alert.alert(
+            isUrdu ? 'مکمل' : isArabic ? 'تم' : 'Done',
+            isUrdu
+              ? 'اعداد و شمار صاف ہو گئے۔ ہوم اسکرین پر واپس جائیں تاکہ سلسلہ صفر سے شروع ہو۔'
+              : isArabic
+              ? 'تم مسح الإحصائيات. ارجع إلى الشاشة الرئيسية لرؤية السلسلة من الصفر.'
+              : 'Stats cleared. Go back to Home and your streak will start fresh from zero.'
+          );
+        },
+      },
+    ]);
+  };
+
   const onResetData = () => {
     const title = isUrdu ? 'تمام ڈیٹا حذف کریں؟' : isArabic ? 'حذف جميع البيانات؟' : 'Reset all app data?';
     const body = isUrdu
@@ -276,6 +319,19 @@ export function Sidebar() {
               </Text>
               <Text style={styles.modalVersion}>Noor v1.0.2</Text>
             </ScrollView>
+            <TouchableOpacity
+              style={styles.resetStatsBtn}
+              onPress={onResetStatsOnly}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.resetStatsBtnText, { fontSize: fs(13) }]}>
+                {isUrdu
+                  ? '⟳ صرف اعداد و شمار حذف کریں'
+                  : isArabic
+                  ? '⟳ إعادة تعيين الإحصائيات فقط'
+                  : '⟳ Reset stats only'}
+              </Text>
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.resetBtn}
               onPress={onResetData}
@@ -784,6 +840,19 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 15,
+  },
+  resetStatsBtn: {
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: theme.borderRadius.md,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  resetStatsBtnText: {
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontBodyMedium,
   },
   resetBtn: {
     paddingVertical: 10,
