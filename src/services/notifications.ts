@@ -31,7 +31,6 @@ export const PRAYER_SCHEDULE_DAYS_AHEAD = 7;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
     shouldShowBanner: true,
     shouldShowList: true,
     shouldPlaySound: true,
