@@ -166,23 +166,29 @@ export function HomeScreen() {
     // so the streak ring grows from goal completion too — not only from
     // marking prayers. addGoalDay is idempotent.
     const completedToday = updated.some((g) => g.completed && g.date === today);
-    console.log('[streak] toggleGoal today=', today, 'completedToday=', completedToday);
     if (completedToday) {
       try {
-        console.log('[streak] addGoalDay…');
         await storage.addGoalDay(today);
-        console.log('[streak] addGoalDay done; reading prayers + goalDays…');
         const [prayers, goalDays] = await Promise.all([
           storage.getPrayers(),
           storage.getGoalDays(),
         ]);
-        console.log('[streak] read: goalDays=', JSON.stringify(goalDays), 'prayer keys=', Object.keys(prayers));
         const { current, longest: longestRun } = computeStreak(prayers, goalDays);
-        console.log('[streak] computed: current=', current, 'longest=', longestRun);
         setStreak(current);
         setLongest(longestRun);
       } catch (err) {
-        console.log('[streak] ERROR in goal-completion flow:', String(err));
+        // Most common cause on Android is SQLITE_FULL — the device is out
+        // of storage and AsyncStorage can't persist anything. Surface it
+        // instead of silently swallowing, so the user knows why the streak
+        // ring isn't moving despite their checkmarks.
+        const msg = String(err);
+        const isFull = msg.includes('SQLITE_FULL') || msg.includes('disk is full');
+        Alert.alert(
+          isFull ? 'Phone storage is full' : 'Could not save',
+          isFull
+            ? "Your device is out of free space, so Noor couldn't save this. Free up some storage in Settings, then try again."
+            : 'Something went wrong saving your progress. Try again in a moment.'
+        );
       }
     }
   };

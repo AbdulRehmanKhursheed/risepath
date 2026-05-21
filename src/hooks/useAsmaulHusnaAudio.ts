@@ -16,7 +16,9 @@ const FALLBACK_NAME_LENGTH_S = 2.02;
 // and if that also fails surface an error state to the UI.
 const LOAD_TIMEOUT_MS = 20000;
 
-const LOG = (...args: unknown[]) => console.log('[asma-audio]', ...args);
+// Set to true to re-enable verbose debug logging.
+const DEBUG_LOG = false;
+const LOG = (...args: unknown[]) => { if (DEBUG_LOG) console.log('[asma-audio]', ...args); };
 
 export type AudioState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
 
