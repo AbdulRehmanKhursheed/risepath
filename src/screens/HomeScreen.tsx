@@ -166,6 +166,7 @@ export function HomeScreen() {
     // so the streak ring grows from goal completion too — not only from
     // marking prayers. addGoalDay is idempotent.
     const completedToday = updated.some((g) => g.completed && g.date === today);
+    console.log('[streak] toggleGoal today=', today, 'completedToday=', completedToday);
     if (completedToday) {
       await storage.addGoalDay(today);
       const [prayers, goalDays] = await Promise.all([
@@ -173,6 +174,7 @@ export function HomeScreen() {
         storage.getGoalDays(),
       ]);
       const { current, longest: longestRun } = computeStreak(prayers, goalDays);
+      console.log('[streak] after addGoalDay → goalDays=', goalDays, 'current=', current);
       setStreak(current);
       setLongest(longestRun);
     }
