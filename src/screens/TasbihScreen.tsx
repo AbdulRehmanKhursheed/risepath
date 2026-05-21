@@ -346,7 +346,7 @@ export function TasbihScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.colors.background },
   scrollContent: { padding: theme.spacing.xl, paddingBottom: 40 },
-  presetRow: { gap: 8, paddingVertical: theme.spacing.sm, paddingRight: theme.spacing.xl },
+  presetRow: { gap: 8, paddingVertical: theme.spacing.sm, paddingLeft: theme.spacing.xl, paddingRight: theme.spacing.xl },
   presetChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,

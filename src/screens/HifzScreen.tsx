@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   legendLabel: { fontFamily: theme.typography.fontBodyMedium, fontSize: 11, color: theme.colors.textSecondary },
   legendHint: { fontFamily: theme.typography.fontBody, fontSize: 10, color: theme.colors.textMuted },
 
-  juzRow: { paddingHorizontal: 12, paddingBottom: 8, gap: 6 },
+  juzRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
   juzChip: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: theme.borderRadius.full,
     backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: theme.colors.border,

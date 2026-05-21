@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, fontFamily: theme.typography.fontBody, fontSize: 14, color: theme.colors.text },
   searchClear: { fontSize: 14, color: theme.colors.textMuted, padding: 4 },
 
-  catRow: { paddingHorizontal: 12, paddingBottom: 8, gap: 6 },
+  catRow: { paddingHorizontal: 16, paddingBottom: 8, gap: 6 },
   catChip: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     paddingHorizontal: 12, paddingVertical: 7,
