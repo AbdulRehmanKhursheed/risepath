@@ -147,31 +147,30 @@ export function AsmaulHusnaScreen() {
         <Text style={styles.headerTitle}>99 Names of Allah</Text>
         <Text style={styles.headerArabic}>أسماء الله الحسنى</Text>
 
-        {/* Progress */}
+        {/* Progress + small Play-all pill on the right.
+            The pill stays minimal because the now-playing card in the grid
+            (highlighted + auto-scrolled into view) already communicates
+            which name is being recited. */}
         <View style={styles.progressRow}>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
           </View>
           <Text style={styles.progressText}>{known.size}/99 known</Text>
+          <TouchableOpacity
+            style={[styles.playAllPill, audio.isPlayAll && styles.playAllPillActive]}
+            onPress={onPressPlayAll}
+            activeOpacity={0.85}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            {audio.isPlayAll && audio.state === 'loading' ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={[styles.playAllPillText, audio.isPlayAll && styles.playAllPillTextActive]} allowFontScaling={false}>
+                {audio.isPlayAll ? '⏸ Stop' : '▶ Play all'}
+              </Text>
+            )}
+          </TouchableOpacity>
         </View>
-
-        {/* Play all 99 */}
-        <TouchableOpacity
-          style={[styles.playAllChip, audio.isPlayAll && styles.playAllChipActive]}
-          onPress={onPressPlayAll}
-          activeOpacity={0.85}
-        >
-          {audio.isPlayAll && audio.state === 'loading' && (
-            <ActivityIndicator size="small" color={theme.colors.accent} style={{ marginRight: 6 }} />
-          )}
-          <Text style={[styles.playAllChipText, audio.isPlayAll && styles.playAllChipTextActive]}>
-            {audio.isPlayAll
-              ? audio.state === 'loading'
-                ? 'Buffering…'
-                : `⏸ Stop  (${audio.currentNumber ?? 1} / 99)`
-              : '▶ Play all 99 (Mishary Alafasy)'}
-          </Text>
-        </TouchableOpacity>
 
         {/* Daily Name */}
         <TouchableOpacity style={styles.dailyCard} onPress={() => openName(daily)} activeOpacity={0.9}>
@@ -342,20 +341,21 @@ const styles = StyleSheet.create({
   numBadgePlaying: { backgroundColor: theme.colors.accent },
   numTextPlaying: { color: '#fff' },
 
-  playAllChip: {
-    marginTop: 4,
+  playAllPill: {
+    height: 26,
+    minWidth: 76,
+    paddingHorizontal: 10,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 14, paddingVertical: 10,
-    borderRadius: theme.borderRadius.full,
+    borderRadius: 13,
     backgroundColor: theme.colors.surface,
-    borderWidth: 1.5, borderColor: theme.colors.accent,
+    borderWidth: 1, borderColor: theme.colors.accent,
   },
-  playAllChipActive: { backgroundColor: theme.colors.accent },
-  playAllChipText: {
-    fontFamily: theme.typography.fontBodyBold, fontSize: 13,
-    color: theme.colors.accent,
+  playAllPillActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
+  playAllPillText: {
+    fontFamily: theme.typography.fontBodyBold, fontSize: 11, lineHeight: 14,
+    color: theme.colors.accent, includeFontPadding: false,
   },
-  playAllChipTextActive: { color: '#fff' },
+  playAllPillTextActive: { color: '#fff' },
 
   listenBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
