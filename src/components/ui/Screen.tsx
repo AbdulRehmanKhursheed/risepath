@@ -10,7 +10,7 @@ import {
   ViewStyle,
   ScrollViewProps,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 
 type ScreenProps = {
@@ -23,14 +23,14 @@ type ScreenProps = {
   style?: StyleProp<ViewStyle>;
   /** Extra style on the content container (inside the ScrollView). */
   contentContainerStyle?: StyleProp<ViewStyle>;
-  /** Pass-through ScrollView props (refresh control, onScroll, etc.). */
+  /** Pass-through ScrollView props (refresh control, onScroll, etc.). Ignored when `scroll={false}`. */
   scrollViewProps?: Omit<ScrollViewProps, 'children' | 'style' | 'contentContainerStyle'>;
   /** If true, wraps in KeyboardAvoidingView. Default false. */
   avoidKeyboard?: boolean;
   /** StatusBar style. Default 'dark-content' (we have light backgrounds). */
   statusBarStyle?: 'light-content' | 'dark-content';
   /** Safe-area edges to apply. Default ['top']. Tabs handle 'bottom' themselves. */
-  edges?: ReadonlyArray<'top' | 'right' | 'bottom' | 'left'>;
+  edges?: readonly Edge[];
 };
 
 /**
@@ -48,9 +48,6 @@ export function Screen({
   statusBarStyle = 'dark-content',
   edges = ['top'],
 }: ScreenProps) {
-  const insets = useSafeAreaInsets();
-  void insets; // future: pass into nested components if needed
-
   const inner = scroll ? (
     <ScrollView
       style={styles.scroll}
@@ -79,7 +76,7 @@ export function Screen({
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: background }, style]}
-      edges={edges as any}
+      edges={edges as Edge[]}
     >
       <StatusBar barStyle={statusBarStyle} />
       {body}
