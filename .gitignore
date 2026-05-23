@@ -42,3 +42,4 @@ yarn-error.*
 
 .env.local
 .claude/
+.superpowers/
