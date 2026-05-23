@@ -178,11 +178,14 @@ Per [[feedback-ship-cadence]] and [[feedback-solo-dev-workflow]]: commits direct
 
 ## Implementation plan decomposition
 
-This spec is the overall vision — too large for a single implementation plan. It will be split into three sequential plans:
+This spec is the overall vision — too large for a single implementation plan. It is split into per-day plans, each producing a shippable build:
 
-- **Plan A — Foundation (Days 1–3).** HomeScreen redesign, BottomSheet primitive + modal migrations, AsmaulHusnaScreen redesign. Extracts: `Button`, `Card`, `Heading`, `Body`, `Caption`, `Screen`, `BottomSheet`, `Dialog`, `PressableRow`, `AudioControl`, `ListSection`. Token additions: typography sizes, semantic colors, opacity scale, motion durations.
-- **Plan B — Small screens (Days 4–7).** DuaScreen, TasbihScreen, then QuranScreen surgery into sub-components. No new primitives expected — pure consumption + extraction of QuranReader / QuranSettings / ReciterPicker / QuranPlayer / `useQuranReaderState()`.
-- **Plan C — Remaining screens (Day 8+).** Stats, Mood, Hifz, Hajj, Janaza, Qurbani, Eid, Takbir, PrayerTracker, Qibla, Onboarding, SacredJourney, Learn, UmrahGuide. One screen per session, applying the quality bar.
+- **Plan 1 — HomeScreen + Day-1 primitives.** Token additions, `<Screen>`, `<Heading>/<Body>/<Caption>`, `<Button>`, `<Card>`, HomeScreen redesign, I18nProvider scaffold.
+- **Plan 2 — Modal system.** `<BottomSheet>`, `<Dialog>` primitives; migrate `PrayerSettingsModal`, `StreakCelebrationModal`, `WaqfLegendModal`, `AyahSheet`, and the inline modals in DuaScreen / AsmaulHusnaScreen.
+- **Plan 3 — AsmaulHusnaScreen redesign.** `<PressableRow>`, `<AudioControl>`, `<ListSection>` primitives; screen redesign + a11y pass.
+- **Plan 4 — DuaScreen + TasbihScreen.** Pure consumption — no new primitives expected.
+- **Plan 5 — QuranScreen surgery.** Break 2113 lines into `<QuranReader>`, `<QuranSettings>`, `<ReciterPicker>`, `<QuranPlayer>` + `useQuranReaderState()`.
+- **Plans 6–N — Remaining screens.** One screen per plan: Stats, Mood, Hifz, Hajj, Janaza, Qurbani, Eid, Takbir, PrayerTracker, Qibla, Onboarding, SacredJourney, Learn, UmrahGuide.
 
 New features (cloud sync, reminder offsets, waqf-aware audio, tajweed lessons, leaderboards) are each their own spec, opened after Plan C concludes.
 
