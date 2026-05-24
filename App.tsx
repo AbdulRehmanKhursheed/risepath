@@ -57,6 +57,7 @@ import { QuranNavProvider, useQuranNav } from './src/contexts/QuranNavContext';
 import { SidebarProvider } from './src/contexts/SidebarContext';
 import { theme } from './src/constants/theme';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
+import { I18nProvider } from './src/contexts/I18nProvider';
 import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
 import * as Sentry from '@sentry/react-native';
 
@@ -415,20 +416,22 @@ function AppInner() {
     <ErrorBoundary>
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <LanguageProvider>
-        <SimpleModeProvider>
-          <SidebarProvider>
-            <QuranNavProvider>
-              {!onboardingDone ? (
-                <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-                  <StatusBar style="dark" backgroundColor={theme.colors.background} />
-                  <OnboardingScreen onComplete={completeOnboarding} />
-                </View>
-              ) : (
-                <AppStack onLayout={onLayoutRootView} />
-              )}
-            </QuranNavProvider>
-          </SidebarProvider>
-        </SimpleModeProvider>
+        <I18nProvider>
+          <SimpleModeProvider>
+            <SidebarProvider>
+              <QuranNavProvider>
+                {!onboardingDone ? (
+                  <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+                    <StatusBar style="dark" backgroundColor={theme.colors.background} />
+                    <OnboardingScreen onComplete={completeOnboarding} />
+                  </View>
+                ) : (
+                  <AppStack onLayout={onLayoutRootView} />
+                )}
+              </QuranNavProvider>
+            </SidebarProvider>
+          </SimpleModeProvider>
+        </I18nProvider>
       </LanguageProvider>
     </SafeAreaProvider>
     </ErrorBoundary>
