@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Screen } from '../components/ui';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
@@ -210,18 +211,12 @@ export function HomeScreen() {
   };
 
   return (
-    <View style={styles.root}>
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
+    <Screen background={theme.colors.background}>
       <LinearGradient
         colors={['rgba(200, 120, 10, 0.09)', 'transparent']}
         style={styles.heroGradient}
         pointerEvents="none"
       />
-
       <View style={styles.topRow}>
         <View style={styles.greetingBlock}>
           <Text style={[styles.greeting, { fontSize: fs(26) }]} numberOfLines={1} adjustsFontSizeToFit>{t.greeting}</Text>
@@ -265,33 +260,20 @@ export function HomeScreen() {
           />
         ))}
       </View>
-    </ScrollView>
-    <AdBanner unitId={AD_UNITS.bannerHome} />
-    <StreakCelebrationModal
-      visible={day1CelebrationVisible}
-      title={t.day1CelebrationTitle}
-      body={t.day1CelebrationBody}
-      cta={t.day1CelebrationCta}
-      onClose={() => setDay1CelebrationVisible(false)}
-    />
-    </View>
+
+      <AdBanner unitId={AD_UNITS.bannerHome} />
+      <StreakCelebrationModal
+        visible={day1CelebrationVisible}
+        title={t.day1CelebrationTitle}
+        body={t.day1CelebrationBody}
+        cta={t.day1CelebrationCta}
+        onClose={() => setDay1CelebrationVisible(false)}
+      />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  content: {
-    padding: theme.spacing.xl,
-    paddingTop: theme.spacing.xxl,
-    paddingBottom: theme.spacing.xxxl,
-  },
   heroGradient: {
     position: 'absolute',
     top: 0,
