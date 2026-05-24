@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Screen, Heading, Body, Caption } from '../components/ui';
+import { Screen, Heading, Body, Caption, Card } from '../components/ui';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
@@ -250,11 +250,26 @@ export function HomeScreen() {
 
       <HadithOfDay />
 
-      <View style={styles.quoteCard}>
+      <Card
+        style={{
+          marginBottom: theme.spacing.xxl,
+          borderLeftWidth: 4,
+          borderLeftColor: theme.colors.accent,
+          paddingLeft: theme.spacing.xxl,
+        }}
+      >
         <Text style={styles.quoteMark}>"</Text>
-        <Text style={[styles.quote, { fontSize: fs(16) }]}>{quote.text}</Text>
-        <Text style={[styles.quoteSource, { fontSize: fs(13) }]}>— {quote.source}</Text>
-      </View>
+        <Body italic tone="secondary" style={{ fontSize: 16, lineHeight: 26 }}>
+          {quote.text}
+        </Body>
+        <Caption
+          tone="accent"
+          weight="medium"
+          style={{ marginTop: theme.spacing.md, textAlign: 'right' }}
+        >
+          — {quote.source}
+        </Caption>
+      </Card>
 
       <View style={styles.goalsSection}>
         <Text style={[styles.sectionTitle, { fontSize: fs(20) }]}>{t.todaysGoals}</Text>
@@ -354,26 +369,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  quoteCard: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.xl,
-    paddingLeft: theme.spacing.xxl,
-    borderRadius: theme.borderRadius.lg,
-    marginBottom: theme.spacing.xxl,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderLeftWidth: 4,
-    borderLeftColor: theme.colors.accent,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#7A5A40',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.18,
-        shadowRadius: 12,
-      },
-      android: { elevation: 4 },
-    }),
-  },
   quoteMark: {
     position: 'absolute',
     top: theme.spacing.md,
@@ -382,20 +377,6 @@ const styles = StyleSheet.create({
     color: theme.colors.accent,
     opacity: 0.4,
     fontFamily: theme.typography.fontHeadingBold,
-  },
-  quote: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    color: theme.colors.textSecondary,
-    fontFamily: theme.typography.fontBody,
-    lineHeight: 26,
-  },
-  quoteSource: {
-    marginTop: 10,
-    fontSize: 13,
-    color: theme.colors.accent,
-    fontFamily: theme.typography.fontBodyMedium,
-    textAlign: 'right',
   },
   goalsSection: {
     marginBottom: theme.spacing.lg,
