@@ -29,10 +29,10 @@ export function Card({
   radius = theme.borderRadius.lg,
   style,
 }: CardProps) {
-  const shadow =
+  const shadow: ViewStyle | undefined =
     variant === 'flat' ? undefined
-    : variant === 'elevated' ? theme.shadows.lg
-    : theme.shadows.md;
+    : variant === 'elevated' ? theme.shadows.lg as ViewStyle
+    : theme.shadows.md as ViewStyle;
 
   return (
     <View
@@ -43,7 +43,7 @@ export function Card({
           padding,
           ...(variant === 'flat' ? styles.flatBorder : null),
         },
-        shadow as ViewStyle,
+        shadow,
         style,
       ]}
     >

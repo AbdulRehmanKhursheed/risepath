@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Screen, Heading, Body, Caption, Card } from '../components/ui';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -55,7 +55,7 @@ const DEFAULT_GOALS_BY_LANG: Record<'en' | 'ur' | 'ar', { id: string; text: stri
 export function HomeScreen() {
   const { t, language } = useLanguage();
   const navigation = useNavigation();
-  const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
+  useSimpleMode(); // Subscribed to language/simpleMode for re-renders only; values flow through primitives.
   // Streak + Hijri are derived from storage. useFocusEffect re-reads them
   // every time the tab gets focus (HomeScreen never unmounts in the tab
   // navigator, so a plain useEffect would freeze the values).
@@ -148,7 +148,7 @@ export function HomeScreen() {
         }
       })();
       return () => { cancelled = true; };
-    }, [language, t.streakMilestoneTitle, t.streakMilestoneBody])
+    }, [language, t.streakMilestoneTitle, t.streakMilestoneBody, defaultGoals])
   );
 
   // A goal counts as completed only if it was checked TODAY. Carrying a
@@ -258,6 +258,8 @@ export function HomeScreen() {
       <Card
         style={{
           marginBottom: theme.spacing.xxl,
+          borderWidth: 1,
+          borderColor: theme.colors.border,
           borderLeftWidth: 4,
           borderLeftColor: theme.colors.accent,
           paddingLeft: theme.spacing.xxl,
@@ -322,48 +324,6 @@ const styles = StyleSheet.create({
   greetingBlock: {
     flex: 1,
     paddingRight: theme.spacing.md,
-  },
-  tasbihShortcut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    gap: theme.spacing.md,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#7A5A40',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  tasbihIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.accentMuted,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tasbihIcon: { fontSize: 22 },
-  tasbihTitle: {
-    fontFamily: theme.typography.fontBodyBold,
-    color: theme.colors.text,
-  },
-  tasbihSub: {
-    fontFamily: theme.typography.fontBody,
-    color: theme.colors.textMuted,
-    marginTop: 2,
-  },
-  tasbihArrow: {
-    fontSize: 24,
-    color: theme.colors.textMuted,
   },
   streakSection: {
     alignItems: 'center',
