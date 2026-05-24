@@ -213,7 +213,7 @@ export function HomeScreen() {
   return (
     <Screen background={theme.colors.background}>
       <LinearGradient
-        colors={['rgba(200, 120, 10, 0.09)', 'transparent']}
+        colors={['rgba(200, 120, 10, 0.14)', 'rgba(200, 120, 10, 0.04)', 'transparent']}
         style={styles.heroGradient}
         pointerEvents="none"
       />
@@ -236,11 +236,16 @@ export function HomeScreen() {
 
       <View style={styles.streakSection}>
         <StreakRing current={streak} target={7} size={140} label={t.dayStreak} />
-        <View style={styles.longestBadge}>
+        <Card
+          variant="flat"
+          padding={theme.spacing.sm}
+          radius={theme.borderRadius.full}
+          style={{ marginTop: theme.spacing.lg, paddingHorizontal: theme.spacing.lg }}
+        >
           <Caption tone="muted" weight="medium">
             {t.bestStreak}: {longest} {t.days}
           </Caption>
-        </View>
+        </Card>
       </View>
 
       <TodayCard hijriOffset={hijriOffset} />
@@ -304,9 +309,9 @@ const styles = StyleSheet.create({
   heroGradient: {
     position: 'absolute',
     top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
+    left: -theme.spacing.xl,   // extends past Screen's horizontal padding
+    right: -theme.spacing.xl,  // extends past Screen's horizontal padding
+    height: 360,
   },
   topRow: {
     flexDirection: 'row',
@@ -363,15 +368,6 @@ const styles = StyleSheet.create({
   streakSection: {
     alignItems: 'center',
     marginBottom: theme.spacing.xxl,
-  },
-  longestBadge: {
-    marginTop: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.full,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
   },
   quoteMark: {
     position: 'absolute',
