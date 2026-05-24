@@ -272,8 +272,12 @@ export function HomeScreen() {
       </Card>
 
       <View style={styles.goalsSection}>
-        <Text style={[styles.sectionTitle, { fontSize: fs(20) }]}>{t.todaysGoals}</Text>
-        <Text style={[styles.sectionSubtitle, { fontSize: fs(14) }]}>{t.tapToComplete}</Text>
+        <Heading level={2} style={{ marginBottom: theme.spacing.xs }}>
+          {t.todaysGoals}
+        </Heading>
+        <Body tone="muted" style={{ marginBottom: theme.spacing.lg }}>
+          {t.tapToComplete}
+        </Body>
         {goals.map((g) => (
           <GoalItem
             key={g.id}
@@ -380,18 +384,5 @@ const styles = StyleSheet.create({
   },
   goalsSection: {
     marginBottom: theme.spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.text,
-    fontFamily: theme.typography.fontBodyBold,
-    marginBottom: 4,
-  },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    marginBottom: theme.spacing.lg,
-    fontFamily: theme.typography.fontBody,
   },
 });
