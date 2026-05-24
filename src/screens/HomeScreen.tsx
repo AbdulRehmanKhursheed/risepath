@@ -259,7 +259,7 @@ export function HomeScreen() {
         }}
       >
         <Text style={styles.quoteMark}>"</Text>
-        <Body italic tone="secondary" style={{ fontSize: 16, lineHeight: 26 }}>
+        <Body italic tone="secondary">
           {quote.text}
         </Body>
         <Caption
