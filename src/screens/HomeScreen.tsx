@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Platform, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Screen } from '../components/ui';
+import { Screen, Heading, Body, Caption } from '../components/ui';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StreakRing } from '../components/StreakRing';
 import { GoalItem } from '../components/GoalItem';
@@ -219,9 +219,17 @@ export function HomeScreen() {
       />
       <View style={styles.topRow}>
         <View style={styles.greetingBlock}>
-          <Text style={[styles.greeting, { fontSize: fs(26) }]} numberOfLines={1} adjustsFontSizeToFit>{t.greeting}</Text>
-          <Text style={[styles.hijriBadge, { fontSize: fs(12) }]}>{hijri}</Text>
-          <Text style={[styles.subGreeting, { fontSize: fs(15) }]}>{getSubGreeting(t)}</Text>
+          <Heading level={1} numberOfLines={1} adjustsFontSizeToFit>{t.greeting}</Heading>
+          <Caption
+            tone="accent"
+            weight="semibold"
+            style={{ marginTop: theme.spacing.xs, letterSpacing: theme.typography.letterSpacing.wide }}
+          >
+            {hijri}
+          </Caption>
+          <Body tone="muted" style={{ marginTop: theme.spacing.xs }}>
+            {getSubGreeting(t)}
+          </Body>
         </View>
         <MenuButton />
       </View>
@@ -229,9 +237,9 @@ export function HomeScreen() {
       <View style={styles.streakSection}>
         <StreakRing current={streak} target={7} size={140} label={t.dayStreak} />
         <View style={styles.longestBadge}>
-          <Text style={styles.longestText}>
+          <Caption tone="muted" weight="medium">
             {t.bestStreak}: {longest} {t.days}
-          </Text>
+          </Caption>
         </View>
       </View>
 
@@ -291,26 +299,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingRight: theme.spacing.md,
   },
-  greeting: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: theme.colors.text,
-    fontFamily: theme.typography.fontHeadingBold,
-    letterSpacing: -0.5,
-  },
-  subGreeting: {
-    fontSize: 15,
-    color: theme.colors.textMuted,
-    marginTop: 6,
-    fontFamily: theme.typography.fontBody,
-    lineHeight: 22,
-  },
-  hijriBadge: {
-    marginTop: 6,
-    color: theme.colors.accent,
-    fontFamily: theme.typography.fontBodyBold,
-    letterSpacing: 0.3,
-  },
   tasbihShortcut: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -365,11 +353,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.borderRadius.full,
     borderWidth: 1,
     borderColor: theme.colors.border,
-  },
-  longestText: {
-    fontSize: 14,
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fontBodyMedium,
   },
   quoteCard: {
     backgroundColor: theme.colors.surface,
