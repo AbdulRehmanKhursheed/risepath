@@ -124,9 +124,9 @@ export const HAJJ_STEPS: HajjStep[] = [
     titleUr: 'یوم عرفہ — سب سے عظیم دن',
     icon: '🤲',
     description:
-      'After Fajr at Mina, proceed to the plain of Arafah. This is the MOST important day of Hajj — "Hajj is Arafah" (Tirmidhi 889). Combine Dhuhr and Asr (shortened) at Masjid Namirah or your camp. Then devote the ENTIRE afternoon to dua — standing, crying, begging Allah for forgiveness. The Prophet ﷺ said: "The best dua is the dua of the Day of Arafah." (Tirmidhi 3585). Stay in Arafah until AFTER sunset — leaving before sunset invalidates Hajj in some schools.',
+      'After Fajr at Mina, proceed to the plain of Arafah. This is the MOST important day of Hajj — "Hajj is Arafah" (Tirmidhi 889). Combine Dhuhr and Asr (shortened to 2 rakat each, prayed together at Dhuhr time) at Masjid Namirah or your camp. Then devote the ENTIRE afternoon to dua — standing, crying, begging Allah for forgiveness. The Prophet ﷺ said: "The best dua is the dua of the Day of Arafah." (Tirmidhi 3585). You MUST remain in Arafah until AFTER sunset — leaving before sunset is invalid by the agreement of all four Sunni madhabs and requires a penalty (dam) if it happens.',
     descriptionUr:
-      'منیٰ سے فجر کے بعد میدان عرفات کی طرف روانہ ہوں۔ یہ حج کا سب سے اہم دن ہے — "حج عرفہ ہے" (ترمذی ۸۸۹)۔ ظہر اور عصر جمع اور قصر کریں۔ پھر پوری دوپہر دعا میں لگے رہیں — کھڑے ہو کر، رو رو کر اللہ سے مغفرت مانگیں۔ غروب کے بعد تک عرفات میں رہیں — اس سے پہلے جانا بعض مذاہب میں حج باطل کر دیتا ہے۔',
+      'منیٰ سے فجر کے بعد میدان عرفات کی طرف روانہ ہوں۔ یہ حج کا سب سے اہم دن ہے — "حج عرفہ ہے" (ترمذی ۸۸۹)۔ ظہر اور عصر جمع و قصر کریں (دو دو رکعت، ظہر کے وقت اکٹھی)۔ پھر پوری دوپہر دعا میں لگے رہیں۔ غروب کے بعد تک عرفات میں رہنا واجب ہے — تمام چاروں اہل سنت مذاہب کے اتفاق سے غروب سے پہلے نکلنا غلط ہے اور اس پر دم لازم آتا ہے۔',
     dua: {
       arabic: 'لَا إِلَٰهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ',
       transliteration: "Lā ilāha illallāhu waḥdahu lā sharīka lahu, lahul-mulku wa lahul-ḥamdu wa huwa ʿalā kulli shay'in qadīr",
@@ -186,22 +186,22 @@ export const HAJJ_STEPS: HajjStep[] = [
     day: '10th Dhul Hijjah — Eid',
     dayUr: '۱۰ ذوالحجہ — عید',
     dayAr: '١٠ ذو الحجة — يوم النحر',
-    title: 'Rami — Stone the Large Jamrah',
-    titleUr: 'رمی — بڑے جمرے کو کنکریاں مارنا',
+    title: 'Rami — Stone Jamrat al-Aqabah',
+    titleUr: 'رمی — جمرہ عقبہ کو کنکریاں مارنا',
     icon: '🪨',
     description:
-      'On the 10th (Yawm al-Nahr / Eid day), go to the Jamarat area in Mina and throw 7 pebbles at Jamrat al-Aqabah (the large pillar only) saying "Allahu Akbar" with each throw. Stop reciting Talbiyah once you begin stoning. Throw after sunrise and before sunset.',
+      'On the 10th (Yawm al-Nahr / Eid day), go to the Jamarat area in Mina and throw 7 pebbles at Jamrat al-Aqabah (the largest pillar, closest to Makkah — only this one today, NOT the small or middle ones) saying "Allahu Akbar" with each throw. Stop reciting Talbiyah once you begin stoning. Throw after sunrise and before sunset (Hanafi: after Zawal preferred; other schools allow from dawn).',
     descriptionUr:
-      '۱۰ ذوالحجہ (یوم النحر / عید) کو جمرات منیٰ میں جائیں اور جمرہ عقبہ (صرف بڑے ستون) پر ۷ کنکریاں ماریں، ہر کنکری کے ساتھ "اللہ اکبر" کہیں۔ رمی شروع ہونے پر تلبیہ بند کریں۔',
+      '۱۰ ذوالحجہ (یوم النحر / عید) کو جمرات منیٰ میں جائیں اور جمرہ عقبہ (سب سے بڑا ستون، مکہ کے قریب ترین — آج صرف یہی) پر ۷ کنکریاں ماریں، ہر کنکری کے ساتھ "اللہ اکبر" کہیں۔ رمی شروع ہونے پر تلبیہ بند کریں۔ (حنفی: زوال کے بعد افضل؛ دیگر مذاہب: طلوع آفتاب سے جائز)۔',
     tips: [
-      'Only stone the LARGE Jamrah today (not the other two)',
+      'Only stone Jamrat al-Aqabah today (NOT al-Sughra/al-Wusta — those start tomorrow)',
       'Throw 7 pebbles one by one, saying "Allahu Akbar" each time',
       'Stop Talbiyah once you begin stoning',
-      'Can be done anytime from sunrise to sunset on the 10th',
+      'Throw after sunrise; Hanafi recommends after Zawal',
       'If crowded, going later in the day is permissible',
     ],
     tipsUr: [
-      'آج صرف بڑے جمرے کو کنکریاں ماریں (باقی دو کو نہیں)',
+      'آج صرف جمرہ عقبہ کو کنکریاں ماریں (الصغریٰ/الوسطیٰ کل سے شروع)',
       '۷ کنکریاں ایک ایک کر کے ماریں، ہر بار "اللہ اکبر" کہیں',
       'رمی شروع ہونے پر تلبیہ بند کریں',
       'طلوع آفتاب سے غروب تک کسی بھی وقت کر سکتے ہیں',

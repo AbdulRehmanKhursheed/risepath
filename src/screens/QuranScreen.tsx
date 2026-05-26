@@ -496,6 +496,12 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           // dua/kalima/takbir screens render in the same script.
           setScriptPreference(isUrdu || isIndoPakRegion() ? 'indopak' : 'uthmani');
         }
+        // Translation mode persistence — without this it reset to 'urdu'
+        // every cold start and every Quran tab remount.
+        const [tm] = await Promise.all([AsyncStorage.getItem('quran_translation_mode')]);
+        if (tm === 'english' || tm === 'urdu' || tm === 'both') {
+          setTranslationMode(tm);
+        }
         if (lr) setLastRead(lr);
       } catch {}
     })();
@@ -676,7 +682,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           }}
           tajweedLoading={tajweedLoading}
           translationMode={translationMode}
-          setTranslationMode={setTranslationMode}
+          setTranslationMode={(m) => {
+            setTranslationMode(m);
+            AsyncStorage.setItem('quran_translation_mode', m).catch(() => {});
+          }}
           translationAudioEnabled={translationAudioEnabled}
           setTranslationAudioEnabled={setTranslationAudioEnabled}
           currentReciter={currentReciter}

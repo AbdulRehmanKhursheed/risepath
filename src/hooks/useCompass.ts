@@ -1,39 +1,52 @@
 import { useState, useEffect } from 'react';
-import { Magnetometer } from 'expo-sensors';
+import * as Location from 'expo-location';
 
+// expo-location's heading API returns trueHeading on iOS automatically (the
+// OS applies the magnetic declination correction using the device's known
+// location), and on Android trueHeading is provided when accuracy is high
+// enough — falling back to magHeading otherwise. This is the right way to
+// surface a Qibla-grade bearing: a raw magnetometer reading is magnetic
+// north and can be off from true north by up to ~20° in high-declination
+// regions (Western Canada, Scandinavia, Russian Far East), which would
+// invalidate the Qibla direction we draw on screen.
 export function useCompass() {
   const [heading, setHeading] = useState<number | null>(null);
   const [available, setAvailable] = useState(true);
 
   useEffect(() => {
-    let subscription: { remove: () => void } | null = null;
-    // Guard against the isAvailableAsync → addListener race: if the component
-    // unmounts before the availability check resolves, the listener would be
-    // attached after cleanup ran and leak forever.
     let active = true;
+    let watcher: Location.LocationSubscription | null = null;
 
-    Magnetometer.isAvailableAsync().then((isAvail) => {
-      if (!active) return;
-      if (!isAvail) {
-        setAvailable(false);
-        return;
-      }
-      Magnetometer.setUpdateInterval(100);
-      subscription = Magnetometer.addListener((data) => {
+    (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (status !== 'granted') {
+          const req = await Location.requestForegroundPermissionsAsync();
+          if (!active) return;
+          if (req.status !== 'granted') {
+            setAvailable(false);
+            return;
+          }
+        }
         if (!active) return;
-        const { x, y } = data;
-        // atan2(-x, y) gives the clockwise bearing from North for the TOP of the
-        // phone (camera end). Using atan2(x, y) points to the BOTTOM (charging port),
-        // which is 180° wrong.
-        let angle = (Math.atan2(-x, y) * 180) / Math.PI;
-        if (angle < 0) angle += 360;
-        setHeading(angle);
-      });
-    });
+        watcher = await Location.watchHeadingAsync((h) => {
+          if (!active) return;
+          // trueHeading is -1 when uncalibrated; fall back to magHeading
+          // then. This matches what most native compass apps do.
+          const raw = h.trueHeading >= 0 ? h.trueHeading : h.magHeading;
+          if (typeof raw !== 'number' || Number.isNaN(raw)) return;
+          let angle = raw % 360;
+          if (angle < 0) angle += 360;
+          setHeading(angle);
+        });
+      } catch {
+        if (active) setAvailable(false);
+      }
+    })();
 
     return () => {
       active = false;
-      subscription?.remove();
+      watcher?.remove();
     };
   }, []);
 

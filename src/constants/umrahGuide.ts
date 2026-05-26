@@ -50,13 +50,13 @@ export const UMRAH_STEPS: UmrahStep[] = [
   {
     id: 2,
     phase: 'Ihram',
-    title: 'Enter the State of Ihram',
-    titleUr: 'احرام باندھنا',
+    title: 'Enter the State of Ihram (at the Miqat)',
+    titleUr: 'احرام باندھنا (میقات پر)',
     icon: '🤍',
     description:
-      'At the Miqat (designated boundary), perform ghusl, apply perfume to body only (not clothes), and wear the two white unstitched sheets (for men). Pray 2 rakats Sunnah of Ihram. Then make your intention (niyyah) aloud and begin reciting the Talbiyah. Once in ihram, avoid: perfume, cutting hair/nails, intercourse, hunting, and arguments.',
+      'At the Miqat (the boundary you cannot cross without ihram if entering for Umrah/Hajj), perform ghusl, apply perfume to body only (not clothes), and wear the two white unstitched sheets (for men). Pray 2 rakats Sunnah of Ihram. Then make your intention (niyyah) in the heart and recite the Talbiyah aloud. Once in ihram, avoid: perfume, cutting hair/nails, intercourse, hunting, arguments.\n\nThe five Miqat boundaries (set by the Prophet ﷺ in Sahih Bukhari 1524):\n• Dhul-Hulayfah (Abyar Ali) — for pilgrims coming from Madinah\n• Al-Juhfah — for pilgrims from Syria, Levant, Egypt, North Africa\n• Qarn al-Manazil (As-Sail al-Kabir) — for pilgrims from Najd / Riyadh / Taif\n• Yalamlam — for pilgrims from Yemen / Southern Arabia\n• Dhat \'Irq — for pilgrims from Iraq / east\n\nPilgrims flying in: declare ihram at the Miqat point your plane crosses (most airlines announce it). Pilgrims already inside Makkah area going for Umrah: travel to Masjid Aisha (At-Tan\'eem) to enter ihram.',
     descriptionUr:
-      'میقات پر غسل کریں، صرف جسم پر عطر لگائیں (کپڑوں پر نہیں)، اور دو سفید بغیر سلے چادریں پہنیں (مردوں کے لیے)۔ احرام کی 2 رکعت سنت پڑھیں۔ پھر بلند آواز میں نیت کریں اور تلبیہ شروع کریں۔',
+      'میقات (وہ حد جسے عمرہ/حج کے لیے بغیر احرام عبور نہیں کر سکتے) پر غسل کریں، صرف جسم پر عطر لگائیں (کپڑوں پر نہیں)، اور دو سفید بغیر سلے چادریں پہنیں (مردوں کے لیے)۔ احرام کی 2 رکعت سنت پڑھیں۔ نیت دل میں کریں اور تلبیہ بلند آواز سے پڑھیں۔\n\nپانچ میقات (صحیح بخاری ۱۵۲۴):\n• ذو الحلیفہ (ابیار علی) — مدینہ سے\n• الجحفہ — شام، مصر، شمالی افریقہ\n• قرن المنازل (السیل الکبیر) — نجد، ریاض، طائف\n• یلملم — یمن، جنوبی عرب\n• ذات عرق — عراق، مشرق\n\nہوائی جہاز سے آنے والے: میقات پر احرام کا اعلان ہوتا ہے۔ مکہ میں رہنے والے عمرہ کے لیے: مسجد عائشہ (تنعیم) جا کر احرام باندھیں۔',
     dua: {
       arabic:
         'لَبَّيْكَ اللّٰهُمَّ لَبَّيْكَ، لَبَّيْكَ لَا شَرِيْكَ لَكَ لَبَّيْكَ، إِنَّ الْحَمْدَ وَالنِّعْمَةَ لَكَ وَالْمُلْكَ، لَا شَرِيْكَ لَكَ',
@@ -80,7 +80,7 @@ export const UMRAH_STEPS: UmrahStep[] = [
       'بحث اور بری بات سے بچیں — یہ مقدس وقت ہے',
     ],
     womenNote:
-      'Women wear normal modest clothing (no face veil required during tawaf). They should not shout the Talbiyah — recite softly.',
+      'Women wear normal modest clothing in any colour (no special ihram dress required, but white preferred). In ihram, women MUST NOT wear a face veil (niqab) or gloves — the face and hands remain uncovered (Sahih Bukhari 1838). If non-mahram men come close, she may drape her khimar over her face WITHOUT it touching her face. Recite Talbiyah softly, not loudly.',
   },
   {
     id: 3,

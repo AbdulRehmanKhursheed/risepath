@@ -25,9 +25,14 @@ export function StatsScreen() {
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const prayers = await storage.getPrayers();
+        const [prayers, goalDays] = await Promise.all([
+          storage.getPrayers(),
+          storage.getGoalDays(),
+        ]);
         if (cancelled) return;
-        const { current, longest: longestRun } = computeStreak(prayers);
+        // Pass goalDays so Stats matches Home's streak ring — goal-only days
+        // count toward the streak too, not just prayer-active days.
+        const { current, longest: longestRun } = computeStreak(prayers, goalDays);
         setStreak(current);
         setLongest(longestRun);
 
