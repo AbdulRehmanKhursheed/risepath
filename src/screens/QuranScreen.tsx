@@ -32,6 +32,7 @@ import { MushafPageReader } from '../components/MushafPageReader';
 import { TOTAL_PAGES, saveLastRead, loadLastRead, LastRead } from '../services/quran';
 import { isIndoPakRegion } from '../utils/region';
 import { storage } from '../services/storage';
+import { setScriptPreference } from '../components/ui/ArabicText';
 
 type TranslationMode = 'english' | 'urdu' | 'both';
 
@@ -487,7 +488,14 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         ]);
         if (vm === 'mushaf') setViewMode('mushaf');
         if (tj === 'on') setTajweedOn(true);
-        if (sc === 'indopak' || sc === 'uthmani') setScript(sc);
+        if (sc === 'indopak' || sc === 'uthmani') {
+          setScript(sc);
+          setScriptPreference(sc);
+        } else {
+          // Seed the app-wide ArabicText cache with the implicit default so
+          // dua/kalima/takbir screens render in the same script.
+          setScriptPreference(isUrdu || isIndoPakRegion() ? 'indopak' : 'uthmani');
+        }
         if (lr) setLastRead(lr);
       } catch {}
     })();
@@ -590,7 +598,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         script={script}
         setScript={(s) => {
           setScript(s);
-          AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
+          setScriptPreference(s);
         }}
       />
     );
@@ -655,7 +663,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
           script={script}
           setScript={(s) => {
             setScript(s);
-            AsyncStorage.setItem('quran_script_v1', s).catch(() => {});
+            setScriptPreference(s);
             if (s === 'indopak' && tajweedOn) {
               setTajweedOn(false);
               AsyncStorage.setItem('quran_tajweed_v2', 'off').catch(() => {});

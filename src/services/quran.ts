@@ -103,6 +103,16 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   return p;
 }
 
+// Offline-safe variant. Returns null on network failure with no cache.
+// Callers render an "offline / cached only" UI instead of crashing.
+export async function fetchSurahSafe(surahNumber: number): Promise<SurahContent | null> {
+  try {
+    return await fetchSurah(surahNumber);
+  } catch {
+    return null;
+  }
+}
+
 // Cache key prefix versioned: previous releases used alquran.cloud's
 // `quran-tajweed` edition, which returns Tanzil-style bracket markup
 // (e.g. "[h:1[ٱ]") that our parser cannot read. We now use Quran.com's
@@ -242,6 +252,16 @@ export function prefetchPage(pageNumber: number): void {
   fetchPage(pageNumber).catch(() => {});
 }
 
+// Offline-safe variant. Returns null on network failure with no cache so
+// the page reader can show an offline banner instead of a blank screen.
+export async function fetchPageSafe(pageNumber: number): Promise<PageContent | null> {
+  try {
+    return await fetchPage(pageNumber);
+  } catch {
+    return null;
+  }
+}
+
 export function prefetchAdjacentPages(pageNumber: number): void {
   prefetchPage(pageNumber - 1);
   prefetchPage(pageNumber + 1);
@@ -310,7 +330,7 @@ export async function fetchIndopakTexts(surahNumber: number): Promise<string[]> 
     try {
       const url = `${INDOPAK_API}?chapter_number=${surahNumber}`;
       const res = await fetch(url);
-      if (!res.ok) throw new Error(`IndoPak fetch failed for surah ${surahNumber}`);
+      if (!res.ok) return [];
       const json = await res.json();
       const verses = (json.verses ?? []) as { text_indopak: string }[];
       const texts: string[] = verses.map((v) => v.text_indopak ?? '');
@@ -318,6 +338,10 @@ export async function fetchIndopakTexts(surahNumber: number): Promise<string[]> 
         await AsyncStorage.setItem(key, JSON.stringify(texts));
       } catch {}
       return texts;
+    } catch {
+      // Offline + no cache: return empty so the reader falls back to the
+      // Uthmani text from fetchSurah/fetchPage instead of crashing.
+      return [];
     } finally {
       indopakInflight.delete(surahNumber);
     }
@@ -327,23 +351,44 @@ export async function fetchIndopakTexts(surahNumber: number): Promise<string[]> 
   return p;
 }
 
+const tajweedInflight = new Map<number, Promise<string[]>>();
+
 export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> {
   const key = `${TAJWEED_PREFIX}${surahNumber}`;
   try {
     const cached = await AsyncStorage.getItem(key);
-    if (cached) return JSON.parse(cached) as string[];
+    if (cached) {
+      const parsed = JSON.parse(cached) as string[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
   } catch {}
 
-  const url = `${TAJWEED_API}?chapter_number=${surahNumber}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Tajweed fetch failed for surah ${surahNumber}`);
-  const json = await res.json();
-  const verses = (json.verses ?? []) as { text_uthmani_tajweed: string }[];
-  const texts: string[] = verses.map((v) => v.text_uthmani_tajweed ?? '');
-  try {
-    await AsyncStorage.setItem(key, JSON.stringify(texts));
-  } catch {}
-  return texts;
+  const existing = tajweedInflight.get(surahNumber);
+  if (existing) return existing;
+
+  const p = (async () => {
+    try {
+      const url = `${TAJWEED_API}?chapter_number=${surahNumber}`;
+      const res = await fetch(url);
+      if (!res.ok) return [];
+      const json = await res.json();
+      const verses = (json.verses ?? []) as { text_uthmani_tajweed: string }[];
+      const texts: string[] = verses.map((v) => v.text_uthmani_tajweed ?? '');
+      try {
+        await AsyncStorage.setItem(key, JSON.stringify(texts));
+      } catch {}
+      return texts;
+    } catch {
+      // Offline + no cache: return empty so the reader falls back to plain
+      // Arabic without tajweed coloring instead of crashing.
+      return [];
+    } finally {
+      tajweedInflight.delete(surahNumber);
+    }
+  })();
+
+  tajweedInflight.set(surahNumber, p);
+  return p;
 }
 
 export async function hasCachedSurah(surahNumber: number): Promise<boolean> {

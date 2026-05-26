@@ -4,6 +4,7 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { getDailyHadith } from '../constants/hadiths';
+import { ArabicText } from './ui/ArabicText';
 
 export function HadithOfDay() {
   const { language } = useLanguage();
@@ -28,7 +29,7 @@ export function HadithOfDay() {
         <Text style={[styles.label, { fontSize: fs(10) }]}>{label}</Text>
         <Text style={[styles.source, { fontSize: fs(10) }]}>{hadith.source}</Text>
       </View>
-      <Text style={styles.arabic}>{hadith.arabic}</Text>
+      <ArabicText variant="quran" style={styles.arabic}>{hadith.arabic}</ArabicText>
       <Text style={[styles.body, { fontSize: fs(14), textAlign: language === 'ur' ? 'right' : 'left' }]}>
         {body}
       </Text>
