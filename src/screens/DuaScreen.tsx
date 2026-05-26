@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Modal, ScrollView, Animated, AppState,
+  StyleSheet, Modal, ScrollView, Animated, AppState, Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -213,6 +214,26 @@ export function DuaScreen() {
                 <View style={styles.divider} />
                 <Text style={styles.modalTranslation}>{selected.translation}</Text>
                 <Text style={styles.modalRef}>— {selected.reference}</Text>
+                <View style={styles.shareRow}>
+                  <TouchableOpacity
+                    style={styles.shareBtn}
+                    onPress={() => Clipboard.setStringAsync(selected.arabic)}
+                    accessibilityLabel="Copy Arabic text"
+                  >
+                    <Text style={styles.shareBtnText}>📋 Copy Arabic</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.shareBtn}
+                    onPress={() =>
+                      Share.share({
+                        message: `${selected.title}\n\n${selected.arabic}\n\n${selected.transliteration}\n\n"${selected.translation}"\n\n— ${selected.reference}`,
+                      })
+                    }
+                    accessibilityLabel="Share this dua"
+                  >
+                    <Text style={styles.shareBtnText}>📤 Share</Text>
+                  </TouchableOpacity>
+                </View>
               </ScrollView>
             )}
             <TouchableOpacity style={styles.modalClose} onPress={() => setModalVisible(false)}>
@@ -231,6 +252,18 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
   headerTitle: { fontFamily: theme.typography.fontHeadingBold, fontSize: 26, color: theme.colors.text },
   headerSub: { fontFamily: theme.typography.fontBody, fontSize: 13, color: theme.colors.textMuted, marginTop: 2 },
+
+  shareRow: {
+    flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md,
+  },
+  shareBtn: {
+    flex: 1, paddingVertical: 10, paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.accentMuted,
+    alignItems: 'center',
+  },
+  shareBtnText: {
+    fontFamily: theme.typography.fontBodyMedium, fontSize: 13, color: theme.colors.accent,
+  },
 
   searchRow: {
     flexDirection: 'row', alignItems: 'center', marginHorizontal: 16, marginBottom: 8,

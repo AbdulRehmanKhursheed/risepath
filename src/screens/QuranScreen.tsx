@@ -1186,6 +1186,21 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         keyExtractor={(item) => String(item.number)}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          search.trim().length > 0 ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyIcon}>🔍</Text>
+              <Text style={styles.emptyTitle}>
+                {isUrdu ? 'کوئی سورت نہیں ملی' : 'No surahs found'}
+              </Text>
+              <Text style={styles.emptyBody}>
+                {isUrdu
+                  ? 'سورت کا نام، نمبر، یا "2:255" / "صفحہ 234" / "پارہ 5" آزمائیں۔'
+                  : 'Try a surah name, number, or "2:255" / "page 234" / "juz 5".'}
+              </Text>
+            </View>
+          ) : null
+        }
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.surahRow}
@@ -1228,6 +1243,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.xxxl,
+  },
+  emptyIcon: {
+    fontSize: 40,
+    marginBottom: theme.spacing.md,
+  },
+  emptyTitle: {
+    fontFamily: theme.typography.fontBodyBold,
+    fontSize: 16,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.sm,
+  },
+  emptyBody: {
+    fontFamily: theme.typography.fontBody,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 18,
   },
   heroGradient: {
     position: 'absolute',
