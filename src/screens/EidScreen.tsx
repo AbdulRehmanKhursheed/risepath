@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
+import { ArabicText } from '../components/ui/ArabicText';
 import {
   EID_FITR_SECTIONS,
   EID_ADHA_SECTIONS,
@@ -68,7 +69,7 @@ function MasalaCard({ masala, isUrdu, fs }: { masala: EidMasala; isUrdu: boolean
 
           {masala.dua && (
             <View style={styles.duaBox}>
-              <Text style={styles.duaArabic}>{masala.dua.arabic}</Text>
+              <ArabicText style={styles.duaArabic}>{masala.dua.arabic}</ArabicText>
               <Text style={[styles.duaTranslit, { fontSize: fs(12) }]}>{masala.dua.transliteration}</Text>
               <Text style={[styles.duaTrans, { fontSize: fs(12) }]}>
                 {isUrdu ? masala.dua.translationUr : masala.dua.translation}

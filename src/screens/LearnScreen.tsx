@@ -13,6 +13,7 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { ArabicText } from '../components/ui/ArabicText';
 
 type Section = 'kalimas' | 'duas';
 
@@ -79,7 +80,7 @@ export function LearnScreen() {
                 </View>
                 {expandedKalima === k.id && (
                   <View style={styles.cardBody}>
-                    <Text style={styles.arabic}>{k.arabic}</Text>
+                    <ArabicText style={styles.arabic}>{k.arabic}</ArabicText>
                     <Text style={styles.transliteration}>{k.transliteration}</Text>
                     <Text style={styles.translation}>"{k.translation}"</Text>
                     <Text style={styles.reference}>— {k.reference}</Text>
@@ -113,7 +114,7 @@ export function LearnScreen() {
                 </View>
                 {expandedDua === d.id && (
                   <View style={styles.cardBody}>
-                    <Text style={styles.arabic}>{d.arabic}</Text>
+                    <ArabicText style={styles.arabic}>{d.arabic}</ArabicText>
                     <Text style={styles.transliteration}>{d.transliteration}</Text>
                     <Text style={styles.translation}>"{d.translation}"</Text>
                     <Text style={styles.reference}>— {d.reference}</Text>

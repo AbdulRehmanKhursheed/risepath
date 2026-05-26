@@ -9,6 +9,7 @@ import { theme } from '../constants/theme';
 import { SURAH_LIST } from '../constants/surahList';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { ArabicText } from '../components/ui/ArabicText';
 
 const HIFZ_KEY = 'hifz_progress';
 
@@ -90,7 +91,7 @@ export function HifzScreen() {
           <Text style={styles.surahNum}>{item.number}</Text>
         </View>
         <View style={styles.surahInfo}>
-          <Text style={styles.surahArabic}>{item.nameArabic}</Text>
+          <ArabicText style={styles.surahArabic}>{item.nameArabic}</ArabicText>
           <Text style={styles.surahEnglish}>{item.nameEnglish} · {item.ayahs} ayahs</Text>
         </View>
         <TouchableOpacity

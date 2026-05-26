@@ -82,7 +82,9 @@ export function ArabicText({
   return (
     <Text
       {...rest}
-      style={[variant === 'quran' ? defaults.quran : defaults.inline, { fontFamily }, style]}
+      // fontFamily is injected last so the chosen script always wins over any
+      // legacy `fontFamily: fontQuranUthmani` baked into screen StyleSheets.
+      style={[variant === 'quran' ? defaults.quran : defaults.inline, style, { fontFamily }]}
     >
       {children}
     </Text>

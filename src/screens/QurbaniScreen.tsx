@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
+import { ArabicText } from '../components/ui/ArabicText';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import {
   QURBANI_ANIMALS,
@@ -362,7 +363,7 @@ export function QurbaniScreen() {
         {/* Niyyah */}
         <Text style={[styles.sectionLabel, { fontSize: fs(11) }]}>{labels.niyyah}</Text>
         <View style={styles.niyyahCard}>
-          <Text style={styles.niyyahArabic}>{QURBANI_NIYYAH.arabic}</Text>
+          <ArabicText style={styles.niyyahArabic}>{QURBANI_NIYYAH.arabic}</ArabicText>
           <Text style={[styles.niyyahTranslit, { fontSize: fs(12) }]}>
             {QURBANI_NIYYAH.transliteration}
           </Text>

@@ -13,6 +13,7 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { ArabicText } from '../components/ui/ArabicText';
 
 export function UmrahGuideScreen() {
   const { language } = useLanguage();
@@ -114,7 +115,7 @@ export function UmrahGuideScreen() {
                   {step.dua && (
                     <View style={styles.duaCard}>
                       <Text style={styles.duaLabel}>{isUrdu ? 'دعا' : 'Dua'}</Text>
-                      <Text style={styles.duaArabic}>{step.dua.arabic}</Text>
+                      <ArabicText style={styles.duaArabic}>{step.dua.arabic}</ArabicText>
                       <Text style={styles.duaTranslit}>{step.dua.transliteration}</Text>
                       <Text style={styles.duaTrans}>
                         "{isUrdu ? step.dua.translationUr : step.dua.translation}"

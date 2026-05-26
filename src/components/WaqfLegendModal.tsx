@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { theme } from '../constants/theme';
+import { ArabicText } from './ui/ArabicText';
 
 type Lang = 'en' | 'ur' | 'ar';
 
@@ -169,7 +170,7 @@ export function WaqfLegendModal({
         style={[styles.row, { borderColor: tc.bg, backgroundColor: tc.bg }]}
       >
         <View style={[styles.symbolBox, { borderColor: tc.fg }]}>
-          <Text style={[styles.symbol, { color: tc.fg }]}>{e.symbol}</Text>
+          <ArabicText style={[styles.symbol, { color: tc.fg }]}>{e.symbol}</ArabicText>
         </View>
         <View style={styles.rowText}>
           <Text style={[styles.rowName, { color: tc.fg }]}>

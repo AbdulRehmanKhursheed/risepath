@@ -13,6 +13,7 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CALCULATION_METHODS, MADHABS } from '../constants/prayerMethods';
 import { storage } from '../services/storage';
+import { ArabicText } from '../components/ui/ArabicText';
 import type { CalculationMethodId, MadhabId, FiqhSchool } from '../constants/prayerMethods';
 
 type Props = {
@@ -62,7 +63,7 @@ export function OnboardingScreen({ onComplete }: Props) {
         />
         <View style={styles.center}>
           <Text style={styles.appName}>Noor</Text>
-          <Text style={styles.appTagline}>بِسْمِ اللَّهِ الرَّحْمٰنِ الرَّحِيْمِ</Text>
+          <ArabicText style={styles.appTagline}>بِسْمِ اللَّهِ الرَّحْمٰنِ الرَّحِيْمِ</ArabicText>
           <Text style={styles.stepTitle}>Choose your language{'\n'}اپنی زبان منتخب کریں</Text>
 
           <TouchableOpacity

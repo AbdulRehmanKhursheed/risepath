@@ -13,6 +13,7 @@ import type { JanazaStep } from '../constants/janazaGuide';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { AdBanner } from '../components/AdBanner';
+import { ArabicText } from '../components/ui/ArabicText';
 import { AD_UNITS } from '../services/ads';
 
 type CompletedKey = string;
@@ -214,7 +215,7 @@ function StepCard({
               <Text style={styles.arabicLabel}>
                 {isUrdu ? 'متن' : 'Text'}
               </Text>
-              <Text style={styles.arabicText}>{step.arabic}</Text>
+              <ArabicText style={styles.arabicText}>{step.arabic}</ArabicText>
               {step.transliteration && (
                 <Text style={styles.translitText}>{step.transliteration}</Text>
               )}

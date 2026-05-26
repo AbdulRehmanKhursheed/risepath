@@ -10,6 +10,7 @@ import { theme } from '../constants/theme';
 import { DUAS, DUA_CATEGORY_META, type Dua, type DuaCategory } from '../constants/duas';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { ArabicText } from '../components/ui/ArabicText';
 
 const FAVORITES_KEY = 'dua_favorites';
 const ALL_CATS = Object.keys(DUA_CATEGORY_META) as DuaCategory[];
@@ -92,7 +93,7 @@ export function DuaScreen() {
           </TouchableOpacity>
         </View>
         <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardArabic} numberOfLines={2}>{item.arabic}</Text>
+        <ArabicText style={styles.cardArabic} numberOfLines={2}>{item.arabic}</ArabicText>
         <Text style={styles.cardTap}>Tap to read full dua ›</Text>
       </TouchableOpacity>
     );
@@ -206,7 +207,7 @@ export function DuaScreen() {
                 </View>
                 <Text style={styles.modalTitle}>{selected.title}</Text>
                 <View style={styles.arabicCard}>
-                  <Text style={styles.modalArabic}>{selected.arabic}</Text>
+                  <ArabicText style={styles.modalArabic}>{selected.arabic}</ArabicText>
                 </View>
                 <Text style={styles.modalTranslit}>{selected.transliteration}</Text>
                 <View style={styles.divider} />

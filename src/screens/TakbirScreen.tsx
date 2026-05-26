@@ -13,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../constants/theme';
+import { ArabicText } from '../components/ui/ArabicText';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { gregorianToHijri } from '../utils/hijri';
@@ -213,7 +214,7 @@ export function TakbirScreen() {
 
         {/* Takbir card */}
         <View style={styles.takbirCard}>
-          <Text style={styles.takbirArabic}>{TAKBIR.arabic}</Text>
+          <ArabicText style={styles.takbirArabic}>{TAKBIR.arabic}</ArabicText>
           <Text style={[styles.takbirTranslit, { fontSize: fs(13) }]}>
             {TAKBIR.transliteration}
           </Text>

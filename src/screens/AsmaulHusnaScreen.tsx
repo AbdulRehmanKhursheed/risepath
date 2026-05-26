@@ -11,6 +11,7 @@ import { theme } from '../constants/theme';
 import { ASMAUL_HUSNA, type Name99 } from '../constants/asmaulHusna';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
+import { ArabicText } from '../components/ui/ArabicText';
 
 const KNOWN_KEY = 'asmaul_husna_known';
 
@@ -101,7 +102,7 @@ export function AsmaulHusnaScreen() {
             {item.number}
           </Text>
         </View>
-        <Text style={styles.nameArabic}>{item.arabic}</Text>
+        <ArabicText style={styles.nameArabic}>{item.arabic}</ArabicText>
         <Text style={styles.nameTranslit}>{item.transliteration}</Text>
         <Text style={styles.nameMeaning} numberOfLines={1}>{item.meaning}</Text>
       </TouchableOpacity>
@@ -119,7 +120,7 @@ export function AsmaulHusnaScreen() {
         style={styles.headerGradient}
       >
         <Text style={styles.headerTitle}>99 Names of Allah</Text>
-        <Text style={styles.headerArabic}>أسماء الله الحسنى</Text>
+        <ArabicText style={styles.headerArabic}>أسماء الله الحسنى</ArabicText>
 
         <View style={styles.progressRow}>
           <View style={styles.progressBar}>
@@ -178,7 +179,7 @@ export function AsmaulHusnaScreen() {
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.modalArabic}>{selected.arabic}</Text>
+                <ArabicText style={styles.modalArabic}>{selected.arabic}</ArabicText>
                 <Text style={styles.modalTranslit}>{selected.transliteration}</Text>
                 <View style={styles.meaningCard}>
                   <Text style={styles.meaningLabel}>Meaning</Text>
@@ -188,7 +189,7 @@ export function AsmaulHusnaScreen() {
                 <View style={styles.dhikrCard}>
                   <Text style={styles.dhikrTitle}>Daily Dhikr</Text>
                   <Text style={styles.dhikrSub}>Recite this name 100 times after Fajr prayer</Text>
-                  <Text style={styles.dhikrArabic}>{selected.arabic}</Text>
+                  <ArabicText style={styles.dhikrArabic}>{selected.arabic}</ArabicText>
                 </View>
               </ScrollView>
             )}

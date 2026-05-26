@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ArabicText } from '../components/ui/ArabicText';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
@@ -229,7 +230,7 @@ export function TasbihScreen() {
         </ScrollView>
 
         <View style={styles.dhikrCard}>
-          <Text style={styles.dhikrArabic}>{preset.arabic}</Text>
+          <ArabicText style={styles.dhikrArabic}>{preset.arabic}</ArabicText>
           <Text style={[styles.dhikrTranslit, { fontSize: fs(14) }]}>{preset.transliteration}</Text>
           <Text style={[styles.dhikrTrans, { fontSize: fs(13), textAlign: isRtl ? 'right' : 'center' }]}>
             {translation}
