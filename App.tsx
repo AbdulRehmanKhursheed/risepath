@@ -95,9 +95,20 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 
 SplashScreen.preventAutoHideAsync();
 
+// Ads consent + init at module load is fire-and-forget so it can't block
+// render, but each step is wrapped in a 4s timeout so a slow Google
+// SDK init or a stalled consent form can't keep the JS thread busy on
+// cold start. Functionality degrades gracefully (non-personalized
+// ads or no ads) rather than the app feeling slow on first launch.
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ]);
+}
 (async () => {
-  await requestAdsConsent();
-  await initAds();
+  await withTimeout(requestAdsConsent(), 4000);
+  await withTimeout(initAds(), 4000);
 })().catch(() => {});
 
 const Tab = createBottomTabNavigator();
@@ -337,7 +348,7 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
 }
 
 function AppInner() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Syne_600SemiBold,
     Syne_700Bold,
     PlusJakartaSans_400Regular,
@@ -348,6 +359,17 @@ function AppInner() {
     AmiriQuran: require('./assets/fonts/AmiriQuran-Regular.ttf'),
     NoorehudaQuran: require('./assets/fonts/NoorehudaRegular.ttf'),
   });
+  // Safety net: if useFonts somehow never resolves (asset loader hung,
+  // device storage issue, hot-reload edge), render anyway after 6s with
+  // system-font fallbacks. Better an imperfect-looking app than a dead
+  // splash screen — the funeral incident proved that.
+  const [fontGiveUp, setFontGiveUp] = useState(false);
+  useEffect(() => {
+    if (fontsLoaded) return;
+    const t = setTimeout(() => setFontGiveUp(true), 6000);
+    return () => clearTimeout(t);
+  }, [fontsLoaded]);
+  const fontsReady = fontsLoaded || fontError !== null || fontGiveUp;
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -361,13 +383,13 @@ function AppInner() {
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded && onboardingDone !== null) {
+    if (fontsReady && onboardingDone !== null) {
       await SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, onboardingDone]);
+  }, [fontsReady, onboardingDone]);
 
   useEffect(() => {
-    if (!fontsLoaded || onboardingDone !== true) return;
+    if (!fontsReady || onboardingDone !== true) return;
     // One-time purge of the bulk Quran cache for users upgrading from an
     // earlier build whose trickle-prefetch filled AsyncStorage to the 6MB
     // SQLite cap (which then blocked streak/goal/prayer writes with
@@ -423,13 +445,13 @@ function AppInner() {
       clearTimeout(t);
       if (reviewTimer) clearTimeout(reviewTimer);
     };
-  }, [fontsLoaded, onboardingDone]);
+  }, [fontsReady, onboardingDone]);
 
   // Re-run the prayer schedule on every resume. Idempotent and lightweight,
   // but throttled to once per 30 s to avoid hammering on rapid state churn.
   const lastResumeRebuildAt = useRef<number>(0);
   useEffect(() => {
-    if (!fontsLoaded || onboardingDone !== true) return;
+    if (!fontsReady || onboardingDone !== true) return;
     const onChange = (state: AppStateStatus) => {
       if (state !== 'active') return;
       const now = Date.now();
@@ -439,14 +461,21 @@ function AppInner() {
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
-  }, [fontsLoaded, onboardingDone]);
+  }, [fontsReady, onboardingDone]);
 
   const completeOnboarding = async () => {
-    await AsyncStorage.setItem('onboarding_complete', 'true');
+    try {
+      await AsyncStorage.setItem('onboarding_complete', 'true');
+    } catch {
+      // Storage write can fail (full disk, corrupted SQLite); we still
+      // want to advance the user out of the onboarding screen rather
+      // than trapping them there. Next launch will re-show onboarding,
+      // which is the correct degradation.
+    }
     setOnboardingDone(true);
   };
 
-  if (!fontsLoaded || onboardingDone === null) {
+  if (!fontsReady || onboardingDone === null) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={theme.colors.accent} />
