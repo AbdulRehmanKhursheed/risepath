@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
   ScrollView,
+  BackHandler,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -42,15 +43,43 @@ export function OnboardingScreen({ onComplete }: Props) {
     }
   };
 
-  const finish = async () => {
-    await setLanguage(language);
-    await storage.setFiqhSchool(selectedSchool);
-    await storage.setPrayerSettings({
-      calculationMethod: selectedMethod,
-      madhab: selectedMadhab,
-      fiqhSchool: selectedSchool,
+  // Hardware back on Android should step backwards through the flow, not
+  // exit the app and lose the user's progress.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (step === 'language') return false; // let the OS handle (exit)
+      if (step === 'school') { setStep('language'); return true; }
+      if (step === 'method') { setStep('school'); return true; }
+      return false;
     });
-    onComplete();
+    return () => sub.remove();
+  }, [step]);
+
+  // Debounce + loading state so a second tap during the storage writes
+  // doesn't double-fire and the user gets visual feedback that something
+  // is happening (slow Android devices can take ~1s for three setItem
+  // calls on full storage).
+  const finishingRef = useRef(false);
+  const [finishing, setFinishing] = useState(false);
+  const finish = async () => {
+    if (finishingRef.current) return;
+    finishingRef.current = true;
+    setFinishing(true);
+    try {
+      await setLanguage(language);
+      await storage.setFiqhSchool(selectedSchool);
+      await storage.setPrayerSettings({
+        calculationMethod: selectedMethod,
+        madhab: selectedMadhab,
+        fiqhSchool: selectedSchool,
+      });
+    } catch {
+      // Storage may fail (full disk, corrupted SQLite). Still advance the
+      // user out of onboarding rather than trapping them — next launch will
+      // re-show the flow if nothing got persisted.
+    } finally {
+      onComplete();
+    }
   };
 
   if (step === 'language') {

@@ -71,7 +71,7 @@ export const ASMAUL_HUSNA: Name99[] = [
   { number: 62, arabic: 'الْحَيّ',             transliteration: 'Al-Hayy',             meaning: 'The Ever-Living',             description: 'The One who is alive with a life that has no beginning or end.' },
   { number: 63, arabic: 'الْقَيُّوم',          transliteration: 'Al-Qayyum',           meaning: 'The Self-Subsisting',         description: 'The One who sustains Himself and upon whom all creation depends.' },
   { number: 64, arabic: 'الْوَاجِد',           transliteration: 'Al-Wajid',            meaning: 'The Finder',                  description: 'The One who is self-sufficient and finds whatever He wills.' },
-  { number: 65, arabic: 'الْمَاجِد',           transliteration: 'Al-Maajid',           meaning: 'The Noble',                   description: 'The One who is noble and generous, combining glory with graciousness.' },
+  { number: 65, arabic: 'الْمَاجِد',           transliteration: 'Al-Majid',            meaning: 'The Noble',                   description: 'The One who is noble and generous, combining glory with graciousness.' },
   { number: 66, arabic: 'الْوَاحِد',           transliteration: 'Al-Wahid',            meaning: 'The One',                     description: 'The One who has no partner, associate, or equal in any way.' },
   { number: 67, arabic: 'الْأَحَد',            transliteration: 'Al-Ahad',             meaning: 'The Unique',                  description: 'The One who is uniquely one — unlike anything in creation.' },
   { number: 68, arabic: 'الصَّمَد',            transliteration: 'As-Samad',            meaning: 'The Eternal',                 description: 'The One who is self-sufficient and whom all of creation turns to in need.' },

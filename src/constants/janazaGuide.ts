@@ -255,7 +255,7 @@ export const JANAZA_PHASES: JanazaPhase[] = [
           'Hanafi (mainstream in Pakistan/India): Five white pieces for additional modesty:\n1. Izar — large sheet for the full body\n2. Qamees (Dir\') — long shirt\n3. Khimar — headscarf/head covering\n4. Sinaband — chest wrap/binding\n5. Lifafah — outer sheet\n\nShafi\'i, Maliki, Hanbali: minimum 3 pieces (izar, qamees, lifafah); 5 is mustahabb (recommended) not wajib.\n\nTie at head, middle, and feet. Apply camphor-soaked cotton at forehead, nose, hands, knees, and feet.',
         descriptionUr:
           'حنفی (پاکستان/انڈیا میں عام): پانچ سفید کپڑے:\n۱. ازار، ۲. قمیص (در)، ۳. خمار (دوپٹہ)، ۴. سینہ بند، ۵. لفافہ\n\nشافعی، مالکی، حنبلی: کم از کم ۳ کپڑے کافی؛ ۵ مستحب۔\n\nسر، درمیان اور پاؤں کی طرف سے باندھیں۔ پیشانی، ناک، ہاتھ، گھٹنے اور پاؤں پر کافور لگی روئی رکھیں۔',
-        source: 'Hanafi: al-Hidaya (Kitab al-Janaiz), Bada\'i\' al-Sana\'i\' by al-Kasani. Basis: Umm Atiyya washing the Prophet\'s daughter (Sahih Bukhari 1253). Other madhahib: minimum 3 cloths per Sahih Bukhari 1264.',
+        source: 'Hanafi 5-piece structure: classical jurisprudence in al-Hidaya (Kitab al-Janaiz) by al-Marghinani and Bada\'i\' al-Sana\'i\' by al-Kasani, derived from the context of Umm Atiyya washing the Prophet\'s daughter (Sahih Bukhari 1253) and modesty principles. Other madhahib minimum 3 cloths: Sahih Bukhari 1264.',
         shiaNote: 'Jafari: 3 pieces obligatory (izar, qamees, lifafah) — same minimum as male. The additional pieces (khimar, sinaband) are mustahabb but not required.',
         checkable: true,
       },
@@ -297,10 +297,10 @@ export const JANAZA_PHASES: JanazaPhase[] = [
         title: 'Position: Where the Imam Stands',
         titleUr: 'امام کی جگہ',
         description:
-          'Male deceased: imam stands aligned with the head (chest area in some narrations).\nFemale deceased: imam stands aligned with the middle of the body (waist).\nThe body is laid perpendicular to qibla, head to the imam\'s right side. Worshippers form rows behind the imam — an odd number of rows is sunnah.',
+          'Hanafi / Maliki:\n• Male deceased — imam aligned with the chest area (in some narrations, the head).\n• Female deceased — imam aligned with the middle of the body (waist).\n\nShafi\'i / Hanbali:\n• Male deceased — imam at the head.\n• Female deceased — imam at the middle of the body (waist) — some narrations say her shoulders/back.\n\nThe body is laid perpendicular to qibla, head to the imam\'s right side. Worshippers form rows behind the imam — an odd number of rows is sunnah. If you\'re unsure which madhab your imam follows, take any row position behind him — your salah is valid.',
         descriptionUr:
-          'مرد میت: امام سر (یا سینہ) کے سامنے کھڑا ہو۔\nعورت میت: امام درمیانِ جسم (کمر) کے سامنے کھڑا ہو۔\nمیت قبلہ رو رکھیں، سر امام کی دائیں طرف۔ صفیں پیچھے بنائیں — طاق صفیں سنت ہیں۔',
-        source: 'Abu Dawud 3194, Tirmidhi 1034 — Anas (RA) prayed over a man at his head and a woman at her waist.',
+          'حنفی / مالکی:\n• مرد میت — امام سینہ (یا سر) کے سامنے۔\n• عورت میت — امام درمیانِ جسم (کمر) کے سامنے۔\n\nشافعی / حنبلی:\n• مرد میت — امام سر کے سامنے۔\n• عورت میت — امام درمیانِ جسم کے سامنے۔\n\nمیت قبلہ رو، سر امام کی دائیں طرف۔ صفیں پیچھے، طاق صفیں سنت۔',
+        source: 'Hanafi/Maliki: Abu Dawud 3194, Tirmidhi 1034 — Anas (RA). Shafi\'i/Hanbali: al-Mughni by Ibn Qudamah; al-Majmu\' by al-Nawawi.',
         checkable: false,
       },
       {

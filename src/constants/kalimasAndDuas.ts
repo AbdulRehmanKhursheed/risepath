@@ -80,7 +80,7 @@ export const DUAS: Dua[] = [
   {
     id: 'eating-before',
     title: 'Before Eating',
-    titleUr: 'Khana khane se pehle',
+    titleUr: 'کھانا کھانے سے پہلے',
     arabic: 'بِسْمِ ٱللَّٰهِ',
     transliteration: 'Bismillāh',
     translation: 'In the name of Allah.',
@@ -90,7 +90,7 @@ export const DUAS: Dua[] = [
   {
     id: 'eating-after',
     title: 'After Eating',
-    titleUr: 'Khana khane ke baad',
+    titleUr: 'کھانا کھانے کے بعد',
     arabic: 'ٱلْحَمْدُ لِلَّٰهِ ٱلَّذِي أَطْعَمَنِي هَٰذَا وَرَزَقَنِيهِ مِنْ غَيْرِ حَوْلٍ مِنِّي وَلَا قُوَّةٍ',
     transliteration: 'Alḥamdulillāhilladhī aṭʿamanī hādhā wa razaqanīhi min ghayri ḥawlin minnī wa lā quwwah',
     translation: 'All praise is for Allah who has fed me this and provided it for me without any might or power from myself.',
@@ -100,7 +100,7 @@ export const DUAS: Dua[] = [
   {
     id: 'bathroom-enter',
     title: 'Before Entering Bathroom',
-    titleUr: 'Bathroom jane se pehle',
+    titleUr: 'بیت الخلا میں داخل ہوتے وقت',
     arabic: 'ٱللَّٰهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ ٱلْخُبُثِ وَٱلْخَبَائِثِ',
     transliteration: 'Allāhumma innī aʿūdhu bika min al-khubuthi wal-khabāʾith',
     translation: 'O Allah, I seek refuge in You from male and female evil (spirits).',
@@ -110,7 +110,7 @@ export const DUAS: Dua[] = [
   {
     id: 'bathroom-exit',
     title: 'After Leaving Bathroom',
-    titleUr: 'Bathroom se nikalne ke baad',
+    titleUr: 'بیت الخلا سے نکلتے وقت',
     arabic: 'غُفْرَانَكَ ٱلْحَمْدُ لِلَّٰهِ ٱلَّذِي أَذْهَبَ عَنِّي ٱلْأَذَىٰ وَعَافَانِي',
     transliteration: 'Ghufrānak. Alḥamdulillāhilladhī adhhaba ʿannī al-adhā wa ʿāfānī',
     translation: 'I seek Your forgiveness. All praise is for Allah who has removed the harm from me and granted me health.',
@@ -120,7 +120,7 @@ export const DUAS: Dua[] = [
   {
     id: 'sleep',
     title: 'Before Sleeping',
-    titleUr: 'Sone se pehle',
+    titleUr: 'سونے سے پہلے',
     arabic: 'بِٱسْمِكَ ٱللَّٰهُمَّ أَمُوتُ وَأَحْيَا',
     transliteration: 'Bismika Allāhumma amūtu wa aḥyā',
     translation: 'In Your name, O Allah, I die and I live.',
@@ -130,7 +130,7 @@ export const DUAS: Dua[] = [
   {
     id: 'wake',
     title: 'Upon Waking',
-    titleUr: 'Jagne ke baad',
+    titleUr: 'جاگنے کے بعد',
     arabic: 'ٱلْحَمْدُ لِلَّٰهِ ٱلَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ ٱلنُّشُورُ',
     transliteration: 'Alḥamdulillāhilladhī aḥyānā baʿda mā amātanā wa ilayhin nushūr',
     translation: 'All praise is for Allah who gave us life after death, and to Him is the resurrection.',
@@ -140,7 +140,7 @@ export const DUAS: Dua[] = [
   {
     id: 'wudu-before',
     title: 'Before Wudu',
-    titleUr: 'Wudu se pehle',
+    titleUr: 'وضو سے پہلے',
     arabic: 'بِسْمِ ٱللَّٰهِ',
     transliteration: 'Bismillāh',
     translation: 'In the name of Allah.',
@@ -150,7 +150,7 @@ export const DUAS: Dua[] = [
   {
     id: 'wudu-after',
     title: 'After Wudu',
-    titleUr: 'Wudu ke baad',
+    titleUr: 'وضو کے بعد',
     arabic: 'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا ٱللَّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',
     transliteration: 'Ashhadu an lā ilāha illallāhu waḥdahu lā sharīka lahu wa ashhadu anna Muḥammadan ʿabduhu wa rasūluhu',
     translation: 'I bear witness that there is no god but Allah alone, with no partner, and I bear witness that Muhammad is His servant and Messenger.',
@@ -160,7 +160,7 @@ export const DUAS: Dua[] = [
   {
     id: 'leave-home',
     title: 'When Leaving Home',
-    titleUr: 'Ghar se nikalte waqt',
+    titleUr: 'گھر سے نکلتے وقت',
     arabic: 'بِسْمِ ٱللَّٰهِ تَوَكَّلْتُ عَلَى ٱللَّٰهِ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ',
     transliteration: 'Bismillāhi tawakkaltu ʿalallāhi wa lā ḥawla wa lā quwwata illā billāh',
     translation: 'In the name of Allah, I place my trust in Allah. There is no might or power except with Allah.',
@@ -170,7 +170,7 @@ export const DUAS: Dua[] = [
   {
     id: 'enter-home',
     title: 'When Entering Home',
-    titleUr: 'Ghar mein aate waqt',
+    titleUr: 'گھر میں داخل ہوتے وقت',
     arabic: 'بِسْمِ ٱللَّٰهِ وَلَجْنَا وَبِسْمِ ٱللَّٰهِ خَرَجْنَا وَعَلَىٰ رَبِّنَا تَوَكَّلْنَا',
     transliteration: 'Bismillāhi walajnā wa bismillāhi kharajnā wa ʿalā rabbinā tawakkalnā',
     translation: 'In the name of Allah we enter, in the name of Allah we leave, and upon our Lord we rely.',
@@ -180,7 +180,7 @@ export const DUAS: Dua[] = [
   {
     id: 'travel',
     title: 'When Traveling',
-    titleUr: 'Safar karte waqt',
+    titleUr: 'سفر شروع کرتے وقت',
     arabic: 'سُبْحَانَ ٱلَّذِي سَخَّرَ لَنَا هَٰذَا وَمَا كُنَّا لَهُ مُقْرِنِينَ وَإِنَّا إِلَىٰ رَبِّنَا لَمُنقَلِبُونَ',
     transliteration: 'Subḥānalladhī sakhkhara lanā hādhā wa mā kunnā lahu muqrinīn. Wa innā ilā rabbinā lamunqalibūn',
     translation: 'Glory be to Him who has subjected this to us, and we could not have done it ourselves. And indeed, to our Lord we will return.',
@@ -190,7 +190,7 @@ export const DUAS: Dua[] = [
   {
     id: 'sneeze',
     title: 'After Sneezing',
-    titleUr: 'Chheenk aane ke baad',
+    titleUr: 'چھینک آنے کے بعد',
     arabic: 'ٱلْحَمْدُ لِلَّٰهِ',
     transliteration: 'Alḥamdulillāh',
     translation: 'All praise is for Allah.',
@@ -200,7 +200,7 @@ export const DUAS: Dua[] = [
   {
     id: 'distress',
     title: 'In Distress',
-    titleUr: 'Pareshani mein',
+    titleUr: 'پریشانی میں',
     arabic: 'لَا إِلَٰهَ إِلَّا أَنْتَ سُبْحَانَكَ إِنِّي كُنتُ مِنَ ٱلظَّالِمِينَ',
     transliteration: 'Lā ilāha illā anta subḥānaka innī kuntu minaẓ-ẓālimīn',
     translation: 'There is no god but You. Glory be to You. Indeed, I was among the wrongdoers.',

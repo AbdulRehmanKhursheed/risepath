@@ -682,11 +682,11 @@ export const HADITHS: Hadith[] = [
   },
   {
     id: 85,
-    arabic: 'مَنْ قَرَأَ حَرْفًا مِنْ كِتَابِ اللَّهِ فَلَهُ بِهِ حَسَنَةٌ، وَالْحَسَنَةُ بِعَشْرِ أَمْثَالِهَا',
-    english: 'Whoever recites a letter from the Book of Allah, he will have a reward, and that reward is multiplied by ten.',
-    urdu: 'جو شخص اللہ کی کتاب سے ایک حرف بھی پڑھے، اس کے لیے ایک نیکی ہے، اور ہر نیکی کا اجر دس گنا ہے۔',
-    narrator: 'Abdullah ibn Mas\'ud',
-    source: 'Tirmidhi 2910 (sahih)',
+    arabic: 'مَنْ سَرَّهُ أَنْ يُبْسَطَ لَهُ فِي رِزْقِهِ، وَأَنْ يُنْسَأَ لَهُ فِي أَثَرِهِ، فَلْيَصِلْ رَحِمَهُ',
+    english: 'Whoever loves that his provision be expanded and his life span extended — let him maintain ties of kinship.',
+    urdu: 'جو چاہتا ہے کہ اس کے رزق میں وسعت اور عمر میں برکت ہو، وہ اپنے رشتہ داروں سے صلہ رحمی کرے۔',
+    narrator: 'Abu Hurairah',
+    source: 'Sahih Bukhari 5985, Sahih Muslim 2557',
   },
   {
     id: 86,

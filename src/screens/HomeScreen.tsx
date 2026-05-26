@@ -148,7 +148,12 @@ export function HomeScreen() {
         }
       })();
       return () => { cancelled = true; };
-    }, [language, t.streakMilestoneTitle, t.streakMilestoneBody, defaultGoals])
+      // Only `language` is meaningful here. The translation-string entries
+      // are object-property reads from the LanguageContext and would
+      // re-fire this entire async pipeline on every parent render, not just
+      // on focus. They're referenced inside via t.* which stays current.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [language])
   );
 
   // A goal counts as completed only if it was checked TODAY. Carrying a

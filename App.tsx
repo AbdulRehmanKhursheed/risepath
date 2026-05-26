@@ -373,13 +373,32 @@ function AppInner() {
   const [onboardingDone, setOnboardingDone] = useState<boolean | null>(null);
 
   useEffect(() => {
+    let mounted = true;
+    let settled = false;
     AsyncStorage.getItem('onboarding_complete')
       .then((val) => {
+        if (!mounted) return;
+        settled = true;
         setOnboardingDone(val === 'true');
       })
       .catch(() => {
+        if (!mounted) return;
+        settled = true;
         setOnboardingDone(false);
       });
+    // Safety net: if AsyncStorage hangs (corrupted SQLite, locked DB,
+    // extreme system load), don't trap users on an infinite loading
+    // spinner. Fall back to "show onboarding" after 3s — fresh-install
+    // users were going to see it anyway, and returning users will be
+    // re-onboarded once (annoying but recoverable).
+    const t = setTimeout(() => {
+      if (!mounted || settled) return;
+      setOnboardingDone(false);
+    }, 3000);
+    return () => {
+      mounted = false;
+      clearTimeout(t);
+    };
   }, []);
 
   const onLayoutRootView = useCallback(async () => {
