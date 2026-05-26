@@ -149,6 +149,7 @@ export function PrayerTrackerScreen() {
   // avoid repeated cancel/reschedule cycles on parent re-renders. The settings
   // tuple in the key ensures a calc-method/madhab change re-runs the schedule.
   const lastScheduledKey = useRef<string>('');
+  const [notifDenied, setNotifDenied] = useState(false);
   useEffect(() => {
     const todayKey = getDateString(today);
     const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
@@ -157,7 +158,14 @@ export function PrayerTrackerScreen() {
     let cancelled = false;
     (async () => {
       const granted = await requestNotificationPermissions();
-      if (cancelled || !granted) return;
+      if (cancelled) return;
+      if (!granted) {
+        // Surface the denial state so the screen can show a banner
+        // instead of silently failing to schedule adhan reminders.
+        setNotifDenied(true);
+        return;
+      }
+      setNotifDenied(false);
       if (granted) {
         await setupNotificationChannel();
         // Schedule prayer reminders 7 days ahead so they survive app dormancy.
@@ -290,6 +298,39 @@ export function PrayerTrackerScreen() {
         madhab={madhab}
         onSave={onSettingsSave}
       />
+
+      {notifDenied && (
+        <TouchableOpacity
+          style={styles.locationBanner}
+          onPress={() => Linking.openSettings().catch(() => {})}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={
+            language === 'ur'
+              ? 'اذان کی یاد دہانی کے لیے نوٹیفکیشن کی اجازت دیں'
+              : 'Enable notifications for adhan reminders'
+          }
+        >
+          <Text style={styles.locationBannerIcon}>🔔</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationBannerTitle}>
+              {language === 'ur'
+                ? 'اذان کی یاد دہانی بند ہے'
+                : language === 'ar'
+                ? 'تذكيرات الأذان معطّلة'
+                : 'Adhan reminders are off'}
+            </Text>
+            <Text style={styles.locationBannerSub}>
+              {language === 'ur'
+                ? 'سیٹنگز میں نوٹیفکیشن کی اجازت دینے کے لیے ٹیپ کریں'
+                : language === 'ar'
+                ? 'اضغط للسماح بالإشعارات في الإعدادات'
+                : 'Tap to enable notification permission in Settings'}
+            </Text>
+          </View>
+          <Text style={styles.locationBannerArrow}>›</Text>
+        </TouchableOpacity>
+      )}
 
       {usingFallback && (
         <TouchableOpacity

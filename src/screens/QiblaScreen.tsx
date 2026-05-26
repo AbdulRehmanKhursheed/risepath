@@ -5,6 +5,8 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  TouchableOpacity,
+  Linking,
 } from 'react-native';
 import Svg, {
   Circle,
@@ -48,6 +50,7 @@ function polarToXY(angleDeg: number, r: number) {
 
 export function QiblaScreen() {
   const { t, language } = useLanguage();
+  const isUrdu = language === 'ur';
   const { location, loading } = useLocation();
   const { heading, available } = useCompass();
   const lat = location?.latitude ?? 24.8607;
@@ -220,7 +223,25 @@ export function QiblaScreen() {
               {Math.round(turnDegrees)}°
             </Text>
           )}
-          {(!available || heading == null) && (
+          {!available && (
+            <TouchableOpacity
+              style={styles.permissionCard}
+              onPress={() => Linking.openSettings().catch(() => {})}
+              accessibilityRole="button"
+            >
+              <Text style={styles.permissionTitle}>
+                {isUrdu
+                  ? '📍 قبلہ کمپاس کے لیے لوکیشن کی اجازت درکار ہے'
+                  : '📍 Compass needs location permission'}
+              </Text>
+              <Text style={styles.permissionBody}>
+                {isUrdu
+                  ? 'سیٹنگز میں جا کر لوکیشن کی اجازت دیں — یہ آپ کی پوزیشن یاد نہیں رکھتا، صرف قبلہ سمت کے لیے درکار ہے۔'
+                  : 'Tap to open Settings and enable location. We don\'t store your position — it\'s only used to compute the Qibla bearing.'}
+              </Text>
+            </TouchableOpacity>
+          )}
+          {available && heading == null && (
             <Text style={styles.hintText}>
               {t.pointPhoneNorth}
             </Text>
@@ -351,6 +372,30 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontBody,
     textAlign: 'center',
     marginTop: 4,
+  },
+  permissionCard: {
+    marginTop: theme.spacing.md,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.accentMuted,
+    alignItems: 'center',
+  },
+  permissionTitle: {
+    fontSize: 14,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  permissionBody: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+    lineHeight: 17,
   },
   footerHint: {
     fontSize: 12,

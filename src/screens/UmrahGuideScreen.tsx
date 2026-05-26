@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UMRAH_STEPS } from '../constants/umrahGuide';
 import { theme } from '../constants/theme';
@@ -114,7 +116,31 @@ export function UmrahGuideScreen() {
 
                   {step.dua && (
                     <View style={styles.duaCard}>
-                      <Text style={styles.duaLabel}>{isUrdu ? 'دعا' : 'Dua'}</Text>
+                      <View style={styles.duaHeader}>
+                        <Text style={styles.duaLabel}>{isUrdu ? 'دعا' : 'Dua'}</Text>
+                        <View style={styles.duaActions}>
+                          <TouchableOpacity
+                            style={styles.duaAction}
+                            onPress={() => Clipboard.setStringAsync(step.dua!.arabic)}
+                            accessibilityLabel={isUrdu ? 'عربی کاپی کریں' : 'Copy Arabic'}
+                          >
+                            <Text style={styles.duaActionText}>📋 {isUrdu ? 'کاپی' : 'Copy'}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={styles.duaAction}
+                            onPress={() =>
+                              Share.share({
+                                message: `${step.dua!.arabic}\n\n${step.dua!.transliteration}\n\n"${
+                                  isUrdu ? step.dua!.translationUr : step.dua!.translation
+                                }"`,
+                              })
+                            }
+                            accessibilityLabel={isUrdu ? 'شیئر کریں' : 'Share'}
+                          >
+                            <Text style={styles.duaActionText}>📤 {isUrdu ? 'شیئر' : 'Share'}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
                       <ArabicText style={styles.duaArabic}>{step.dua.arabic}</ArabicText>
                       <Text style={styles.duaTranslit}>{step.dua.transliteration}</Text>
                       <Text style={styles.duaTrans}>
@@ -365,10 +391,13 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: theme.colors.success,
     fontFamily: theme.typography.fontBodyBold,
-    marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  duaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  duaActions: { flexDirection: 'row', gap: 6 },
+  duaAction: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: theme.borderRadius.full, backgroundColor: theme.colors.accentMuted },
+  duaActionText: { fontSize: 11, color: theme.colors.accent, fontFamily: theme.typography.fontBodyMedium },
   duaArabic: {
     fontSize: 20,
     color: theme.colors.text,

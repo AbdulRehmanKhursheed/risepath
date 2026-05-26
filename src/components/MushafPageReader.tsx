@@ -19,6 +19,7 @@ import {
 import { theme } from '../constants/theme';
 import {
   fetchPage,
+  fetchPageSafe,
   prefetchAdjacentPages,
   PageContent,
   TOTAL_PAGES,
@@ -63,11 +64,23 @@ export function MushafPageReader({
   setScript: (s: QuranScript) => void;
 }) {
   const isUrdu = language === 'ur';
-  const [page, setPage] = useState(initialPage);
+  // Clamp initialPage to [1, TOTAL_PAGES]. Without this, a caller passing 0,
+  // 605, or NaN would land us on an invalid index and the FlatList scroll
+  // would silently misfire.
+  const [page, setPage] = useState(() => {
+    const n = Math.floor(Number(initialPage));
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(1, Math.min(TOTAL_PAGES, n));
+  });
   const [legendOpen, setLegendOpen] = useState(false);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
   const [selectedVerse, setSelectedVerse] = useState<PageVerse | null>(null);
+
+  // Clear any open verse highlight when the user swipes to a new page —
+  // otherwise a stale selection from the previous page can mis-render an
+  // unrelated verse on the new page if verse numbers happen to coincide.
+  useEffect(() => { setSelectedVerse(null); }, [page]);
   const translationMode: TranslationMode = isUrdu ? 'urdu' : 'english';
 
   const listRef = useRef<FlatList<number>>(null);
@@ -335,9 +348,20 @@ function MushafPage({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    fetchPage(pageNum)
+    // fetchPageSafe returns null on network failure with no cache — matches
+    // the offline-safe pattern fetchSurahSafe uses. Without this, a user
+    // offline on an uncached page sees a bare "Could not load" with no
+    // distinction between cache miss and network error.
+    fetchPageSafe(pageNum)
       .then((c) => {
         if (cancelled) return;
+        if (!c) {
+          setError(isUrdu
+            ? 'یہ صفحہ آف لائن دستیاب نہیں۔ نیٹ ورک سے جڑنے پر دوبارہ کوشش کریں۔'
+            : 'This page isn\'t cached offline. Reconnect and try again.');
+          setLoading(false);
+          return;
+        }
         setContent(c);
         setLoading(false);
         prefetchAdjacentPages(pageNum);

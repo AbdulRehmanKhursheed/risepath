@@ -55,16 +55,13 @@ export function OnboardingScreen({ onComplete }: Props) {
     return () => sub.remove();
   }, [step]);
 
-  // Debounce + loading state so a second tap during the storage writes
-  // doesn't double-fire and the user gets visual feedback that something
-  // is happening (slow Android devices can take ~1s for three setItem
-  // calls on full storage).
+  // Debounce a second tap during the storage writes so we don't double-fire
+  // setLanguage + setFiqhSchool + setPrayerSettings on slow Android devices
+  // where three sequential AsyncStorage writes can take ~1s.
   const finishingRef = useRef(false);
-  const [finishing, setFinishing] = useState(false);
   const finish = async () => {
     if (finishingRef.current) return;
     finishingRef.current = true;
-    setFinishing(true);
     try {
       await setLanguage(language);
       await storage.setFiqhSchool(selectedSchool);
