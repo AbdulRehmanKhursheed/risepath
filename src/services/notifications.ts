@@ -524,6 +524,10 @@ export async function scheduleSacredCountdownNotifications(
 
   for (const event of events) {
     if (mutedIds.includes(event.id)) continue;
+    // Skip events whose effective date has already passed — otherwise we'd
+    // waste schedule slots (and confuse users on iOS where the 64-cap is
+    // shared) trying to fire reminders for moments that are gone.
+    if (event.effectiveDate.getTime() <= now.getTime()) continue;
 
     const milestones = getMilestonesFor(event.type);
 

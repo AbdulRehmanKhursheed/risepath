@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
@@ -28,6 +29,9 @@ import { PLAY_STORE_URL } from '../constants/appLinks';
 
 const SIDEBAR_WIDTH = 300;
 const ANIM_DURATION = 260;
+// Live version from app.json so the About / footer string never goes stale
+// when version is bumped at release time.
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 type NavItem = {
   name: string;
@@ -317,7 +321,7 @@ export function Sidebar() {
                   ? 'نص القرآن مأخوذ من الرسم العثماني، وترجمة Saheeh International الإنجليزية، وترجمة المودودي الأردية.\n\nتم جمع مراجع الأحاديث والأدعية بعناية من مصادر معتبرة، ومع التنبيه عند وجود خلاف أو ضعف معروف.\n\nهذا التطبيق وسيلة تعليمية وتحفيزية، وليس بديلا عن العالم المؤهل. في المسائل الشرعية الخاصة، راجع عالما موثوقا في بلدك.\n\nتبقى بيانات الصلاة والقرآن والحفظ والمزاج والأهداف على جهازك. لتمويل التطبيق المجاني قد تظهر إعلانات بانر من Google AdMob في بعض الشاشات، وقد يستقبل Sentry تقارير أعطال مجهولة لمساعدتنا على إصلاح الأخطاء.'
                   : 'Quran text is sourced from the Uthmani script, Saheeh International English translation, and Maududi Urdu translation.\n\nHadith references and duas have been compiled carefully from established sources. Where a narration is known to be disputed or weak, a note is included.\n\nThis app is an educational and motivational aid, not a substitute for a qualified Islamic scholar. For personal religious rulings, consult a trusted local scholar.\n\nYour prayer, Quran, hifz, mood, and goal data stays on your device. To keep Noor free, some screens show Google AdMob banner ads, and Sentry may receive anonymous crash reports so we can fix bugs.'}
               </Text>
-              <Text style={styles.modalVersion}>Noor v1.0.2</Text>
+              <Text style={styles.modalVersion}>Noor v{APP_VERSION}</Text>
             </ScrollView>
             <TouchableOpacity
               style={styles.resetStatsBtn}
@@ -555,7 +559,7 @@ export function Sidebar() {
           >
             <Text style={[styles.aboutLinkText, { fontSize: fs(11) }]}>
               {isUrdu ? 'ℹ  اہم نوٹ / ڈس کلیمر' : isArabic ? 'ℹ  عن التطبيق' : 'ℹ  About & Disclaimer'}
-              <Text style={styles.aboutVersion}>  ·  v1.0.2</Text>
+              <Text style={styles.aboutVersion}>  ·  v{APP_VERSION}</Text>
             </Text>
           </TouchableOpacity>
 

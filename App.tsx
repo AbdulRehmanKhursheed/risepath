@@ -6,6 +6,7 @@ import { NavigationContainer, DefaultTheme, useNavigationContainerRef, CommonAct
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import {
   useFonts,
   Syne_600SemiBold,
@@ -191,10 +192,23 @@ function MainTabs() {
   );
 }
 
+function routeForNotificationId(id: string): { name: string; params?: object } | null {
+  if (!id) return null;
+  if (id.startsWith('pr:') || id.startsWith('streak:') || id.startsWith('jumu:')) {
+    return { name: 'MainTabs', params: { screen: 'Prayers' } };
+  }
+  if (id.startsWith('sc:')) {
+    return { name: 'SacredJourney' };
+  }
+  return null;
+}
+
 function AppStack({ onLayout }: { onLayout: () => void }) {
   const { pendingSurah, clearPending } = useQuranNav();
   const navRef = useNavigationContainerRef();
   const [navReady, setNavReady] = useState(false);
+  const lastNotifResponse = Notifications.useLastNotificationResponse();
+  const handledNotifIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (pendingSurah === null || !navReady || !navRef.isReady()) return;
@@ -206,6 +220,34 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
     );
     clearPending();
   }, [pendingSurah, navReady, navRef, clearPending]);
+
+  // Cold-launch tap: useLastNotificationResponse fires once with the response
+  // that opened the app. Deduped by identifier so we don't re-navigate on
+  // every render of AppStack.
+  useEffect(() => {
+    if (!navReady || !navRef.isReady() || !lastNotifResponse) return;
+    const id = lastNotifResponse.notification.request.identifier ?? '';
+    if (handledNotifIdRef.current === id) return;
+    const route = routeForNotificationId(id);
+    if (!route) return;
+    handledNotifIdRef.current = id;
+    navRef.dispatch(CommonActions.navigate(route));
+  }, [lastNotifResponse, navReady, navRef]);
+
+  // Foreground / background tap: live response listener routes to the same
+  // place. iOS sometimes only fires this; Android sometimes only fires
+  // useLastNotificationResponse — wire both to be safe.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      if (!navRef.isReady()) return;
+      const id = response.notification.request.identifier ?? '';
+      const route = routeForNotificationId(id);
+      if (!route) return;
+      handledNotifIdRef.current = id;
+      navRef.dispatch(CommonActions.navigate(route));
+    });
+    return () => sub.remove();
+  }, [navRef]);
 
   return (
     <View style={styles.root} onLayout={onLayout}>

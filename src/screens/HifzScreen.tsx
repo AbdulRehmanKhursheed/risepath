@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, FlatList, StyleSheet,
   ScrollView, Animated,
@@ -46,24 +46,30 @@ export function HifzScreen() {
   const [activeJuz, setActiveJuz] = useState<number | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
 
+  const progressRef = useRef<Record<number, HifzStatus>>({});
+  useEffect(() => { progressRef.current = progress; }, [progress]);
+
   useEffect(() => {
+    let mounted = true;
     AsyncStorage.getItem(HIFZ_KEY).then((raw) => {
-      if (!raw) return;
+      if (!mounted || !raw) return;
       try {
-        setProgress(JSON.parse(raw));
+        const parsed = JSON.parse(raw);
+        progressRef.current = parsed;
+        setProgress(parsed);
       } catch {}
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
+    return () => { mounted = false; };
   }, []);
 
   const cycleStatus = useCallback(async (surahNum: number) => {
-    setProgress((prev) => {
-      const current = prev[surahNum] ?? 'none';
-      const nextIndex = (STATUS_ORDER.indexOf(current) + 1) % STATUS_ORDER.length;
-      const next = { ...prev, [surahNum]: STATUS_ORDER[nextIndex] };
-      AsyncStorage.setItem(HIFZ_KEY, JSON.stringify(next));
-      return next;
-    });
+    const current = progressRef.current[surahNum] ?? 'none';
+    const nextIndex = (STATUS_ORDER.indexOf(current) + 1) % STATUS_ORDER.length;
+    const next = { ...progressRef.current, [surahNum]: STATUS_ORDER[nextIndex] };
+    progressRef.current = next;
+    setProgress(next);
+    AsyncStorage.setItem(HIFZ_KEY, JSON.stringify(next)).catch(() => {});
   }, []);
 
   // Three 114-item filters fired on every render before memo — cycling a

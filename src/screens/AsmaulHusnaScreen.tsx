@@ -21,14 +21,21 @@ export function AsmaulHusnaScreen() {
   const [selected, setSelected] = useState<Name99 | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const fadeAnim = useState(new Animated.Value(0))[0];
+  const knownRef = useRef<Set<number>>(new Set());
+  useEffect(() => { knownRef.current = known; }, [known]);
+
   useEffect(() => {
+    let mounted = true;
     AsyncStorage.getItem(KNOWN_KEY).then((raw) => {
-      if (!raw) return;
+      if (!mounted || !raw) return;
       try {
-        setKnown(new Set(JSON.parse(raw)));
+        const next = new Set<number>(JSON.parse(raw));
+        knownRef.current = next;
+        setKnown(next);
       } catch {}
     });
     Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+    return () => { mounted = false; };
   }, []);
 
   // Reset detail modal on navigation away so it doesn't re-appear on return.
@@ -74,12 +81,11 @@ export function AsmaulHusnaScreen() {
   const onPressPlay = useCallback(() => setComingSoonVisible(true), []);
 
   const toggleKnown = async (num: number) => {
-    setKnown((prev) => {
-      const next = new Set(prev);
-      if (next.has(num)) next.delete(num); else next.add(num);
-      AsyncStorage.setItem(KNOWN_KEY, JSON.stringify([...next]));
-      return next;
-    });
+    const next = new Set(knownRef.current);
+    if (next.has(num)) next.delete(num); else next.add(num);
+    knownRef.current = next;
+    setKnown(next);
+    AsyncStorage.setItem(KNOWN_KEY, JSON.stringify([...next])).catch(() => {});
   };
 
   const openName = (name: Name99) => {

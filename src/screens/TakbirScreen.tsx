@@ -82,9 +82,10 @@ export function TakbirScreen() {
   const todayDay = inWindow ? hijri.day : null;
 
   useEffect(() => {
+    let mounted = true;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (!raw) return;
+        if (!mounted || !raw) return;
         try {
           const parsed = JSON.parse(raw);
           // Only keep slots from the current Hijri year. Older years are pruned
@@ -96,7 +97,8 @@ export function TakbirScreen() {
           setCompleted(filtered);
         } catch {}
       })
-      .finally(() => setHydrated(true));
+      .finally(() => { if (mounted) setHydrated(true); });
+    return () => { mounted = false; };
   }, [hijri.year]);
 
   const persist = (next: Record<string, boolean>) => {

@@ -119,24 +119,28 @@ export function PrayerTrackerScreen() {
   // Functional setState avoids the race where two rapid taps both close over
   // the same `prayers` snapshot — without this, the second tap would overwrite
   // the first because both compute their `updated` from the same baseline.
+  // Use a ref to track the latest committed prayers map, so the storage write
+  // doesn't depend on whether React 18 ran the updater synchronously or batched
+  // it. Reading from prevRef inside the updater + writing to ref + storage
+  // afterwards guarantees consistency regardless of batching.
+  const prayersRef = useRef<Record<string, PrayerRecord>>({});
+  useEffect(() => { prayersRef.current = prayers; }, [prayers]);
+
   const markPrayer = useCallback(
     async (key: PrayerName) => {
-      let computed: Record<string, PrayerRecord> | null = null;
-      setPrayers((prev) => {
-        const cur =
-          prev[todayKey] ?? {
-            fajr: false,
-            dhuhr: false,
-            asr: false,
-            maghrib: false,
-            isha: false,
-          };
-        const next = { ...cur, [key]: !cur[key] };
-        const updated = { ...prev, [todayKey]: next };
-        computed = updated;
-        return updated;
-      });
-      if (computed) await storage.setPrayers(computed);
+      const cur =
+        prayersRef.current[todayKey] ?? {
+          fajr: false,
+          dhuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
+        };
+      const next = { ...cur, [key]: !cur[key] };
+      const updated = { ...prayersRef.current, [todayKey]: next };
+      prayersRef.current = updated;
+      setPrayers(updated);
+      await storage.setPrayers(updated);
     },
     [todayKey]
   );
