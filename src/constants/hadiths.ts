@@ -242,11 +242,11 @@ export const HADITHS: Hadith[] = [
   },
   {
     id: 30,
-    arabic: 'مَنْ تَوَكَّلَ عَلَى اللَّهِ فَهُوَ حَسْبُهُ',
-    english: 'Whoever relies upon Allah — He is sufficient for him.',
-    urdu: 'جو اللہ پر توکل کرے، اللہ اس کے لیے کافی ہے۔',
-    narrator: 'Ibn Abbas',
-    source: 'Qur\'an 65:3 (Divine Hadith context)',
+    arabic: 'لَنْ يُشَادَّ الدِّينَ أَحَدٌ إِلَّا غَلَبَهُ، فَسَدِّدُوا وَقَارِبُوا',
+    english: 'No one makes the religion harsh except that it overwhelms him. So aim for what is right, stay close to the goal, and gain hope.',
+    urdu: 'جس نے دین میں سختی کی، دین اس پر غالب آ گیا۔ پس میانہ روی اختیار کرو اور قریب رہو۔',
+    narrator: 'Abu Hurairah',
+    source: 'Sahih Bukhari 39',
   },
   {
     id: 31,
@@ -682,11 +682,11 @@ export const HADITHS: Hadith[] = [
   },
   {
     id: 85,
-    arabic: 'إِنَّ لِكُلِّ شَيْءٍ قَلْبًا وَقَلْبُ الْقُرْآنِ يس',
-    english: 'Everything has a heart, and the heart of the Qur\'an is Surah Yaseen.',
-    urdu: 'ہر چیز کا ایک دل ہے، اور قرآن کا دل سورۃ یٰسین ہے۔',
-    narrator: 'Anas ibn Malik',
-    source: 'Tirmidhi 2887 (da\'if but oft-cited)',
+    arabic: 'مَنْ قَرَأَ حَرْفًا مِنْ كِتَابِ اللَّهِ فَلَهُ بِهِ حَسَنَةٌ، وَالْحَسَنَةُ بِعَشْرِ أَمْثَالِهَا',
+    english: 'Whoever recites a letter from the Book of Allah, he will have a reward, and that reward is multiplied by ten.',
+    urdu: 'جو شخص اللہ کی کتاب سے ایک حرف بھی پڑھے، اس کے لیے ایک نیکی ہے، اور ہر نیکی کا اجر دس گنا ہے۔',
+    narrator: 'Abdullah ibn Mas\'ud',
+    source: 'Tirmidhi 2910 (sahih)',
   },
   {
     id: 86,

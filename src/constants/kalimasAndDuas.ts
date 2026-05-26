@@ -19,8 +19,6 @@ export type Dua = {
   reference: string;
 };
 
-const KALIMA_REFERENCE = 'Traditional (Indo-Pak compilation, not from a single hadith source)';
-
 export const KALIMAS: Kalima[] = [
   {
     id: 1,
@@ -29,7 +27,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ مُحَمَّدٌ رَسُولُ ٱللَّٰهِ',
     transliteration: 'Lā ilāha illallāhu Muḥammadur Rasūlullāh',
     translation: 'There is no god but Allah; Muhammad is the Messenger of Allah.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Foundational testimony of Islam. Combined wording: Sahih Bukhari 7, Sahih Muslim 22.',
   },
   {
     id: 2,
@@ -38,7 +36,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'أَشْهَدُ أَنْ لَا إِلَٰهَ إِلَّا ٱللَّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ وَأَشْهَدُ أَنَّ مُحَمَّدًا عَبْدُهُ وَرَسُولُهُ',
     transliteration: 'Ashhadu an lā ilāha illallāhu waḥdahu lā sharīka lahu, wa ashhadu anna Muḥammadan ʿabduhu wa rasūluhu',
     translation: 'I bear witness that there is no god but Allah, He is alone and has no partner, and I bear witness that Muhammad is His servant and Messenger.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Sahih Bukhari 1202 (recited in tashahhud), Sunan an-Nasa\'i 629, Jami at-Tirmidhi 289.',
   },
   {
     id: 3,
@@ -47,7 +45,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'سُبْحَانَ ٱللَّٰهِ وَٱلْحَمْدُ لِلَّٰهِ وَلَا إِلَٰهَ إِلَّا ٱللَّٰهُ وَٱللَّٰهُ أَكْبَرُ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ ٱلْعَلِيِّ ٱلْعَظِيمِ',
     transliteration: 'Subḥānallāhi walḥamdu lillāhi wa lā ilāha illallāhu wallāhu akbar. Wa lā ḥawla wa lā quwwata illā billāhil ʿaliyyil ʿaẓīm',
     translation: 'Glory be to Allah, and praise be to Allah, and there is no god but Allah, and Allah is the Greatest. There is no might or power except with Allah, the Exalted, the Great.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Components in Sahih Bukhari 6406 (four praises) + Sahih Bukhari 4202 (la hawla wa la quwwata).',
   },
   {
     id: 4,
@@ -56,7 +54,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'لَا إِلَٰهَ إِلَّا ٱللَّٰهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ ٱلْمُلْكُ وَلَهُ ٱلْحَمْدُ، يُحْيِي وَيُمِيتُ وَهُوَ حَيٌّ لَا يَمُوتُ أَبَدًا أَبَدًا، ذُو ٱلْجَلَالِ وَٱلْإِكْرَامِ بِيَدِهِ ٱلْخَيْرُ وَهُوَ عَلَىٰ كُلِّ شَيْءٍ قَدِيرٌ',
     transliteration: 'Lā ilāha illallāhu waḥdahu lā sharīka lahu, lahul mulku wa lahul ḥamd, yuḥyī wa yumītu wa huwa ḥayyul lā yamūtu abadan abadā, dhul jalāli wal ikrām, biyadihil khayr, wa huwa ʿalā kulli shayin qadīr',
     translation: 'There is no god but Allah. He is alone and has no partner. His is the kingdom and His is the praise. He gives life and causes death. And He is alive. He will not die, forever and ever. Possessor of Majesty and Honour. In His hand is all good. And He has power over everything.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Core wording in Sahih Bukhari 6404 + Tirmidhi 3429 (morning/evening dhikr). Extended form is a traditional Indo-Pak compilation of authenticated phrases.',
   },
   {
     id: 5,
@@ -65,7 +63,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'أَسْتَغْفِرُ ٱللَّٰهَ رَبِّي مِنْ كُلِّ ذَنْبٍ أَذْنَبْتُهُ عَمَدًا أَوْ خَطَأً سِرًّا أَوْ عَلَانِيَةً وَأَتُوبُ إِلَيْهِ مِنَ ٱلذَّنْبِ ٱلَّذِي أَعْلَمُ وَمِنَ ٱلذَّنْبِ ٱلَّذِي لَا أَعْلَمُ إِنَّكَ أَنْتَ عَلَّامُ ٱلْغُيُوبِ وَسَتَّارُ ٱلْعُيُوبِ وَغَفَّارُ ٱلذُّنُوبِ وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِٱللَّٰهِ ٱلْعَلِيِّ ٱلْعَظِيمِ',
     transliteration: 'Astaghfirullāha rabbī min kulli dhanbin adhnabtuhu ʿamadan aw khaṭaʾan sirran aw ʿalāniyatan wa atūbu ilayhi minadh dhanbilladhī aʿlamu wa minadh dhanbilladhī lā aʿlam. Innaka anta ʿallāmul ghuyūbi wa sattārul ʿuyūbi wa ghaffārudh dhunūbi wa lā ḥawla wa lā quwwata illā billāhil ʿaliyyil ʿaẓīm',
     translation: 'I seek forgiveness from Allah, my Lord, from every sin I committed knowingly or unknowingly, secretly or openly, and I turn towards Him from the sin that I know and from the sin that I do not know. Certainly You are the Knower of the hidden, the Concealer of faults, and the Forgiver of sins. There is no power and no strength except from Allah, the Most High, the Most Great.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Traditional Indo-Pak compilation. Core istighfar wording from Sahih Bukhari 6307 (Sayyidul Istighfar) + Abu Dawud 1521.',
   },
   {
     id: 6,
@@ -74,7 +72,7 @@ export const KALIMAS: Kalima[] = [
     arabic: 'ٱللَّٰهُمَّ إِنِّي أَعُوذُ بِكَ مِنْ أَنْ أُشْرِكَ بِكَ شَيْئًا وَأَنَا أَعْلَمُ وَأَسْتَغْفِرُكَ لِمَا لَا أَعْلَمُ تُبْتُ عَنْهُ وَتَبَرَّأَتُ مِنَ ٱلْكُفْرِ وَٱلشِّرْكِ وَٱلْكِذْبِ وَٱلْغِيبَةِ وَٱلْبِدْعَةِ وَٱلنَّمِيمَةِ وَٱلْفَوَاحِشِ وَٱلْبُهْتَانِ وَٱلْمَعَاصِي كُلِّهَا وَأَسْلَمْتُ وَأَقُولُ لَا إِلَٰهَ إِلَّا ٱللَّٰهُ مُحَمَّدٌ رَسُولُ ٱللَّٰهِ',
     transliteration: 'Allāhumma innī aʿūdhu bika min an ushrika bika shayʾan wa anā aʿlamu wa astaghfiruka limā lā aʿlam. Tubtu ʿanhu wa tabarraʾtu min al-kufri wash-shirki wal-kidhbi wal-ghībati wal-bidʿati wan-namīmati wal-fawāḥishi wal-buhtāni wal-maʿāṣī kullihā wa aslamtu wa aqūlu lā ilāha illallāhu Muḥammadur Rasūlullāh',
     translation: 'O Allah! I seek refuge in You from associating partners with You knowingly. I seek Your forgiveness for what I do not know. I repent from it and free myself from disbelief, polytheism, lying, backbiting, innovation, tale-bearing, evil deeds, slander, and all disobedience. I submit and say: There is no god but Allah, Muhammad is the Messenger of Allah.',
-    reference: KALIMA_REFERENCE,
+    reference: 'Traditional Indo-Pak compilation. Refuge-from-shirk root wording from Ahmad 19606 / Tabarani.',
   },
 ];
 
