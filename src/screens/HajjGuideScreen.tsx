@@ -248,10 +248,13 @@ const styles = StyleSheet.create({
   womenNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, backgroundColor: 'rgba(200, 120, 10, 0.08)', borderRadius: theme.borderRadius.sm, padding: theme.spacing.md, marginBottom: theme.spacing.lg, borderWidth: 1, borderColor: 'rgba(200, 120, 10, 0.15)' },
   womenNoteIcon: { fontSize: 14, marginTop: 1 },
   womenNoteText: { flex: 1, fontSize: 12, color: theme.colors.textSecondary, fontFamily: theme.typography.fontBody, lineHeight: 18 },
-  doneBtn: { borderRadius: theme.borderRadius.sm, borderWidth: 1.5, borderColor: theme.colors.border, paddingVertical: 10, alignItems: 'center' },
-  doneBtnActive: { borderColor: theme.colors.success, backgroundColor: 'rgba(26, 122, 60, 0.06)' },
-  doneBtnText: { fontSize: 13, color: theme.colors.textMuted, fontFamily: theme.typography.fontBody },
-  doneBtnTextActive: { color: theme.colors.success, fontFamily: theme.typography.fontBodyBold },
+  // Done button matches UmrahGuide: outlined success-green when undone,
+  // solid-filled when done. Previous Hajj-specific style (pale tint when
+  // active) was inconsistent with the rest of the guide-screen family.
+  doneBtn: { paddingVertical: 10, paddingHorizontal: theme.spacing.lg, borderRadius: theme.borderRadius.md, borderWidth: 1.5, borderColor: theme.colors.success, alignItems: 'center' },
+  doneBtnActive: { backgroundColor: theme.colors.success },
+  doneBtnText: { fontSize: 14, fontFamily: theme.typography.fontBodyBold, color: theme.colors.success },
+  doneBtnTextActive: { color: '#fff' },
   footerNote: { marginTop: theme.spacing.xl, padding: theme.spacing.lg, backgroundColor: theme.colors.backgroundSoft, borderRadius: theme.borderRadius.md, borderWidth: 1, borderColor: theme.colors.border },
   footerText: { fontSize: 11, color: theme.colors.textMuted, fontFamily: theme.typography.fontBody, lineHeight: 17, textAlign: 'center' },
 });

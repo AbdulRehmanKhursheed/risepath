@@ -12,12 +12,15 @@ import { DUAS, DUA_CATEGORY_META, type Dua, type DuaCategory } from '../constant
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { ArabicText } from '../components/ui/ArabicText';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const FAVORITES_KEY = 'dua_favorites';
 const ALL_CATS = Object.keys(DUA_CATEGORY_META) as DuaCategory[];
 
 export function DuaScreen() {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
+  const isUrdu = language === 'ur';
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<DuaCategory | 'favorites' | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -218,7 +221,7 @@ export function DuaScreen() {
                   <TouchableOpacity
                     style={styles.shareBtn}
                     onPress={() => Clipboard.setStringAsync(selected.arabic)}
-                    accessibilityLabel="Copy Arabic text"
+                    accessibilityLabel={isUrdu ? 'عربی متن کاپی کریں' : 'Copy Arabic text'}
                   >
                     <Text style={styles.shareBtnText}>📋 Copy Arabic</Text>
                   </TouchableOpacity>
@@ -229,7 +232,7 @@ export function DuaScreen() {
                         message: `${selected.title}\n\n${selected.arabic}\n\n${selected.transliteration}\n\n"${selected.translation}"\n\n— ${selected.reference}`,
                       })
                     }
-                    accessibilityLabel="Share this dua"
+                    accessibilityLabel={isUrdu ? 'یہ دعا شیئر کریں' : 'Share this dua'}
                   >
                     <Text style={styles.shareBtnText}>📤 Share</Text>
                   </TouchableOpacity>

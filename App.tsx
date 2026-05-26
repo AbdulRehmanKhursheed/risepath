@@ -377,12 +377,12 @@ function AppInner() {
     let settled = false;
     AsyncStorage.getItem('onboarding_complete')
       .then((val) => {
-        if (!mounted) return;
+        if (!mounted || settled) return;
         settled = true;
         setOnboardingDone(val === 'true');
       })
       .catch(() => {
-        if (!mounted) return;
+        if (!mounted || settled) return;
         settled = true;
         setOnboardingDone(false);
       });
@@ -393,6 +393,9 @@ function AppInner() {
     // re-onboarded once (annoying but recoverable).
     const t = setTimeout(() => {
       if (!mounted || settled) return;
+      // Mark settled before the state set so a late-resolving promise
+      // doesn't double-write and cause an onboarding flicker.
+      settled = true;
       setOnboardingDone(false);
     }, 3000);
     return () => {

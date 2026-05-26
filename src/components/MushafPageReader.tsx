@@ -64,14 +64,16 @@ export function MushafPageReader({
   setScript: (s: QuranScript) => void;
 }) {
   const isUrdu = language === 'ur';
-  // Clamp initialPage to [1, TOTAL_PAGES]. Without this, a caller passing 0,
-  // 605, or NaN would land us on an invalid index and the FlatList scroll
-  // would silently misfire.
-  const [page, setPage] = useState(() => {
+  // Clamp initialPage to [1, TOTAL_PAGES] in a single derived value reused
+  // both for useState and the FlatList initialScrollIndex. Without this, a
+  // caller passing 0, 605, or NaN would land FlatList on an invalid index
+  // and the scroll would silently misfire.
+  const clampedInitial = useMemo(() => {
     const n = Math.floor(Number(initialPage));
     if (!Number.isFinite(n)) return 1;
     return Math.max(1, Math.min(TOTAL_PAGES, n));
-  });
+  }, [initialPage]);
+  const [page, setPage] = useState(clampedInitial);
   const [legendOpen, setLegendOpen] = useState(false);
   const [jumpOpen, setJumpOpen] = useState(false);
   const [jumpInput, setJumpInput] = useState('');
@@ -150,7 +152,7 @@ export function MushafPageReader({
         windowSize={3}
         maxToRenderPerBatch={1}
         removeClippedSubviews
-        initialScrollIndex={initialPage - 1}
+        initialScrollIndex={clampedInitial - 1}
         getItemLayout={(_, idx) => ({ length: SCREEN_WIDTH, offset: SCREEN_WIDTH * idx, index: idx })}
         onMomentumScrollEnd={onMomentumEnd}
         renderItem={({ item }) => (

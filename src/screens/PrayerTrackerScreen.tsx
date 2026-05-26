@@ -154,7 +154,6 @@ export function PrayerTrackerScreen() {
     const todayKey = getDateString(today);
     const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
     if (lastScheduledKey.current === scheduleKey) return;
-    lastScheduledKey.current = scheduleKey;
     let cancelled = false;
     (async () => {
       const granted = await requestNotificationPermissions();
@@ -162,10 +161,16 @@ export function PrayerTrackerScreen() {
       if (!granted) {
         // Surface the denial state so the screen can show a banner
         // instead of silently failing to schedule adhan reminders.
+        // Do NOT stamp lastScheduledKey on denial — if the user grants
+        // permission later via Settings, we want the same key combo to
+        // re-attempt scheduling on the next effect run.
         setNotifDenied(true);
         return;
       }
       setNotifDenied(false);
+      // Stamp the key only after a confirmed grant so reschedule resumes
+      // automatically when a previously-denied user re-enables notifications.
+      lastScheduledKey.current = scheduleKey;
       if (granted) {
         await setupNotificationChannel();
         // Schedule prayer reminders 7 days ahead so they survive app dormancy.
