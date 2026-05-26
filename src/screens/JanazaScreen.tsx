@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,9 @@ import {
   TouchableOpacity,
   StyleSheet,
   Platform,
+  Share,
 } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { JANAZA_PHASES } from '../constants/janazaGuide';
 import type { JanazaStep } from '../constants/janazaGuide';
@@ -15,6 +17,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { AdBanner } from '../components/AdBanner';
 import { ArabicText } from '../components/ui/ArabicText';
 import { AD_UNITS } from '../services/ads';
+import { storage } from '../services/storage';
 
 type CompletedKey = string;
 
@@ -22,9 +25,22 @@ export function JanazaScreen() {
   const { language } = useLanguage();
   const isUrdu = language === 'ur';
 
-  const [expandedPhase, setExpandedPhase] = useState<number | null>(1);
-  const [expandedStep, setExpandedStep] = useState<string | null>('1.1');
+  // Default-expand Phase 5 (Salah al-Janaza) — the most time-critical
+  // section. At a funeral, users open this screen during the prayer itself
+  // and need the takbir sequence visible without 5 taps of accordion drill-down.
+  const [expandedPhase, setExpandedPhase] = useState<number | null>(5);
+  const [expandedStep, setExpandedStep] = useState<string | null>('5.4');
   const [completedIds, setCompletedIds] = useState<Set<CompletedKey>>(new Set());
+  const [sect, setSect] = useState<'sunni' | 'shia'>('sunni');
+
+  useEffect(() => {
+    let mounted = true;
+    storage.getFiqhSchool().then((s) => {
+      if (!mounted) return;
+      if (s === 'sunni' || s === 'shia') setSect(s);
+    });
+    return () => { mounted = false; };
+  }, []);
 
   const allCheckable = JANAZA_PHASES.flatMap((ph) =>
     ph.steps.filter((s) => s.checkable)
@@ -60,6 +76,29 @@ export function JanazaScreen() {
           ? 'مکمل مرحلہ وار رہنمائی — ماخذ کے ساتھ'
           : 'Complete step-by-step guide with sources'}
       </Text>
+
+      <View style={styles.sectRow}>
+        <TouchableOpacity
+          style={[styles.sectPill, sect === 'sunni' && styles.sectPillActive]}
+          onPress={() => { setSect('sunni'); storage.setFiqhSchool('sunni').catch(() => {}); }}
+          accessibilityRole="button"
+          accessibilityState={{ selected: sect === 'sunni' }}
+        >
+          <Text style={[styles.sectPillText, sect === 'sunni' && styles.sectPillTextActive]}>
+            {isUrdu ? 'سنی (حنفی)' : 'Sunni (Hanafi default)'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sectPill, sect === 'shia' && styles.sectPillActive]}
+          onPress={() => { setSect('shia'); storage.setFiqhSchool('shia').catch(() => {}); }}
+          accessibilityRole="button"
+          accessibilityState={{ selected: sect === 'shia' }}
+        >
+          <Text style={[styles.sectPillText, sect === 'shia' && styles.sectPillTextActive]}>
+            {isUrdu ? 'شیعہ (جعفری)' : 'Shia (Jafari)'}
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       <View style={styles.disclaimerCard}>
         <Text style={styles.disclaimerIcon}>📚</Text>
@@ -130,6 +169,7 @@ export function JanazaScreen() {
                   key={step.id}
                   step={step}
                   isUrdu={isUrdu}
+                  sect={sect}
                   isExpanded={expandedStep === step.id}
                   isDone={completedIds.has(step.id)}
                   onToggleExpand={() =>
@@ -157,6 +197,7 @@ export function JanazaScreen() {
 type StepCardProps = {
   step: JanazaStep;
   isUrdu: boolean;
+  sect: 'sunni' | 'shia';
   isExpanded: boolean;
   isDone: boolean;
   onToggleExpand: () => void;
@@ -166,6 +207,7 @@ type StepCardProps = {
 function StepCard({
   step,
   isUrdu,
+  sect,
   isExpanded,
   isDone,
   onToggleExpand,
@@ -212,9 +254,33 @@ function StepCard({
 
           {step.arabic && (
             <View style={styles.arabicCard}>
-              <Text style={styles.arabicLabel}>
-                {isUrdu ? 'متن' : 'Text'}
-              </Text>
+              <View style={styles.arabicCardHeader}>
+                <Text style={styles.arabicLabel}>
+                  {isUrdu ? 'متن' : 'Text'}
+                </Text>
+                <View style={styles.arabicActions}>
+                  <TouchableOpacity
+                    style={styles.arabicAction}
+                    onPress={() => Clipboard.setStringAsync(step.arabic ?? '')}
+                    accessibilityLabel={isUrdu ? 'کاپی کریں' : 'Copy Arabic'}
+                  >
+                    <Text style={styles.arabicActionText}>📋 {isUrdu ? 'کاپی' : 'Copy'}</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.arabicAction}
+                    onPress={() =>
+                      Share.share({
+                        message: `${step.arabic ?? ''}\n\n${step.transliteration ?? ''}\n\n"${
+                          (isUrdu && step.translationUr ? step.translationUr : step.translation) ?? ''
+                        }"\n\n— ${step.source ?? ''}`,
+                      })
+                    }
+                    accessibilityLabel={isUrdu ? 'شیئر کریں' : 'Share'}
+                  >
+                    <Text style={styles.arabicActionText}>📤 {isUrdu ? 'شیئر' : 'Share'}</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
               <ArabicText style={styles.arabicText}>{step.arabic}</ArabicText>
               {step.transliteration && (
                 <Text style={styles.translitText}>{step.transliteration}</Text>
@@ -234,7 +300,7 @@ function StepCard({
             </View>
           )}
 
-          {step.shiaNote && (
+          {step.shiaNote && sect === 'shia' && (
             <View style={styles.shiaNote}>
               <Text style={styles.shiaIcon}>🌙</Text>
               <View style={styles.shiaContent}>
@@ -291,8 +357,57 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontBody,
-    marginBottom: theme.spacing.xl,
+    marginBottom: theme.spacing.md,
     lineHeight: 20,
+  },
+  sectRow: {
+    flexDirection: 'row',
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.xl,
+  },
+  sectPill: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.borderRadius.full,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+  },
+  sectPillActive: {
+    backgroundColor: theme.colors.accentMuted,
+    borderColor: theme.colors.accent,
+  },
+  sectPillText: {
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBodyMedium,
+  },
+  sectPillTextActive: {
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
+  },
+  arabicCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  arabicActions: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  arabicAction: {
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: theme.borderRadius.full,
+    backgroundColor: theme.colors.accentMuted,
+  },
+  arabicActionText: {
+    fontSize: 11,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyMedium,
   },
   disclaimerCard: {
     flexDirection: 'row',

@@ -249,13 +249,14 @@ export const JANAZA_PHASES: JanazaPhase[] = [
       },
       {
         id: '4.2',
-        title: 'Female Kafan: 5 Pieces',
-        titleUr: 'عورت کا کفن: ۵ کپڑے',
+        title: 'Female Kafan: 5 Pieces (Hanafi) / 3 Pieces (others)',
+        titleUr: 'عورت کا کفن: حنفی ۵ کپڑے / دیگر ۳ کپڑے',
         description:
-          'Five white pieces for additional modesty:\n1. Izar — large sheet for the full body\n2. Qamees — long shirt\n3. Khimar — headscarf/head covering\n4. Sinaband — chest wrap/binding\n5. Lifafah — outer sheet\n\nTie at head and feet. Apply camphor at same points as male.',
+          'Hanafi (mainstream in Pakistan/India): Five white pieces for additional modesty:\n1. Izar — large sheet for the full body\n2. Qamees (Dir\') — long shirt\n3. Khimar — headscarf/head covering\n4. Sinaband — chest wrap/binding\n5. Lifafah — outer sheet\n\nShafi\'i, Maliki, Hanbali: minimum 3 pieces (izar, qamees, lifafah); 5 is mustahabb (recommended) not wajib.\n\nTie at head, middle, and feet. Apply camphor-soaked cotton at forehead, nose, hands, knees, and feet.',
         descriptionUr:
-          'پانچ سفید کپڑے:\n۱. ازار، ۲. قمیص، ۳. خمار (دوپٹہ)، ۴. سینہ بند، ۵. لفافہ\n\nسر اور پاؤں کی طرف سے باندھیں۔ وہی جگہیں کافور لگائیں جیسے مرد میں۔',
-        shiaNote: 'Jafari: 3 pieces for females (same as male). The additional pieces (khimar, sinaband) are not obligatory in Jafari fiqh.',
+          'حنفی (پاکستان/انڈیا میں عام): پانچ سفید کپڑے:\n۱. ازار، ۲. قمیص (در)، ۳. خمار (دوپٹہ)، ۴. سینہ بند، ۵. لفافہ\n\nشافعی، مالکی، حنبلی: کم از کم ۳ کپڑے کافی؛ ۵ مستحب۔\n\nسر، درمیان اور پاؤں کی طرف سے باندھیں۔ پیشانی، ناک، ہاتھ، گھٹنے اور پاؤں پر کافور لگی روئی رکھیں۔',
+        source: 'Hanafi: al-Hidaya (Kitab al-Janaiz), Bada\'i\' al-Sana\'i\' by al-Kasani. Basis: Umm Atiyya washing the Prophet\'s daughter (Sahih Bukhari 1253). Other madhahib: minimum 3 cloths per Sahih Bukhari 1264.',
+        shiaNote: 'Jafari: 3 pieces obligatory (izar, qamees, lifafah) — same minimum as male. The additional pieces (khimar, sinaband) are mustahabb but not required.',
         checkable: true,
       },
     ],
@@ -293,13 +294,13 @@ export const JANAZA_PHASES: JanazaPhase[] = [
       },
       {
         id: '5.3',
-        title: 'Position: Body Placement',
-        titleUr: 'جسم کی جگہ',
+        title: 'Position: Where the Imam Stands',
+        titleUr: 'امام کی جگہ',
         description:
-          'Male: the imam stands near the head (right side of the imam).\nFemale: the imam stands near the middle of the body.\nRows behind imam. Odd number of rows is sunnah.',
+          'Male deceased: imam stands aligned with the head (chest area in some narrations).\nFemale deceased: imam stands aligned with the middle of the body (waist).\nThe body is laid perpendicular to qibla, head to the imam\'s right side. Worshippers form rows behind the imam — an odd number of rows is sunnah.',
         descriptionUr:
-          'مرد کے لیے: امام سر کے قریب کھڑا ہو۔\nعورت کے لیے: امام درمیان کی طرف کھڑا ہو۔\nصفیں پیچھے بنائیں۔ طاق صفیں سنت ہیں۔',
-        source: 'Abu Dawud 3194, Tirmidhi 1034',
+          'مرد میت: امام سر (یا سینہ) کے سامنے کھڑا ہو۔\nعورت میت: امام درمیانِ جسم (کمر) کے سامنے کھڑا ہو۔\nمیت قبلہ رو رکھیں، سر امام کی دائیں طرف۔ صفیں پیچھے بنائیں — طاق صفیں سنت ہیں۔',
+        source: 'Abu Dawud 3194, Tirmidhi 1034 — Anas (RA) prayed over a man at his head and a woman at her waist.',
         checkable: false,
       },
       {
