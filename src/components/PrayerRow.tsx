@@ -4,6 +4,7 @@ import { theme } from '../constants/theme';
 import { formatPrayerTime } from '../hooks/usePrayerTimes';
 import { PRAYER_SURAHS } from '../constants/prayerSurahs';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { useQuranNav } from '../contexts/QuranNavContext';
 import type { PrayerName } from '../hooks/usePrayerTimes';
 
@@ -19,6 +20,7 @@ type Props = {
 
 export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
   const { t } = useLanguage();
+  const { fs } = useSimpleMode();
   const { openSurah } = useQuranNav();
   const [expanded, setExpanded] = useState(false);
   const surah = PRAYER_SURAHS[prayerKey];
@@ -61,23 +63,28 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
         style={[styles.row, { borderColor: config.border }]}
         onPress={onPress}
         activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={`${name}, ${formatPrayerTime(time)}, ${config.label}`}
+        accessibilityHint="Double tap to toggle prayed status"
       >
         <View style={styles.left}>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.time}>{formatPrayerTime(time)}</Text>
+          <Text style={[styles.name, { fontSize: fs(18) }]}>{name}</Text>
+          <Text style={[styles.time, { fontSize: fs(15) }]}>{formatPrayerTime(time)}</Text>
         </View>
         <View style={styles.right}>
           <View style={[styles.badge, { backgroundColor: config.bg }]}>
-            <Text style={[styles.badgeIcon, { color: config.color }]}>{config.icon}</Text>
-            <Text style={[styles.badgeText, { color: config.color }]}>{config.label}</Text>
+            <Text style={[styles.badgeIcon, { color: config.color, fontSize: fs(14) }]}>{config.icon}</Text>
+            <Text style={[styles.badgeText, { color: config.color, fontSize: fs(13) }]}>{config.label}</Text>
           </View>
           {surah && (
             <TouchableOpacity
               style={styles.surahToggle}
               onPress={() => setExpanded((v) => !v)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={expanded ? 'Hide surah suggestion' : 'Show surah suggestion'}
             >
-              <Text style={styles.surahToggleText}>{expanded ? '▲' : '▼'} Surah</Text>
+              <Text style={[styles.surahToggleText, { fontSize: fs(11) }]}>{expanded ? '▲' : '▼'} Surah</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -86,17 +93,19 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
       {expanded && surah && (
         <View style={styles.surahCard}>
           <View style={styles.surahHeader}>
-            <Text style={styles.surahName}>{surah.surah}</Text>
-            <Text style={styles.surahNameAr}>{surah.surahAr}</Text>
+            <Text style={[styles.surahName, { fontSize: fs(15) }]}>{surah.surah}</Text>
+            <Text style={[styles.surahNameAr, { fontSize: fs(14) }]}>{surah.surahAr}</Text>
           </View>
-          <Text style={styles.surahBenefit}>{surah.benefit}</Text>
-          <Text style={styles.surahNote}>{surah.note}</Text>
+          <Text style={[styles.surahBenefit, { fontSize: fs(14) }]}>{surah.benefit}</Text>
+          <Text style={[styles.surahNote, { fontSize: fs(13) }]}>{surah.note}</Text>
           <TouchableOpacity
             style={styles.readBtn}
             onPress={() => openSurah(surah.number)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={`Read ${surah.surah}`}
           >
-            <Text style={styles.readBtnText}>📖 Read Surah →</Text>
+            <Text style={[styles.readBtnText, { fontSize: fs(12) }]}>📖 Read Surah →</Text>
           </TouchableOpacity>
         </View>
       )}
