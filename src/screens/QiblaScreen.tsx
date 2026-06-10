@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Dimensions,
   TouchableOpacity,
   Linking,
+  AppState,
 } from 'react-native';
 import Svg, {
   Circle,
@@ -51,11 +52,34 @@ function polarToXY(angleDeg: number, r: number) {
 export function QiblaScreen() {
   const { t, language } = useLanguage();
   const isUrdu = language === 'ur';
-  const { location, loading } = useLocation();
-  const { heading, available } = useCompass();
+  const isArabic = language === 'ar';
+  const { location, loading, usingFallback, permissionDenied, retry } = useLocation();
+  const { heading, available, lowAccuracy } = useCompass();
   const lat = location?.latitude ?? 24.8607;
   const lng = location?.longitude ?? 67.0011;
   const qiblaAngle = useQibla(lat, lng);
+
+  // The GPS fix has no timeout in useLocation — don't block the screen
+  // forever behind it; after 8s render with whatever we have and let the
+  // fix land in the background.
+  const [gpsTimedOut, setGpsTimedOut] = useState(false);
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => setGpsTimedOut(true), 8000);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
+  // Returning from OS Settings doesn't remount this screen — re-fetch
+  // location on foreground if we're stuck on denied/fallback coords.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && (permissionDenied || usingFallback)) retry();
+    });
+    return () => sub.remove();
+  }, [permissionDenied, usingFallback, retry]);
+
+  // True when the bearing comes from the Karachi default, not the user.
+  const approximate = usingFallback || !location;
 
   const angleToQibla = heading != null
     ? (qiblaAngle - heading + 360) % 360
@@ -74,7 +98,8 @@ export function QiblaScreen() {
   // Ring rotates opposite to device heading so North always points to real North.
   const ringRotation = heading != null ? -heading : 0;
 
-  if (loading) {
+  // Cached coords render immediately; only block when we have nothing yet.
+  if (loading && !location && !gpsTimedOut) {
     return (
       <View style={styles.center}>
         <Text style={styles.loadingText}>{t.gettingLocation}</Text>
@@ -201,14 +226,55 @@ export function QiblaScreen() {
         )}
       </View>
 
+      {approximate && (
+        <TouchableOpacity
+          style={styles.warningCard}
+          onPress={retry}
+          accessibilityRole="button"
+        >
+          <Text style={styles.warningTitle}>
+            {isUrdu
+              ? '⚠️ تخمینی سمت — مقام دستیاب نہیں'
+              : isArabic
+                ? '⚠️ اتجاه تقريبي — الموقع غير متاح'
+                : '⚠️ Approximate — location unavailable'}
+          </Text>
+          <Text style={styles.warningBody}>
+            {isUrdu
+              ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے اور غلط ہو سکتی ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
+              : isArabic
+                ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي وقد يكون خاطئًا. اضغط لإعادة المحاولة.'
+                : 'Qibla is shown for a default location and may be wrong here. Tap to retry.'}
+          </Text>
+        </TouchableOpacity>
+      )}
+
+      {available && lowAccuracy && (
+        <Text style={styles.calibrationHint}>
+          {isUrdu
+            ? '🧭 کمپاس کی درستگی کم ہے — فون کو 8 کی شکل میں گھمائیں'
+            : isArabic
+              ? '🧭 دقة البوصلة منخفضة — حرّك هاتفك على شكل الرقم 8'
+              : '🧭 Compass accuracy is low — wave your phone in a figure-8'}
+        </Text>
+      )}
+
       {isFacingQibla ? (
         <View style={[styles.statusCard, styles.statusCardAligned]}>
           <Text style={styles.statusEmoji}>🕋</Text>
           <Text style={styles.statusTitle}>
-            {language === 'ur' ? 'آپ قبلہ کی طرف ہیں!' : 'Facing Qibla!'}
+            {isUrdu
+              ? 'آپ قبلہ کی طرف ہیں!'
+              : isArabic
+                ? 'أنت باتجاه القبلة!'
+                : 'Facing Qibla!'}
           </Text>
           <Text style={styles.statusSub}>
-            {language === 'ur' ? 'ابھی نماز پڑھ سکتے ہیں' : 'You may begin your prayer'}
+            {isUrdu
+              ? 'ابھی نماز پڑھ سکتے ہیں'
+              : isArabic
+                ? 'يمكنك بدء الصلاة الآن'
+                : 'You may begin your prayer'}
           </Text>
         </View>
       ) : (
@@ -314,6 +380,38 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: theme.colors.success,
     opacity: 0.6,
+  },
+  warningCard: {
+    backgroundColor: theme.colors.errorMuted,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.error,
+    paddingVertical: theme.spacing.md,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: theme.spacing.md,
+  },
+  warningTitle: {
+    fontSize: 14,
+    color: theme.colors.error,
+    fontFamily: theme.typography.fontBodyBold,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  warningBody: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  calibrationHint: {
+    fontSize: 13,
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBody,
+    textAlign: 'center',
+    marginBottom: theme.spacing.md,
   },
   statusCard: {
     backgroundColor: theme.colors.surface,
