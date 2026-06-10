@@ -1,10 +1,11 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   Platform,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -14,7 +15,37 @@ import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { useQuranNav } from '../contexts/QuranNavContext';
 import { getTodayAct, DailyAct } from '../constants/dailyAct';
 import { storage } from '../services/storage';
+import { getLocalDateKey } from '../utils/date';
 import type { Sect } from '../constants/islamicCalendar';
+
+// Shared day-rollover tick for the keep-alive Home tab. The tab navigator
+// never unmounts HomeScreen, so anything derived from `new Date()` in a
+// mount-time memo freezes at first compute and shows yesterday's content
+// after midnight (very common on Android, where the process survives days).
+// Re-derives the local date key on focus, on app foreground, and on a cheap
+// minute tick; setState bails out when the key hasn't changed, so consumers
+// only re-render at the actual day boundary.
+export function useDayKey(): string {
+  const [dayKey, setDayKey] = useState(() => getLocalDateKey());
+  const refresh = useCallback(() => {
+    setDayKey((prev) => {
+      const next = getLocalDateKey();
+      return next === prev ? prev : next;
+    });
+  }, []);
+  useFocusEffect(refresh);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refresh();
+    });
+    const id = setInterval(refresh, 60_000);
+    return () => {
+      sub.remove();
+      clearInterval(id);
+    };
+  }, [refresh]);
+  return dayKey;
+}
 
 type TodayCardProps = {
   // Hijri offset passed down from HomeScreen — single source of truth so
@@ -54,7 +85,15 @@ export function TodayCard({ hijriOffset = 0 }: TodayCardProps = {}) {
     }, [])
   );
 
-  const act: DailyAct = useMemo(() => getTodayAct(new Date(), sect, hijriOffset), [sect, hijriOffset]);
+  // dayKey in the deps so the act recomputes when the day rolls over — the
+  // card otherwise kept showing yesterday's act (no Jumu'ah card on Friday,
+  // stale sacred-day card on Eid/Arafah/Ashura) for as long as the process
+  // stayed alive.
+  const dayKey = useDayKey();
+  const act: DailyAct = useMemo(
+    () => getTodayAct(new Date(), sect, hijriOffset),
+    [sect, hijriOffset, dayKey]
+  );
 
   const title = isUrdu ? act.titleUr : isArabic ? act.titleAr : act.titleEn;
   const action = isUrdu ? act.actionUr : isArabic ? act.actionAr : act.actionEn;

@@ -5,26 +5,33 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Svg, { Circle } from 'react-native-svg';
 import { theme } from '../constants/theme';
 import { SURAH_LIST } from '../constants/surahList';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { ArabicText } from '../components/ui/ArabicText';
+import { useLanguage } from '../contexts/LanguageContext';
+import { captureError } from '../services/sentry';
 
 const HIFZ_KEY = 'hifz_progress';
 
 type HifzStatus = 'none' | 'learning' | 'memorized';
 
-// Starting juz for each surah (1-indexed, surah 1 = index 0)
+// Starting juz for each surah (1-indexed, surah 1 = index 0).
+// Verified against quran.com /api/v4/juzs verse ranges (2026-06-10): each
+// entry is the juz containing the surah's first ayah. No surah starts in
+// juz 2 or 5 (they begin mid-surah at 2:142 and 4:24), so those juz get
+// no filter chip below.
 const SURAH_JUZ: number[] = [
-  1,1,3,4,6,7,8,10,10,11,
+  1,1,3,4,6,7,8,9,10,11,
   11,12,13,13,14,14,15,15,16,16,
   17,17,18,18,18,19,19,20,20,21,
   21,21,21,22,22,22,23,23,23,24,
   24,25,25,25,25,26,26,26,26,26,
-  27,27,27,27,27,27,27,28,28,28,
-  28,28,28,28,28,28,28,28,28,28,
-  29,29,29,29,29,29,29,29,29,29,
+  26,27,27,27,27,27,27,28,28,28,
+  28,28,28,28,28,28,29,29,29,29,
+  29,29,29,29,29,29,29,30,30,30,
   30,30,30,30,30,30,30,30,30,30,
   30,30,30,30,30,30,30,30,30,30,
   30,30,30,30,30,30,30,30,30,30,
@@ -32,16 +39,69 @@ const SURAH_JUZ: number[] = [
 ];
 
 const STATUS_ORDER: HifzStatus[] = ['none', 'learning', 'memorized'];
-const STATUS_META: Record<HifzStatus, { label: string; color: string; bg: string; icon: string }> = {
-  none:      { label: 'Not started', color: theme.colors.textMuted,  bg: theme.colors.backgroundSoft, icon: '○' },
-  learning:  { label: 'Memorizing',  color: '#C87800',               bg: '#FFF4E0',                   icon: '◑' },
-  memorized: { label: 'Memorized',   color: theme.colors.success,    bg: theme.colors.successMuted,   icon: '●' },
+const STATUS_META: Record<HifzStatus, { color: string; bg: string; icon: string }> = {
+  none:      { color: theme.colors.textMuted,  bg: theme.colors.backgroundSoft, icon: '○' },
+  learning:  { color: '#C87800',               bg: '#FFF4E0',                   icon: '◑' },
+  memorized: { color: theme.colors.success,    bg: theme.colors.successMuted,   icon: '●' },
+};
+
+type Locale = 'en' | 'ur' | 'ar';
+
+// Same inline-label pattern as TasbihScreen — this screen previously had no
+// language context at all and rendered hardcoded English for ur/ar users.
+const LABELS: Record<Locale, {
+  title: string; sub: string;
+  notStarted: string; memorizing: string; memorized: string;
+  complete: string; tapToCycle: string; all: string; juz: string; ayahs: string;
+}> = {
+  en: {
+    title: 'Hifz Tracker', sub: 'Track your Quran memorization',
+    notStarted: 'Not started', memorizing: 'Memorizing', memorized: 'Memorized',
+    complete: 'complete', tapToCycle: '(tap to cycle)', all: 'All', juz: 'Juz', ayahs: 'ayahs',
+  },
+  ur: {
+    title: 'حفظِ قرآن', sub: 'اپنے حفظ کی پیشرفت دیکھیں',
+    notStarted: 'شروع نہیں کیا', memorizing: 'حفظ جاری', memorized: 'حفظ مکمل',
+    complete: 'مکمل', tapToCycle: '(بدلنے کے لیے ٹیپ کریں)', all: 'تمام', juz: 'پارہ', ayahs: 'آیات',
+  },
+  ar: {
+    title: 'متابعة الحفظ', sub: 'تابع حفظك للقرآن الكريم',
+    notStarted: 'لم يبدأ', memorizing: 'قيد الحفظ', memorized: 'محفوظة',
+    complete: 'مكتمل', tapToCycle: '(اضغط للتبديل)', all: 'الكل', juz: 'جزء', ayahs: 'آيات',
+  },
 };
 
 const JUZ_LABELS = Array.from({ length: 30 }, (_, i) => i + 1);
 
+// Precomputed juz → surah-numbers groups. Computing these inline ran 30 ×
+// 114 filter scans on every render (same class of lag the stats memo below
+// was added for). Juz with no starting surah (2 and 5) are dropped so their
+// chips can't render a vacuous "✓ memorized" over an empty list.
+const JUZ_GROUPS: { juz: number; surahs: number[] }[] = JUZ_LABELS
+  .map((juz) => ({
+    juz,
+    surahs: SURAH_LIST.filter((s) => SURAH_JUZ[s.number - 1] === juz).map((s) => s.number),
+  }))
+  .filter((g) => g.surahs.length > 0);
+
+// True fractional progress arc (react-native-svg, same technique as
+// StreakRing). The old border-quadrant fake showed a permanently-filled
+// left quadrant — ~25% at zero progress — and only had 25% granularity.
+const RING_SIZE = 90;
+const RING_STROKE = 7;
+const RING_RADIUS = (RING_SIZE - RING_STROKE) / 2;
+const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
+
 export function HifzScreen() {
   const insets = useSafeAreaInsets();
+  const { language } = useLanguage();
+  const locale: Locale = (['en', 'ur', 'ar'].includes(language as string) ? language : 'en') as Locale;
+  const L = LABELS[locale];
+  const statusLabel: Record<HifzStatus, string> = {
+    none: L.notStarted,
+    learning: L.memorizing,
+    memorized: L.memorized,
+  };
   const [progress, setProgress] = useState<Record<number, HifzStatus>>({});
   const [activeJuz, setActiveJuz] = useState<number | null>(null);
   const fadeAnim = useState(new Animated.Value(0))[0];
@@ -69,15 +129,34 @@ export function HifzScreen() {
     const next = { ...progressRef.current, [surahNum]: STATUS_ORDER[nextIndex] };
     progressRef.current = next;
     setProgress(next);
-    AsyncStorage.setItem(HIFZ_KEY, JSON.stringify(next)).catch(() => {});
+    // Surface (don't swallow) persistence failures — a failed write here
+    // means the surah silently reverts on next launch.
+    AsyncStorage.setItem(HIFZ_KEY, JSON.stringify(next)).catch((err) =>
+      captureError(err, { scope: 'hifz:save' })
+    );
   }, []);
 
   // Three 114-item filters fired on every render before memo — cycling a
   // status or tapping a juz chip caused noticeable lag.
-  const { memorized, learning, progressPct } = useMemo(() => {
+  const { memorized, learning, progressPct, progressFrac } = useMemo(() => {
     const m = SURAH_LIST.filter((s) => progress[s.number] === 'memorized').length;
     const l = SURAH_LIST.filter((s) => progress[s.number] === 'learning').length;
-    return { memorized: m, learning: l, progressPct: Math.round((m / 114) * 100) };
+    return {
+      memorized: m,
+      learning: l,
+      progressPct: Math.round((m / 114) * 100),
+      progressFrac: m / 114,
+    };
+  }, [progress]);
+
+  // Per-juz "all memorized" flags, derived once per progress change instead
+  // of 30 × 114 scans inside the chip-row JSX on every render.
+  const juzDone = useMemo(() => {
+    const done = new Set<number>();
+    for (const g of JUZ_GROUPS) {
+      if (g.surahs.every((n) => progress[n] === 'memorized')) done.add(g.juz);
+    }
+    return done;
   }, [progress]);
 
   const displayedSurahs = useMemo(
@@ -98,7 +177,7 @@ export function HifzScreen() {
         </View>
         <View style={styles.surahInfo}>
           <ArabicText style={styles.surahArabic}>{item.nameArabic}</ArabicText>
-          <Text style={styles.surahEnglish}>{item.nameEnglish} · {item.ayahs} ayahs</Text>
+          <Text style={styles.surahEnglish}>{item.nameEnglish} · {item.ayahs} {L.ayahs}</Text>
         </View>
         <TouchableOpacity
           style={[styles.statusBtn, { backgroundColor: meta.bg, borderColor: meta.color + '60' }]}
@@ -106,7 +185,7 @@ export function HifzScreen() {
           activeOpacity={0.8}
         >
           <Text style={[styles.statusIcon, { color: meta.color }]}>{meta.icon}</Text>
-          <Text style={[styles.statusLabel, { color: meta.color }]}>{meta.label}</Text>
+          <Text style={[styles.statusLabel, { color: meta.color }]}>{statusLabel[status]}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -116,34 +195,52 @@ export function HifzScreen() {
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Hifz Tracker</Text>
-        <Text style={styles.headerSub}>Track your Quran memorization</Text>
+        <Text style={styles.headerTitle}>{L.title}</Text>
+        <Text style={styles.headerSub}>{L.sub}</Text>
       </View>
 
       {/* Stats */}
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={styles.statNum}>{memorized}</Text>
-          <Text style={styles.statLabel}>Memorized</Text>
+          <Text style={styles.statLabel}>{L.memorized}</Text>
           <View style={[styles.statDot, { backgroundColor: theme.colors.success }]} />
         </View>
         <View style={styles.progressRingWrap}>
           <View style={styles.progressRing}>
-            <View style={[styles.progressRingFill, {
-              borderColor: theme.colors.accent,
-              borderTopColor: progressPct > 25 ? theme.colors.accent : theme.colors.backgroundSoft,
-              borderRightColor: progressPct > 50 ? theme.colors.accent : theme.colors.backgroundSoft,
-              borderBottomColor: progressPct > 75 ? theme.colors.accent : theme.colors.backgroundSoft,
-            }]} />
+            <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
+              <Circle
+                cx={RING_SIZE / 2}
+                cy={RING_SIZE / 2}
+                r={RING_RADIUS}
+                stroke={theme.colors.backgroundSoft}
+                strokeWidth={RING_STROKE}
+                fill="none"
+              />
+              {progressFrac > 0 && (
+                <Circle
+                  cx={RING_SIZE / 2}
+                  cy={RING_SIZE / 2}
+                  r={RING_RADIUS}
+                  stroke={theme.colors.accent}
+                  strokeWidth={RING_STROKE}
+                  fill="none"
+                  strokeDasharray={RING_CIRCUMFERENCE}
+                  strokeDashoffset={RING_CIRCUMFERENCE * (1 - progressFrac)}
+                  strokeLinecap="round"
+                  transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                />
+              )}
+            </Svg>
             <View style={styles.progressRingInner}>
               <Text style={styles.progressRingPct}>{progressPct}%</Text>
-              <Text style={styles.progressRingLabel}>complete</Text>
+              <Text style={styles.progressRingLabel}>{L.complete}</Text>
             </View>
           </View>
         </View>
         <View style={styles.statCard}>
           <Text style={[styles.statNum, { color: '#C87800' }]}>{learning}</Text>
-          <Text style={styles.statLabel}>Memorizing</Text>
+          <Text style={styles.statLabel}>{L.memorizing}</Text>
           <View style={[styles.statDot, { backgroundColor: '#C87800' }]} />
         </View>
       </View>
@@ -153,8 +250,8 @@ export function HifzScreen() {
         {STATUS_ORDER.map((s) => (
           <View key={s} style={styles.legendItem}>
             <Text style={[styles.legendIcon, { color: STATUS_META[s].color }]}>{STATUS_META[s].icon}</Text>
-            <Text style={styles.legendLabel}>{STATUS_META[s].label}</Text>
-            <Text style={styles.legendHint}>(tap to cycle)</Text>
+            <Text style={styles.legendLabel}>{statusLabel[s]}</Text>
+            <Text style={styles.legendHint}>{L.tapToCycle}</Text>
           </View>
         ))}
       </View>
@@ -167,12 +264,10 @@ export function HifzScreen() {
           style={[styles.juzChip, activeJuz === null && styles.juzChipActive]}
           onPress={() => setActiveJuz(null)}
         >
-          <Text style={[styles.juzChipText, activeJuz === null && styles.juzChipTextActive]}>All</Text>
+          <Text style={[styles.juzChipText, activeJuz === null && styles.juzChipTextActive]}>{L.all}</Text>
         </TouchableOpacity>
-        {JUZ_LABELS.map((juz) => {
-          const juzMem = SURAH_LIST
-            .filter((s) => SURAH_JUZ[s.number - 1] === juz)
-            .every((s) => progress[s.number] === 'memorized');
+        {JUZ_GROUPS.map(({ juz }) => {
+          const juzMem = juzDone.has(juz);
           return (
             <TouchableOpacity
               key={juz}
@@ -180,7 +275,7 @@ export function HifzScreen() {
               onPress={() => setActiveJuz(activeJuz === juz ? null : juz)}
             >
               <Text style={[styles.juzChipText, activeJuz === juz && styles.juzChipTextActive]}>
-                {juzMem ? '✓ ' : ''}Juz {juz}
+                {juzMem ? '✓ ' : ''}{L.juz} {juz}
               </Text>
             </TouchableOpacity>
           );
@@ -215,11 +310,7 @@ const styles = StyleSheet.create({
   statDot: { width: 8, height: 8, borderRadius: 4 },
 
   progressRingWrap: { alignItems: 'center', justifyContent: 'center' },
-  progressRing: { width: 90, height: 90, alignItems: 'center', justifyContent: 'center' },
-  progressRingFill: {
-    position: 'absolute', width: 84, height: 84, borderRadius: 42,
-    borderWidth: 7, borderColor: theme.colors.accent,
-  },
+  progressRing: { width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' },
   progressRingInner: { alignItems: 'center' },
   progressRingPct: { fontFamily: theme.typography.fontHeadingBold, fontSize: 20, color: theme.colors.text },
   progressRingLabel: { fontFamily: theme.typography.fontBody, fontSize: 10, color: theme.colors.textMuted },

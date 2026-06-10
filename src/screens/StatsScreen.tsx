@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Platform, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AdBanner } from '../components/AdBanner';
@@ -8,15 +8,29 @@ import { theme } from '../constants/theme';
 import { AD_UNITS } from '../services/ads';
 import { useLanguage } from '../contexts/LanguageContext';
 import { computeStreak } from '../utils/streak';
-import { getLocalDateKey } from '../utils/date';
+import { getLocalDateKey, addLocalDays } from '../utils/date';
+import { captureError } from '../services/sentry';
+
+// Inline labels (same pattern as HifzScreen/TasbihScreen) — translations.ts
+// is owned elsewhere, and these two strings are Stats-only.
+const ERROR_LABELS: Record<'en' | 'ur' | 'ar', { loadError: string; retry: string }> = {
+  en: { loadError: "Couldn't load your stats. Your saved data is untouched.", retry: 'Retry' },
+  ur: { loadError: 'اعداد و شمار لوڈ نہیں ہو سکے۔ آپ کا محفوظ ڈیٹا متاثر نہیں ہوا۔', retry: 'دوبارہ کوشش کریں' },
+  ar: { loadError: 'تعذر تحميل الإحصائيات. بياناتك المحفوظة سليمة.', retry: 'إعادة المحاولة' },
+};
 
 export function StatsScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const errorLabels = ERROR_LABELS[language] ?? ERROR_LABELS.en;
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
   const [prayerConsistency, setPrayerConsistency] = useState(0);
   const [goalsThisWeek, setGoalsThisWeek] = useState(0);
   const [moodAvg, setMoodAvg] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
+  // Bumped by the error banner's Retry button to re-run the load without
+  // waiting for the next focus.
+  const [retryNonce, setRetryNonce] = useState(0);
 
   // useFocusEffect — Stats is reachable from the sidebar; without this the
   // numbers shown reflect first-mount data and never update after the user
@@ -25,9 +39,13 @@ export function StatsScreen() {
     useCallback(() => {
       let cancelled = false;
       (async () => {
-        const [prayers, goalDays] = await Promise.all([
+        // All four reads up front so a mid-sequence failure can't leave a
+        // partially-updated screen (e.g. fresh streak next to stale moods).
+        const [prayers, goalDays, goals, moods] = await Promise.all([
           storage.getPrayers(),
           storage.getGoalDays(),
+          storage.getGoals(),
+          storage.getMoods(),
         ]);
         if (cancelled) return;
         // Pass goalDays so Stats matches Home's streak ring — goal-only days
@@ -40,9 +58,7 @@ export function StatsScreen() {
         let prayed = 0;
         let total = 0;
         for (let i = 0; i < 7; i++) {
-          const d = new Date(now);
-          d.setDate(now.getDate() - i);
-          const key = getLocalDateKey(d);
+          const key = getLocalDateKey(addLocalDays(now, -i));
           const rec = prayers[key];
           if (rec) {
             prayed += [
@@ -55,29 +71,47 @@ export function StatsScreen() {
             total += 5;
           }
         }
-        if (cancelled) return;
         setPrayerConsistency(total > 0 ? Math.round((prayed / total) * 100) : 0);
 
-        const goals = await storage.getGoals();
-        if (cancelled) return;
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
+        // g.date is a LOCAL YYYY-MM-DD key (getLocalDateKey). The old
+        // `new Date(g.date) >= weekAgo` parsed it as UTC midnight and
+        // compared against a local timestamp, so the boundary day was
+        // counted or dropped depending on timezone and time of day (the
+        // same pitfall daysApart() in utils/streak.ts documents). Compare
+        // date keys lexically instead — same 7-day window (today + 6 prior)
+        // as the prayer-consistency card above.
+        const weekAgoKey = getLocalDateKey(addLocalDays(now, -6));
         const completed = goals.filter(
-          (g) => g.completed && g.date && new Date(g.date) >= weekAgo
+          (g) => g.completed && g.date && g.date >= weekAgoKey
         );
         setGoalsThisWeek(completed.length);
 
-        const moods = await storage.getMoods();
-        if (cancelled) return;
-        const recentMoods = moods.slice(0, 7).filter((m) => m.mood);
+        // Average over the last 7 calendar DAYS, not the last 7 entries —
+        // MoodScreen appends an entry per tap, so seven taps in one sitting
+        // used to turn the "weekly" average into a one-minute average.
+        // Entries are newest-first, so the first entry seen for a date is
+        // that day's latest mood.
+        const latestPerDay = new Map<string, number>();
+        for (const m of moods) {
+          if (!m.mood || !m.date || m.date < weekAgoKey) continue;
+          if (!latestPerDay.has(m.date)) latestPerDay.set(m.date, m.mood);
+        }
+        const dayMoods = [...latestPerDay.values()];
         const avg =
-          recentMoods.length > 0
-            ? recentMoods.reduce((s, m) => s + m.mood, 0) / recentMoods.length
+          dayMoods.length > 0
+            ? dayMoods.reduce((s, m) => s + m, 0) / dayMoods.length
             : 0;
         setMoodAvg(Math.round(avg * 10) / 10);
-      })();
+        setLoadFailed(false);
+      })().catch((err) => {
+        // Without this catch a storage failure rejected unhandled and the
+        // screen confidently showed zeros (or stale values) with no hint
+        // anything went wrong. Keep the previous values and show a banner.
+        captureError(err, { scope: 'stats:load' });
+        if (!cancelled) setLoadFailed(true);
+      });
       return () => { cancelled = true; };
-    }, [])
+    }, [retryNonce])
   );
 
   return (
@@ -94,6 +128,20 @@ export function StatsScreen() {
       />
       <Text style={styles.title}>{t.stats}</Text>
       <Text style={styles.subtitle}>{t.statsSubtitle}</Text>
+
+      {loadFailed && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorText}>{errorLabels.loadError}</Text>
+          <TouchableOpacity
+            onPress={() => setRetryNonce((n) => n + 1)}
+            accessibilityRole="button"
+            accessibilityLabel={errorLabels.retry}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.errorRetry}>{errorLabels.retry}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.grid}>
         <View style={[styles.card, styles.cardHighlight]}>
@@ -168,6 +216,31 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: theme.spacing.xl,
     fontFamily: theme.typography.fontBody,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(200, 60, 30, 0.4)',
+    borderRadius: theme.borderRadius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontBody,
+    lineHeight: 18,
+  },
+  errorRetry: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.accent,
+    fontFamily: theme.typography.fontBodyBold,
   },
   grid: {
     flexDirection: 'row',

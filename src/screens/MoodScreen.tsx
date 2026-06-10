@@ -19,9 +19,18 @@ import { theme } from '../constants/theme';
 import { computeStreak } from '../utils/streak';
 import { useLanguage } from '../contexts/LanguageContext';
 import { getLocalDateKey } from '../utils/date';
+import { captureError } from '../services/sentry';
+
+// Inline labels (same pattern as HifzScreen/TasbihScreen) — translations.ts
+// is owned elsewhere, and this string is Mood-only.
+const SAVE_FAILED_NOTE: Record<'en' | 'ur' | 'ar', string> = {
+  en: "Your mood couldn't be saved this time, so it won't count toward your stats — but the reflection above is still yours.",
+  ur: 'آپ کا موڈ اس بار محفوظ نہیں ہو سکا، اس لیے یہ اعداد و شمار میں شمار نہیں ہوگا — لیکن اوپر کا پیغام آپ کے لیے ہے۔',
+  ar: 'تعذر حفظ مزاجك هذه المرة، لذا لن يُحتسب في الإحصائيات — لكن الرسالة أعلاه تبقى لك.',
+};
 
 export function MoodScreen() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [selectedMood, setSelectedMood] = useState<number | null>(null);
   const [messages, setMessages] = useState<string[]>([]);
   // Surfaced via the chat area while the response is being computed. Without
@@ -42,30 +51,49 @@ export function MoodScreen() {
     setThinking(true);
     setMessages([]); // clear any prior response so the spinner is the only thing on screen
 
+    const today = getLocalDateKey();
     try {
-      const prayers = await storage.getPrayers();
-      const today = getLocalDateKey();
-      const todayPrayers = prayers[today];
-      const missed = todayPrayers
-        ? 5 -
-          [
-            todayPrayers.fajr,
-            todayPrayers.dhuhr,
-            todayPrayers.asr,
-            todayPrayers.maghrib,
-            todayPrayers.isha,
-          ].filter(Boolean).length
-        : 5;
+      // The prayer/streak read only personalizes the response — if it fails
+      // (AsyncStorage I/O), fall back to neutral inputs rather than leaving
+      // the user staring at an empty chat. Previously this whole handler was
+      // try/finally with no catch: the rejection escaped unhandled, the
+      // spinner vanished, and nothing was shown or saved.
+      let streak = 0;
+      let missed = 0;
+      try {
+        const prayers = await storage.getPrayers();
+        const todayPrayers = prayers[today];
+        missed = todayPrayers
+          ? 5 -
+            [
+              todayPrayers.fajr,
+              todayPrayers.dhuhr,
+              todayPrayers.asr,
+              todayPrayers.maghrib,
+              todayPrayers.isha,
+            ].filter(Boolean).length
+          : 5;
 
-      // `prayers` already loaded above — reuse it instead of a second read.
-      const { current: streak } = computeStreak(prayers);
+        // `prayers` already loaded above — reuse it instead of a second read.
+        const { current } = computeStreak(prayers);
+        streak = current;
+      } catch (err) {
+        captureError(err, { scope: 'mood:read-prayers' });
+      }
 
       const response = getLocalMotivation(streak, mood, missed);
       setMessages([response]);
 
-      const moods = await storage.getMoods();
-      moods.unshift({ date: today, mood, aiResponse: response });
-      await storage.setMoods(moods.slice(0, 50));
+      try {
+        const moods = await storage.getMoods();
+        moods.unshift({ date: today, mood, aiResponse: response });
+        await storage.setMoods(moods.slice(0, 50));
+      } catch (err) {
+        // The response is already on screen — keep it, but tell the user the
+        // entry didn't persist instead of failing silently.
+        captureError(err, { scope: 'mood:save' });
+        setMessages([response, SAVE_FAILED_NOTE[language] ?? SAVE_FAILED_NOTE.en]);
+      }
     } finally {
       submittingRef.current = false;
       setThinking(false);

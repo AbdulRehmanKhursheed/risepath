@@ -9,9 +9,9 @@ import { AdBanner } from '../components/AdBanner';
 import { HadithOfDay } from '../components/HadithOfDay';
 import { NextEventCard } from '../components/NextEventCard';
 import { EidHubCard } from '../components/EidHubCard';
-import { TodayCard } from '../components/TodayCard';
+import { TodayCard, useDayKey } from '../components/TodayCard';
 import { QuickActions } from '../components/QuickActions';
-import { storage } from '../services/storage';
+import { storage, type Goal } from '../services/storage';
 import { theme } from '../constants/theme';
 import { computeStreak, nextStreakMilestone } from '../utils/streak';
 import { getRandomQuote, type QuoteEntry } from '../constants/quotes';
@@ -21,7 +21,6 @@ import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { MenuButton } from '../components/MenuButton';
 import { StreakCelebrationModal } from '../components/StreakCelebrationModal';
 import { formatHijri, computeHijriOffsetFromServer } from '../utils/hijri';
-import { getLocalDateKey } from '../utils/date';
 import { isIndoPakRegion } from '../utils/region';
 
 function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
@@ -31,26 +30,70 @@ function getSubGreeting(t: ReturnType<typeof useLanguage>['t']): string {
   return t.eveningGreeting;
 }
 
-// Default goals shown on first launch. Saved to AsyncStorage on first read,
-// so they must match the user's chosen language at install time — otherwise
-// an Urdu / Arabic user sees English goals forever after.
-const DEFAULT_GOALS_BY_LANG: Record<'en' | 'ur' | 'ar', { id: string; text: string; completed: boolean; date: string }[]> = {
-  en: [
-    { id: '1', text: 'Read 10 min of Quran',  completed: false, date: '' },
-    { id: '2', text: 'Dhikr after Fajr',      completed: false, date: '' },
-    { id: '3', text: 'Help someone today',    completed: false, date: '' },
-  ],
-  ur: [
-    { id: '1', text: '۱۰ منٹ قرآن کی تلاوت',     completed: false, date: '' },
-    { id: '2', text: 'فجر کے بعد ذکر',           completed: false, date: '' },
-    { id: '3', text: 'آج کسی کی مدد کریں',       completed: false, date: '' },
-  ],
-  ar: [
-    { id: '1', text: 'اقرأ ١٠ دقائق من القرآن',  completed: false, date: '' },
-    { id: '2', text: 'الذكر بعد الفجر',          completed: false, date: '' },
-    { id: '3', text: 'ساعد شخصاً اليوم',         completed: false, date: '' },
-  ],
+// Default goals seeded on first launch. Earlier builds baked the install-time
+// language's text into storage (ids '1'..'3'), so switching languages later
+// left the goals in the first-run language forever. The seeded defaults now
+// carry language-independent ids and their display text is resolved from the
+// active language at render time; the stored text is only a fallback for
+// goals we don't recognize (user-authored goals stay exactly as typed).
+const DEFAULT_GOAL_TEXT: Record<string, Record<'en' | 'ur' | 'ar', string>> = {
+  'default:quran': {
+    en: 'Read 10 min of Quran',
+    ur: '۱۰ منٹ قرآن کی تلاوت',
+    ar: 'اقرأ ١٠ دقائق من القرآن',
+  },
+  'default:dhikr': {
+    en: 'Dhikr after Fajr',
+    ur: 'فجر کے بعد ذکر',
+    ar: 'الذكر بعد الفجر',
+  },
+  'default:help': {
+    en: 'Help someone today',
+    ur: 'آج کسی کی مدد کریں',
+    ar: 'ساعد شخصاً اليوم',
+  },
 };
+const DEFAULT_GOAL_IDS = Object.keys(DEFAULT_GOAL_TEXT);
+// Legacy seeded ids → stable ids, in seeding order.
+const LEGACY_DEFAULT_IDS: Record<string, string> = {
+  '1': 'default:quran',
+  '2': 'default:dhikr',
+  '3': 'default:help',
+};
+
+function seedDefaultGoals(language: 'en' | 'ur' | 'ar'): Goal[] {
+  return DEFAULT_GOAL_IDS.map((id) => ({
+    id,
+    text: DEFAULT_GOAL_TEXT[id][language] ?? DEFAULT_GOAL_TEXT[id].en,
+    completed: false,
+    date: '',
+  }));
+}
+
+// One-time migration for goals stored by earlier builds: a goal with a
+// legacy id is remapped to its stable id only when its text exactly matches
+// one of the known default texts (any language) — anything else is treated
+// as user data and left untouched. Completion state and date are preserved.
+function migrateDefaultGoals(stored: Goal[]): { goals: Goal[]; changed: boolean } {
+  let changed = false;
+  const goals = stored.map((g) => {
+    const stableId = LEGACY_DEFAULT_IDS[g.id];
+    if (!stableId) return g;
+    const variants = Object.values(DEFAULT_GOAL_TEXT[stableId]);
+    if (!variants.includes(g.text)) return g;
+    changed = true;
+    return { ...g, id: stableId };
+  });
+  return { goals, changed };
+}
+
+// Render-time text resolution: default goals follow the active language;
+// unrecognized goals render their stored text as-is.
+function resolveGoalText(goal: Goal, language: 'en' | 'ur' | 'ar'): string {
+  const texts = DEFAULT_GOAL_TEXT[goal.id];
+  if (!texts) return goal.text;
+  return texts[language] ?? texts.en;
+}
 
 export function HomeScreen() {
   const { t, language } = useLanguage();
@@ -63,12 +106,15 @@ export function HomeScreen() {
   const [longest, setLongest] = useState(0);
   const [hijriOffset, setHijriOffset] = useState(0);
   const [day1CelebrationVisible, setDay1CelebrationVisible] = useState(false);
-  const hijri = useMemo(() => formatHijri(new Date(), language, hijriOffset), [language, hijriOffset]);
-  const defaultGoals = DEFAULT_GOALS_BY_LANG[language] ?? DEFAULT_GOALS_BY_LANG.en;
-  const [goals, setGoals] = useState(defaultGoals);
+  // Shared day tick — HomeScreen never unmounts (keep-alive tab), so the
+  // Hijri header and "completed today" goal checks would otherwise freeze
+  // at yesterday's date when the process survives midnight.
+  const dayKey = useDayKey();
+  const hijri = useMemo(() => formatHijri(new Date(), language, hijriOffset), [language, hijriOffset, dayKey]);
+  const [goals, setGoals] = useState<Goal[]>(() => seedDefaultGoals(language));
   const [quote, setQuote] = useState<QuoteEntry>(getRandomQuote);
 
-  const today = getLocalDateKey();
+  const today = dayKey;
 
   // useFocusEffect (not useEffect) — the tab navigator keeps HomeScreen
   // mounted, so a plain useEffect would only fire on first mount and the
@@ -141,10 +187,16 @@ export function HomeScreen() {
 
         const data = await storage.getGoals();
         if (cancelled) return;
-        if (data.length > 0) setGoals(data);
-        else {
-          setGoals(defaultGoals);
-          await storage.setGoals(defaultGoals);
+        if (data.length > 0) {
+          // Remap legacy-id default goals to stable ids once, so their text
+          // can follow the active language from here on.
+          const { goals: migrated, changed } = migrateDefaultGoals(data);
+          setGoals(migrated);
+          if (changed) await storage.setGoals(migrated);
+        } else {
+          const seeded = seedDefaultGoals(language);
+          setGoals(seeded);
+          await storage.setGoals(seeded);
         }
       })();
       return () => { cancelled = true; };
@@ -293,7 +345,7 @@ export function HomeScreen() {
         {goals.map((g) => (
           <GoalItem
             key={g.id}
-            text={g.text}
+            text={resolveGoalText(g, language)}
             completed={g.completed && g.date === today}
             onToggle={() => toggleGoal(g.id)}
           />

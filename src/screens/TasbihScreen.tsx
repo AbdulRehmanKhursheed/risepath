@@ -56,6 +56,11 @@ export function TasbihScreen() {
   const [target, setTarget] = useState(TASBIH_PRESETS[0].defaultTarget);
   const [lifetime, setLifetime] = useState(0);
   const [todayCount, setTodayCount] = useState(0);
+  // The local date the Today counter belongs to. Persisting todayKey() at
+  // flush time stamped yesterday's accumulated beads with today's date when
+  // the screen survived midnight (open or backgrounded), so the corrupt
+  // count even survived a restart.
+  const [todayDate, setTodayDate] = useState(() => todayKey());
   const [targetModalOpen, setTargetModalOpen] = useState(false);
   const [customTarget, setCustomTarget] = useState('');
   const [hydrated, setHydrated] = useState(false);
@@ -68,25 +73,27 @@ export function TasbihScreen() {
         AsyncStorage.getItem(STORAGE_KEY_TODAY),
       ]);
 
+      // Functional merges throughout — the counter is tappable immediately,
+      // and a plain setCount(saved.count) silently erased any beads tapped
+      // before AsyncStorage resolved (slow device / busy bridge).
       if (rawState) {
         try {
           const saved: TasbihState = JSON.parse(rawState);
           const matched = TASBIH_PRESETS.find((p) => p.id === saved.presetId) ?? TASBIH_PRESETS[0];
           setPreset(matched);
-          setCount(saved.count ?? 0);
+          setCount((c) => c + (saved.count ?? 0));
           setTarget(saved.target ?? matched.defaultTarget);
         } catch {}
       }
-      if (rawLife) setLifetime(Number(rawLife) || 0);
+      if (rawLife) setLifetime((l) => l + (Number(rawLife) || 0));
 
       if (rawToday) {
         try {
           const t: TodayState = JSON.parse(rawToday);
-          if (t.date === todayKey()) setTodayCount(t.count);
-          else setTodayCount(0);
-        } catch {
-          setTodayCount(0);
-        }
+          // Merge only a record from today; a stale or unreadable record is
+          // simply not added (state already carries today's pre-hydration taps).
+          if (t.date === todayKey()) setTodayCount((c) => c + (t.count ?? 0));
+        } catch {}
       }
       setHydrated(true);
     })();
@@ -97,10 +104,10 @@ export function TasbihScreen() {
   // disk writes rare; flushPending() forces an immediate flush so we don't
   // lose the in-flight beads on app background / kill.
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stateRef = useRef({ preset, count, target, lifetime, todayCount });
+  const stateRef = useRef({ preset, count, target, lifetime, todayCount, todayDate });
   useEffect(() => {
-    stateRef.current = { preset, count, target, lifetime, todayCount };
-  }, [preset, count, target, lifetime, todayCount]);
+    stateRef.current = { preset, count, target, lifetime, todayCount, todayDate };
+  }, [preset, count, target, lifetime, todayCount, todayDate]);
 
   const flushPending = () => {
     if (debounceRef.current) {
@@ -111,8 +118,21 @@ export function TasbihScreen() {
     AsyncStorage.multiSet([
       [STORAGE_KEY_STATE, JSON.stringify({ presetId: s.preset.id, count: s.count, target: s.target })],
       [STORAGE_KEY_LIFETIME, String(s.lifetime)],
-      [STORAGE_KEY_TODAY, JSON.stringify({ date: todayKey(), count: s.todayCount })],
+      // Stamp the date the count was accumulated under — not todayKey() at
+      // flush time, which mislabeled yesterday's beads after midnight.
+      [STORAGE_KEY_TODAY, JSON.stringify({ date: s.todayDate, count: s.todayCount })],
     ]).catch(() => {});
+  };
+
+  // Reset the Today counter when the local day rolls over while the screen
+  // stays mounted — checked on every bead, on app foreground, and on a
+  // minute tick (so the displayed count doesn't sit on yesterday's total).
+  const rollDayIfNeeded = () => {
+    const key = todayKey();
+    if (key !== stateRef.current.todayDate) {
+      setTodayDate(key);
+      setTodayCount(0);
+    }
   };
 
   useEffect(() => {
@@ -125,23 +145,30 @@ export function TasbihScreen() {
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [preset, count, target, lifetime, todayCount, hydrated]);
+  }, [preset, count, target, lifetime, todayCount, todayDate, hydrated]);
 
   // Flush on background/inactive — otherwise an app swipe-away mid-dhikr
   // loses up to 600 ms of beads (and the entire current count if the user
-  // hasn't paused tapping). Also flush on screen unmount.
+  // hasn't paused tapping). Also flush on screen unmount, and roll the day
+  // over on foreground so a resume after midnight starts Today at 0.
   useEffect(() => {
     if (!hydrated) return;
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') flushPending();
+      if (state === 'active') rollDayIfNeeded();
+      else flushPending();
     });
+    const tick = setInterval(rollDayIfNeeded, 60_000);
     return () => {
       sub.remove();
+      clearInterval(tick);
       flushPending();
     };
   }, [hydrated]);
 
   const increment = () => {
+    // Never credit a new bead to yesterday's record — the day may have
+    // rolled since the last minute tick.
+    rollDayIfNeeded();
     const next = count + 1;
     setCount(next);
     setLifetime((l) => l + 1);

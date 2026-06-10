@@ -5,11 +5,17 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { getDailyHadith } from '../constants/hadiths';
 import { ArabicText } from './ui/ArabicText';
+import { useDayKey } from './TodayCard';
 
 export function HadithOfDay() {
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
-  const hadith = useMemo(() => getDailyHadith(), []);
+  // getDailyHadith() derives the pick from today's date, but this component
+  // lives on the keep-alive Home tab — with an empty dep array the hadith
+  // chosen at first mount stuck around across day boundaries. The shared
+  // day tick re-derives it at midnight/foreground/focus.
+  const dayKey = useDayKey();
+  const hadith = useMemo(() => getDailyHadith(), [dayKey]);
   // Arabic readers get the Arabic original (already shown above as the
   // primary text). The body line is the rendered translation in the user's
   // chosen reading language. Falling back to English for Arabic was a bug —
