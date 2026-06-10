@@ -14,6 +14,10 @@ export type PrayerTimeInfo = {
   name: string;
   key: PrayerName;
   time: Date;
+  // When the prayer window closes: sunrise for Fajr, the next prayer's adhan
+  // otherwise, end of day for Isha. Used to distinguish "still due" from
+  // "missed" — a prayer isn't missed the instant its adhan time passes.
+  windowEnd: Date;
 };
 
 /**
@@ -65,12 +69,15 @@ export function usePrayerTimes(
 
     const adhanTimes = new PrayerTimes(coords, date, params);
 
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const prayers: PrayerTimeInfo[] = [
-      { name: 'Fajr', key: 'fajr', time: adhanTimes.fajr },
-      { name: 'Dhuhr', key: 'dhuhr', time: adhanTimes.dhuhr },
-      { name: 'Asr', key: 'asr', time: adhanTimes.asr },
-      { name: 'Maghrib', key: 'maghrib', time: adhanTimes.maghrib },
-      { name: 'Isha', key: 'isha', time: adhanTimes.isha },
+      { name: 'Fajr', key: 'fajr', time: adhanTimes.fajr, windowEnd: adhanTimes.sunrise },
+      { name: 'Dhuhr', key: 'dhuhr', time: adhanTimes.dhuhr, windowEnd: adhanTimes.asr },
+      { name: 'Asr', key: 'asr', time: adhanTimes.asr, windowEnd: adhanTimes.maghrib },
+      { name: 'Maghrib', key: 'maghrib', time: adhanTimes.maghrib, windowEnd: adhanTimes.isha },
+      { name: 'Isha', key: 'isha', time: adhanTimes.isha, windowEnd: endOfDay },
     ];
 
     return prayers;

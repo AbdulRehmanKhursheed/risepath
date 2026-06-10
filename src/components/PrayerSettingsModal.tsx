@@ -54,9 +54,12 @@ export function PrayerSettingsModal({
     }
   }, [visible, calculationMethod, madhab]);
 
-  const changeFiqh = (next: 'sunni' | 'shia') => {
+  const changeFiqh = async (next: 'sunni' | 'shia') => {
     setFiqhSchool(next);
-    storage.setFiqhSchool(next).catch(() => {});
+    // Await the write before onSave — the parent's save handler reads the
+    // school back from storage (it no longer infers it from the method), so
+    // an un-awaited write here could be read back stale.
+    await storage.setFiqhSchool(next).catch(() => {});
     // Auto-flip the calc method so the user doesn't end up with Sunni + Jafari
     // or Shia + non-Jafari (which both produce wrong prayer times). Commit the
     // new method to the parent immediately so the change sticks even if the

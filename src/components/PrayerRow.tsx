@@ -8,7 +8,7 @@ import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { useQuranNav } from '../contexts/QuranNavContext';
 import type { PrayerName } from '../hooks/usePrayerTimes';
 
-type PrayerStatus = 'prayed' | 'missed' | 'upcoming';
+type PrayerStatus = 'prayed' | 'missed' | 'upcoming' | 'due';
 
 type Props = {
   name: string;
@@ -19,7 +19,7 @@ type Props = {
 };
 
 export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { fs } = useSimpleMode();
   const { openSurah } = useQuranNav();
   const [expanded, setExpanded] = useState(false);
@@ -51,8 +51,17 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
         color: theme.colors.textMuted,
         border: theme.colors.border,
       },
+      // Adhan time has passed but the prayer window is still open — the
+      // prayer is due, not missed.
+      due: {
+        label: language === 'ur' ? 'ابھی وقت ہے' : language === 'ar' ? 'حان وقتها' : 'Due now',
+        icon: '◉',
+        bg: theme.colors.accentMuted,
+        color: theme.colors.accent,
+        border: theme.colors.accent,
+      },
     }),
-    [t.prayed, t.missed, t.upcoming]
+    [t.prayed, t.missed, t.upcoming, language]
   );
 
   const config = STATUS_CONFIG[status];

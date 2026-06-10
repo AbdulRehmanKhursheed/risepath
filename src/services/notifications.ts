@@ -1,4 +1,5 @@
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import {
   PrayerTimes as AdhanPrayerTimes,
@@ -25,9 +26,14 @@ export type PrayerTime = {
   time: Date;
 };
 
-// Days of prayer notifications kept scheduled ahead. 7 × 5 = 35 entries leaves
-// room under Android's ~50 pending-notification cap for streak + sacred schedules.
-export const PRAYER_SCHEDULE_DAYS_AHEAD = 7;
+// Days of prayer notifications kept scheduled ahead. Budget: 5 × 5 = 25 prayer
+// entries + ≤26 sacred milestones + 1 streak + 1 jumu'ah = ≤53, comfortably
+// under iOS's 64-pending-notification limit (iOS silently drops the rest).
+export const PRAYER_SCHEDULE_DAYS_AHEAD = 5;
+
+// Sacred milestones share the pending-notification budget with the prayer
+// schedule above — keep the soonest-firing ones and drop the furthest out.
+const SACRED_MAX_SCHEDULED = 26;
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -46,7 +52,55 @@ export async function requestNotificationPermissions(): Promise<boolean> {
   return status === 'granted';
 }
 
+// Read-only permission check — never prompts. Safe to call from focus/resume
+// listeners where re-prompting a previously-denied user would be hostile.
+export async function hasNotificationPermission(): Promise<boolean> {
+  const { status } = await Notifications.getPermissionsAsync();
+  return status === 'granted';
+}
+
 const PRAYER_ID_PREFIX = 'pr:';
+
+// Localized copy for the 5x-daily prayer reminders, mirroring STREAK_COPY /
+// JUMUAH_COPY below. Prayer names match translations.ts so notifications read
+// the same as the in-app tracker.
+const PRAYER_NAMES: Record<Language, Record<string, string>> = {
+  en: { Fajr: 'Fajr', Dhuhr: 'Dhuhr', Asr: 'Asr', Maghrib: 'Maghrib', Isha: 'Isha' },
+  ur: { Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء' },
+  ar: { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' },
+};
+
+function buildPrayerReminderCopy(prayerName: string, language: Language): MilestoneCopy {
+  const name = PRAYER_NAMES[language]?.[prayerName] ?? prayerName;
+  if (language === 'ur') {
+    return {
+      title: `⏰ ${name} میں 5 منٹ باقی`,
+      body: 'نماز کی تیاری کا وقت ہے۔',
+    };
+  }
+  if (language === 'ar') {
+    return {
+      title: `⏰ ${name} بعد 5 دقائق`,
+      body: 'حان وقت الاستعداد للصلاة.',
+    };
+  }
+  return {
+    title: `⏰ ${name} in 5 minutes`,
+    body: 'Time to prepare for prayer.',
+  };
+}
+
+// Serializes cancel-then-schedule rebuilds. Without this, two concurrent runs
+// (e.g. the tracker's Karachi-fallback run overlapping its location-resolved
+// re-run, or a rebuild racing the AppState resume rebuild) can interleave so
+// run B's cancel pass misses notifications run A schedules after B's read —
+// leaving duplicate reminders at different times pending simultaneously.
+let scheduleQueue: Promise<unknown> = Promise.resolve();
+function enqueueScheduleRun<T>(task: () => Promise<T>): Promise<T> {
+  const run = scheduleQueue.then(task, task);
+  scheduleQueue = run.catch(() => {});
+  return run;
+}
 
 const ADHAN_METHOD_MAP: Record<CalculationMethodId, () => CalculationParameters> = {
   MuslimWorldLeague: () => CalculationMethod.MuslimWorldLeague(),
@@ -97,12 +151,26 @@ function computePrayerTimesForDate(
 // ones. Idempotent — safe to call repeatedly (app open, AppState 'active',
 // settings change). Only touches `pr:` IDs, so streak and sacred-countdown
 // schedules are untouched.
-export async function schedulePrayerNotificationsAhead(
+export function schedulePrayerNotificationsAhead(
   lat: number,
   lng: number,
   calculationMethod: CalculationMethodId,
   madhab: MadhabId,
-  daysAhead: number = PRAYER_SCHEDULE_DAYS_AHEAD
+  daysAhead: number = PRAYER_SCHEDULE_DAYS_AHEAD,
+  language: Language = 'en'
+): Promise<number> {
+  return enqueueScheduleRun(() =>
+    schedulePrayerNotificationsAheadInner(lat, lng, calculationMethod, madhab, daysAhead, language)
+  );
+}
+
+async function schedulePrayerNotificationsAheadInner(
+  lat: number,
+  lng: number,
+  calculationMethod: CalculationMethodId,
+  madhab: MadhabId,
+  daysAhead: number,
+  language: Language
 ): Promise<number> {
   const existing = await Notifications.getAllScheduledNotificationsAsync();
   for (const n of existing) {
@@ -125,11 +193,12 @@ export async function schedulePrayerNotificationsAhead(
       const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000);
       if (triggerTime <= now) continue;
       const id = `${PRAYER_ID_PREFIX}${prayer.name}:${triggerTime.getTime()}`;
+      const copy = buildPrayerReminderCopy(prayer.name, language);
       await Notifications.scheduleNotificationAsync({
         identifier: id,
         content: {
-          title: `⏰ ${prayer.name} in 5 minutes`,
-          body: 'Time to prepare for prayer.',
+          title: copy.title,
+          body: copy.body,
           sound: true,
         },
         trigger: {
@@ -144,50 +213,63 @@ export async function schedulePrayerNotificationsAhead(
   return scheduled;
 }
 
-export async function schedulePrayerNotifications(
-  prayerTimes: PrayerTime[]
+export function schedulePrayerNotifications(
+  prayerTimes: PrayerTime[],
+  language: Language = 'en'
 ): Promise<void> {
-  const existing = await Notifications.getAllScheduledNotificationsAsync();
-  for (const n of existing) {
-    if (n.identifier.startsWith(PRAYER_ID_PREFIX)) {
-      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+  // Shares the pr:* namespace with the rebuild above, so it must go through
+  // the same serialization queue.
+  return enqueueScheduleRun(async () => {
+    const existing = await Notifications.getAllScheduledNotificationsAsync();
+    for (const n of existing) {
+      if (n.identifier.startsWith(PRAYER_ID_PREFIX)) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+      }
     }
-  }
 
-  for (const prayer of prayerTimes) {
-    const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000);
-    if (triggerTime > new Date()) {
-      const id = `${PRAYER_ID_PREFIX}${prayer.name}:${triggerTime.getTime()}`;
-      await Notifications.scheduleNotificationAsync({
-        identifier: id,
-        content: {
-          title: `⏰ ${prayer.name} in 5 minutes`,
-          body: 'Time to prepare for prayer.',
-          sound: true,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: triggerTime,
-          channelId: 'azan-reminders',
-        },
-      });
+    for (const prayer of prayerTimes) {
+      const triggerTime = new Date(prayer.time.getTime() - 5 * 60 * 1000);
+      if (triggerTime > new Date()) {
+        const id = `${PRAYER_ID_PREFIX}${prayer.name}:${triggerTime.getTime()}`;
+        const copy = buildPrayerReminderCopy(prayer.name, language);
+        await Notifications.scheduleNotificationAsync({
+          identifier: id,
+          content: {
+            title: copy.title,
+            body: copy.body,
+            sound: true,
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DATE,
+            date: triggerTime,
+            channelId: 'azan-reminders',
+          },
+        });
+      }
     }
-  }
+  });
 }
 
 // Reads location + calc method + madhab from storage and rebuilds the prayer
 // schedule. Called from app boot, AppState 'active', and PrayerTrackerScreen.
 // Falls back to Karachi defaults if no location is stored.
 export async function rebuildPrayerScheduleFromStorage(): Promise<number> {
-  const [loc, settings] = await Promise.all([
+  const [loc, settings, storedLang] = await Promise.all([
     storage.getLocation(),
     storage.getPrayerSettings(),
+    // Same key LanguageContext persists to — keeps background rebuilds in the
+    // user's language without threading the context through App.tsx callers.
+    AsyncStorage.getItem('app_language').catch(() => null),
   ]);
   const lat = loc?.latitude ?? 24.8607;
   const lng = loc?.longitude ?? 67.0011;
   const method = (settings?.calculationMethod as CalculationMethodId) ?? 'Karachi';
   const madhab = (settings?.madhab as MadhabId) ?? 'Shafi';
-  return schedulePrayerNotificationsAhead(lat, lng, method, madhab);
+  const language: Language =
+    storedLang === 'ur' || storedLang === 'ar' ? storedLang : 'en';
+  return schedulePrayerNotificationsAhead(
+    lat, lng, method, madhab, PRAYER_SCHEDULE_DAYS_AHEAD, language
+  );
 }
 
 export async function setupNotificationChannel(): Promise<void> {
@@ -365,9 +447,12 @@ function buildMilestoneCopy(
   const eventName =
     language === 'ur' ? event.nameUr : language === 'ar' ? event.nameAr : event.nameEn;
   const quote = getQuoteForEvent(event.type, daysAway);
-  const verse = language === 'ur' ? quote.ur : quote.en;
+  // Arabic: use the original Arabic verse text and skip the (English-only)
+  // hook line, so the body never mixes languages under an Arabic title.
+  const verse =
+    language === 'ur' ? quote.ur : language === 'ar' ? quote.arabic ?? quote.en : quote.en;
 
-  const hook = hookFor(event.type, daysAway, language);
+  const hook = language === 'ar' ? '' : hookFor(event.type, daysAway, language);
 
   if (daysAway === 0) {
     const celebratoryTitle =
@@ -498,7 +583,8 @@ function hookLocalized(type: EventType, d: number, lang: Language): string | nul
         return '';
     }
   }
-  // Arabic falls through to the Qur'an quote alone — intentionally short.
+  // Arabic has no hook copy — buildMilestoneCopy drops the hook entirely for
+  // 'ar' and shows the Arabic Qur'an quote alone, intentionally short.
   return null;
 }
 
@@ -520,14 +606,17 @@ export async function scheduleSacredCountdownNotifications(
 
   const events = getUpcomingEvents(sect, region).slice(0, 12); // cap to avoid spam
   const now = new Date();
-  let scheduled = 0;
+  const candidates: { id: string; copy: MilestoneCopy; trigger: Date }[] = [];
 
   for (const event of events) {
     if (mutedIds.includes(event.id)) continue;
-    // Skip events whose effective date has already passed — otherwise we'd
-    // waste schedule slots (and confuse users on iOS where the 64-cap is
-    // shared) trying to fire reminders for moments that are gone.
-    if (event.effectiveDate.getTime() <= now.getTime()) continue;
+    // Skip only events whose day is fully over. Comparing against midnight
+    // would cancel the already-scheduled day-of (6:30am) reminder when the
+    // user opens the app early on the event day itself — e.g. at Fajr on Eid.
+    // Past triggers within the day are handled by the per-milestone guard.
+    const endOfEventDay = new Date(event.effectiveEndDate ?? event.effectiveDate);
+    endOfEventDay.setHours(23, 59, 59, 999);
+    if (endOfEventDay.getTime() < now.getTime()) continue;
 
     const milestones = getMilestonesFor(event.type);
 
@@ -546,25 +635,35 @@ export async function scheduleSacredCountdownNotifications(
 
       if (trigger <= now) continue;
 
-      const copy = buildMilestoneCopy(event, daysAway, language);
-      const id = `${SACRED_ID_PREFIX}${event.id}:${daysAway}`;
-
-      await Notifications.scheduleNotificationAsync({
-        identifier: id,
-        content: {
-          title: copy.title,
-          body: copy.body,
-          sound: true,
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DATE,
-          date: trigger,
-          channelId: 'sacred-countdown',
-        },
+      candidates.push({
+        id: `${SACRED_ID_PREFIX}${event.id}:${daysAway}`,
+        copy: buildMilestoneCopy(event, daysAway, language),
+        trigger,
       });
-      scheduled += 1;
     }
   }
 
-  return scheduled;
+  // Keep the soonest-firing milestones — iOS keeps only the soonest 64 pending
+  // notifications system-wide, so dropping the furthest-out ones ourselves
+  // keeps the combined prayer + streak + jumu'ah + sacred budget under the cap.
+  candidates.sort((a, b) => a.trigger.getTime() - b.trigger.getTime());
+  const toSchedule = candidates.slice(0, SACRED_MAX_SCHEDULED);
+
+  for (const c of toSchedule) {
+    await Notifications.scheduleNotificationAsync({
+      identifier: c.id,
+      content: {
+        title: c.copy.title,
+        body: c.copy.body,
+        sound: true,
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: c.trigger,
+        channelId: 'sacred-countdown',
+      },
+    });
+  }
+
+  return toSchedule.length;
 }

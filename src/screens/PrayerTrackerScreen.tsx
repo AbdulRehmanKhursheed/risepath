@@ -9,6 +9,8 @@ import {
   Platform,
   TouchableOpacity,
   Linking,
+  Alert,
+  AppState,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,11 +22,14 @@ import { AD_UNITS } from '../services/ads';
 import { PrayerSettingsModal } from '../components/PrayerSettingsModal';
 import { storage, PrayerRecord } from '../services/storage';
 import {
+  hasNotificationPermission,
+  PRAYER_SCHEDULE_DAYS_AHEAD,
   requestNotificationPermissions,
   schedulePrayerNotificationsAhead,
   scheduleSacredCountdownNotifications,
   setupNotificationChannel,
 } from '../services/notifications';
+import { captureError } from '../services/sentry';
 import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { MenuButton } from '../components/MenuButton';
@@ -51,7 +56,7 @@ function getWeekDates(): Date[] {
 
 export function PrayerTrackerScreen() {
   const { t, language } = useLanguage();
-  const { location, loading: locationLoading, usingFallback, permissionDenied, retry: retryLocation } = useLocation();
+  const { location, loading: locationLoading, usingFallback, permissionDenied, retry: retryLocation, refreshIfStale: refreshLocationIfStale } = useLocation();
   const [prayers, setPrayers] = useState<Record<string, PrayerRecord>>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,13 +72,26 @@ export function PrayerTrackerScreen() {
   // identity changed on every parent re-render — triggering usePrayerTimes
   // recompute on every refresh-control toggle / location change.
   const [today, setToday] = useState(() => new Date());
+  // Minute tick so prayer status badges (upcoming/due/missed) advance while
+  // the screen stays focused — without it a passed prayer stays 'upcoming'
+  // until the user tabs away and back.
+  const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date();
-      if (getDateString(now) !== getDateString(today)) setToday(now);
+      const n = new Date();
+      setNow(n);
+      if (getDateString(n) !== getDateString(today)) setToday(n);
     }, 60 * 1000);
     return () => clearInterval(interval);
   }, [today]);
+  // JS timers are suspended in the background, so after an overnight resume
+  // the interval above can lag up to 60s with yesterday's date. Sync the
+  // clock immediately on AppState 'active' and on tab focus.
+  const syncClock = useCallback(() => {
+    const n = new Date();
+    setNow(n);
+    setToday((prev) => (getDateString(n) !== getDateString(prev) ? n : prev));
+  }, []);
   const prayerTimes = usePrayerTimes(lat, lng, today, calculationMethod, madhab);
 
   const prayerDisplayNames: Record<PrayerName, string> = {
@@ -101,10 +119,14 @@ export function PrayerTrackerScreen() {
   // PrayerTracker is a tab screen, so it stays mounted on tab switches.
   // useFocusEffect re-reads storage when the user comes back from Sidebar /
   // Stats / Sacred Countdown, where prayers can be marked off elsewhere.
+  // It also re-syncs the clock (date can roll over while unfocused) and
+  // refreshes the location if it has gone stale (throttled in the hook).
   useFocusEffect(
     useCallback(() => {
       loadPrayers().finally(() => setLoading(false));
-    }, [loadPrayers])
+      syncClock();
+      refreshLocationIfStale();
+    }, [loadPrayers, syncClock, refreshLocationIfStale])
   );
 
   const todayKey = getDateString(today);
@@ -128,8 +150,12 @@ export function PrayerTrackerScreen() {
 
   const markPrayer = useCallback(
     async (key: PrayerName) => {
+      // Compute the day key at tap time — `today` state can lag up to 60s
+      // behind after a backgrounded-overnight resume (timers suspended),
+      // which would write a post-midnight Fajr tap into yesterday's record.
+      const dayKey = getDateString(new Date());
       const cur =
-        prayersRef.current[todayKey] ?? {
+        prayersRef.current[dayKey] ?? {
           fajr: false,
           dhuhr: false,
           asr: false,
@@ -137,12 +163,34 @@ export function PrayerTrackerScreen() {
           isha: false,
         };
       const next = { ...cur, [key]: !cur[key] };
-      const updated = { ...prayersRef.current, [todayKey]: next };
+      const updated = { ...prayersRef.current, [dayKey]: next };
       prayersRef.current = updated;
       setPrayers(updated);
-      await storage.setPrayers(updated);
+      try {
+        await storage.setPrayers(updated);
+      } catch (err) {
+        // Revert just this prayer's flag (not the whole snapshot, so a second
+        // tap mid-write isn't clobbered) — a green badge that never persisted
+        // would silently break the streak on next launch.
+        const latest = prayersRef.current[dayKey] ?? next;
+        const reverted = {
+          ...prayersRef.current,
+          [dayKey]: { ...latest, [key]: cur[key] },
+        };
+        prayersRef.current = reverted;
+        setPrayers(reverted);
+        captureError(err, { scope: 'PrayerTracker.markPrayer' });
+        Alert.alert(
+          language === 'ur' ? 'محفوظ نہیں ہو سکا' : language === 'ar' ? 'تعذّر الحفظ' : 'Couldn’t save',
+          language === 'ur'
+            ? 'آپ کی نماز مارک محفوظ نہیں ہوئی۔ دوبارہ کوشش کریں۔'
+            : language === 'ar'
+            ? 'لم يتم حفظ تسجيل صلاتك. حاول مرة أخرى.'
+            : 'Your prayer mark was not saved. Please try again.'
+        );
+      }
     },
-    [todayKey]
+    [language]
   );
 
   // Guard: only reschedule notifications once per day-per-settings combo to
@@ -150,7 +198,40 @@ export function PrayerTrackerScreen() {
   // tuple in the key ensures a calc-method/madhab change re-runs the schedule.
   const lastScheduledKey = useRef<string>('');
   const [notifDenied, setNotifDenied] = useState(false);
+  // Bumped when a previously-denied permission turns out to be granted (user
+  // enabled it in OS Settings and came back) — re-runs the scheduling effect,
+  // which otherwise has no dep that changes on resume/focus.
+  const [notifRecheckTick, setNotifRecheckTick] = useState(0);
+  const recheckNotifPermission = useCallback(async () => {
+    if (!notifDenied) return;
+    // Read-only check — never re-prompts a user who said no.
+    if (await hasNotificationPermission()) {
+      setNotifDenied(false);
+      setNotifRecheckTick((t) => t + 1);
+    }
+  }, [notifDenied]);
+
   useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        syncClock();
+        recheckNotifPermission();
+      }
+    });
+    return () => sub.remove();
+  }, [syncClock, recheckNotifPermission]);
+
+  useFocusEffect(
+    useCallback(() => {
+      recheckNotifPermission();
+    }, [recheckNotifPermission])
+  );
+
+  useEffect(() => {
+    // No coords at all yet (fresh install, GPS resolving) — don't burn a
+    // rebuild on the Karachi fallback that the real fix will replace moments
+    // later. The effect re-runs when locationLoading settles.
+    if (locationLoading && !location) return;
     const todayKey = getDateString(today);
     const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
     if (lastScheduledKey.current === scheduleKey) return;
@@ -173,8 +254,11 @@ export function PrayerTrackerScreen() {
       lastScheduledKey.current = scheduleKey;
       if (granted) {
         await setupNotificationChannel();
-        // Schedule prayer reminders 7 days ahead so they survive app dormancy.
-        await schedulePrayerNotificationsAhead(lat, lng, calculationMethod, madhab);
+        // Schedule prayer reminders several days ahead so they survive app
+        // dormancy, in the user's language.
+        await schedulePrayerNotificationsAhead(
+          lat, lng, calculationMethod, madhab, PRAYER_SCHEDULE_DAYS_AHEAD, language
+        );
         if (cancelled) return;
 
         // Sacred Countdown: region-aware, sect-aware, per-event mute.
@@ -204,7 +288,7 @@ export function PrayerTrackerScreen() {
       }
     })();
     return () => { cancelled = true; };
-  }, [today, language, calculationMethod, madhab, lat, lng]);
+  }, [today, language, calculationMethod, madhab, lat, lng, notifRecheckTick, locationLoading, location]);
 
   // Stable handlers for PrayerSettingsModal — inline arrows would be a new
   // reference on every parent render, forcing the modal to reconcile while
@@ -212,7 +296,14 @@ export function PrayerTrackerScreen() {
   const onSettingsClose = useCallback(() => setSettingsVisible(false), []);
   const onSettingsSave = useCallback(
     async (method: CalculationMethodId, m: MadhabId) => {
-      const fiqhSchool: 'sunni' | 'shia' = method === 'Jafari' ? 'shia' : 'sunni';
+      // Never infer 'sunni' from a non-Jafari method — a Shia user on Tehran
+      // (or any regional method) would silently have their explicitly chosen
+      // school flipped, changing Sacred Countdown content. Only Jafari forces
+      // 'shia'; otherwise keep whatever the user set via the fiqh pills /
+      // onboarding / Janaza screen.
+      const stored = await storage.getFiqhSchool();
+      const fiqhSchool: 'sunni' | 'shia' =
+        method === 'Jafari' ? 'shia' : stored ?? 'sunni';
       setCalculationMethod(method);
       setMadhab(m);
       await storage.setFiqhSchool(fiqhSchool);
@@ -221,10 +312,17 @@ export function PrayerTrackerScreen() {
     []
   );
 
-  const getStatus = (key: PrayerName, prayerTime: Date): 'prayed' | 'missed' | 'upcoming' => {
+  const getStatus = (
+    key: PrayerName,
+    prayerTime: Date,
+    windowEnd: Date
+  ): 'prayed' | 'missed' | 'upcoming' | 'due' => {
     if (todayRecord[key]) return 'prayed';
-    const now = new Date();
     if (prayerTime > now) return 'upcoming';
+    // The prayer window stays open until windowEnd (sunrise for Fajr, the
+    // next prayer's adhan otherwise) — branding it 'missed' the instant the
+    // adhan passes is both discouraging and wrong.
+    if (now < windowEnd) return 'due';
     return 'missed';
   };
 
@@ -236,7 +334,9 @@ export function PrayerTrackerScreen() {
     return [rec.fajr, rec.dhuhr, rec.asr, rec.maghrib, rec.isha].filter(Boolean).length;
   });
 
-  if (locationLoading || loading) {
+  // Don't block behind a GPS fix when we already have coordinates (cached or
+  // fresh) — render immediately and let the fix refresh in the background.
+  if ((locationLoading && !location) || loading) {
     return (
       <View style={styles.center}>
         <LinearGradient
@@ -401,7 +501,7 @@ export function PrayerTrackerScreen() {
             name={prayerDisplayNames[p.key]}
             prayerKey={p.key}
             time={p.time}
-            status={getStatus(p.key, p.time)}
+            status={getStatus(p.key, p.time, p.windowEnd)}
             onPress={() => markPrayer(p.key)}
           />
         ))}
