@@ -192,6 +192,12 @@ export function useAudioPlayer(
 ) {
   const soundRef = useRef<Audio.Sound | null>(null);
   const preloadRef = useRef<{ sound: Audio.Sound; seg: Segment } | null>(null);
+  // Playback generation. Sound.createAsync resolves long after stop() or a
+  // rapid second play tap — without this stamp the late resolution either
+  // kept playing with no owner (phantom audio after Stop) or overlapped the
+  // newer sound (double playback). Every playSeg/stop bumps it; every async
+  // completion and deferred timer re-checks it before touching state.
+  const genRef = useRef(0);
 
   const segRef = useRef<Segment | null>(null);
   const ayahsRef = useRef<Ayah[]>(ayahs);
@@ -303,11 +309,13 @@ export function useAudioPlayer(
     if (seg.step >= steps.length) return;
 
     const lang = steps[seg.step];
+    const gen = ++genRef.current;
     segRef.current = seg;
     setCurrentIndex(seg.index);
     setPlayingLang(lang);
 
     const onStatus = (status: AVPlaybackStatus) => {
+      if (gen !== genRef.current) return;
       if (!status.isLoaded) return;
       if (status.isPlaying) {
         setPbStatus('playing');
@@ -366,11 +374,16 @@ export function useAudioPlayer(
         { shouldPlay: true },
         onStatus
       );
+      if (gen !== genRef.current) {
+        sound.unloadAsync().catch(() => {});
+        return;
+      }
       soundRef.current = sound;
     } catch {
+      if (gen !== genRef.current) return;
       if (lang !== 'arabic') {
         const n = nextSeg(seg);
-        if (n) setTimeout(() => { playSegRef.current?.(n); }, AUTO_REVERT_DELAY_MS);
+        if (n) setTimeout(() => { if (gen === genRef.current) playSegRef.current?.(n); }, AUTO_REVERT_DELAY_MS);
         else {
           setPbStatus('idle');
           setCurrentIndex(null);
@@ -384,7 +397,7 @@ export function useAudioPlayer(
         const fallback = lastGoodReciterRef.current;
         setReciterId(fallback);
         reciterIdRef.current = fallback;
-        setTimeout(() => { playSegRef.current?.(seg); }, AUTO_REVERT_DELAY_MS);
+        setTimeout(() => { if (gen === genRef.current) playSegRef.current?.(seg); }, AUTO_REVERT_DELAY_MS);
         return;
       }
       setPbStatus('error');
@@ -424,6 +437,7 @@ export function useAudioPlayer(
   }, [playAtIndex]);
 
   const stop = useCallback(async () => {
+    genRef.current++;
     if (soundRef.current) {
       await soundRef.current.stopAsync().catch(() => {});
       await soundRef.current.unloadAsync().catch(() => {});
@@ -459,7 +473,9 @@ export function useAudioPlayer(
         old.stopAsync().catch(() => {});
         old.unloadAsync().catch(() => {});
       }
+      const gen = genRef.current;
       setTimeout(() => {
+        if (gen !== genRef.current) return;
         playSegRef.current?.({ index: cur.index, step: 0 });
       }, RECITER_SWITCH_DELAY_MS);
     }

@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = 'https://api.alquran.cloud/v1';
-const CACHE_VERSION = 2;
+// v3: strips the Bismillah alquran.cloud embeds in ayah 1 (it duplicated the
+// reader's own Bismillah header) and refuses to cache translation-less
+// responses — older caches may contain either, so they're invalidated.
+const CACHE_VERSION = 3;
 const CACHE_PREFIX = `quran_surah_v${CACHE_VERSION}_`;
 const CACHE_VERSION_KEY = 'quran_cache_version';
 
@@ -31,6 +34,55 @@ type ApiEditionData = {
 
 const inflight = new Map<number, Promise<SurahContent>>();
 
+// RN Android's fetch has effectively no timeout, and every loader here dedupes
+// through an inflight map — so one hung request used to pin "Loading…" forever
+// (reopening the surah just joined the same stuck promise). The abort guarantees
+// every promise settles, which is what lets the inflight maps clear and a
+// retry issue a genuinely new request.
+const FETCH_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(url: string): Promise<Response> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchJsonWithRetry(url: string): Promise<any> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await fetchWithTimeout(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      return await res.json();
+    } catch (e) {
+      lastErr = e;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
+    }
+  }
+  throw lastErr;
+}
+
+// alquran.cloud's quran-uthmani edition embeds the Bismillah in ayah 1 of
+// every surah except 9 (and 1:1 IS the Bismillah, prefixed with a BOM).
+// The reader renders its own Bismillah header, so the embedded copy showed
+// it twice. Exact codepoints verified against the live API.
+const EMBEDDED_BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+
+function stripEmbeddedBismillah(text: string, surahNumber: number, idx: number): string {
+  const t = text.replace(/^\uFEFF/, '');
+  if (idx !== 0 || surahNumber === 1 || surahNumber === 9) return t;
+  if (t.startsWith(EMBEDDED_BISMILLAH)) {
+    const rest = t.slice(EMBEDDED_BISMILLAH.length).trim();
+    return rest.length > 0 ? rest : t;
+  }
+  return t;
+}
+
 function cacheKey(n: number): string {
   return `${CACHE_PREFIX}${n}`;
 }
@@ -55,10 +107,7 @@ async function writeCache(content: SurahContent): Promise<void> {
 
 async function fetchFromNetwork(surahNumber: number): Promise<SurahContent> {
   const url = `${BASE}/surah/${surahNumber}/editions/quran-uthmani,en.sahih,ur.maududi`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Failed to fetch surah ${surahNumber}`);
-
-  const json = await res.json();
+  const json = await fetchJsonWithRetry(url);
   const editions: ApiEditionData[] = json.data;
   if (!Array.isArray(editions) || editions.length < 3) {
     throw new Error(`Unexpected API response for surah ${surahNumber}`);
@@ -70,10 +119,16 @@ async function fetchFromNetwork(surahNumber: number): Promise<SurahContent> {
 
   const ayahs: Ayah[] = arabic.ayahs.map((a, idx) => ({
     numberInSurah: a.numberInSurah,
-    arabic: a.text,
+    arabic: stripEmbeddedBismillah(a.text, surahNumber, idx),
     english: english.ayahs[idx]?.text ?? '',
     urdu: urdu.ayahs[idx]?.text ?? '',
   }));
+
+  // A response with Arabic but blank translations would otherwise be cached
+  // and shown translation-less forever (the cache check only counted ayahs).
+  if (ayahs.length === 0 || ayahs.every((a) => !a.english && !a.urdu)) {
+    throw new Error(`Surah ${surahNumber} response missing translations`);
+  }
 
   return {
     number: surahNumber,
@@ -84,7 +139,16 @@ async function fetchFromNetwork(surahNumber: number): Promise<SurahContent> {
 
 export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   const cached = await readCache(surahNumber);
-  if (cached && cached.ayahs && cached.ayahs.length > 0) return cached;
+  if (
+    cached &&
+    cached.ayahs &&
+    cached.ayahs.length > 0 &&
+    // Translation-less entries (from interrupted/partial responses) must
+    // refetch rather than render a permanently translation-less surah.
+    cached.ayahs.some((a) => a.english || a.urdu)
+  ) {
+    return cached;
+  }
 
   const existing = inflight.get(surahNumber);
   if (existing) return existing;
@@ -197,9 +261,7 @@ export async function fetchPage(pageNumber: number): Promise<PageContent> {
         `?fields=text_uthmani,text_indopak,juz_number,hizb_number,page_number` +
         `&translations=${TRANSLATION_EN_ID},${TRANSLATION_UR_ID}` +
         `&per_page=50`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Page ${pageNumber} fetch failed`);
-      const json = await res.json();
+      const json = await fetchJsonWithRetry(url);
       const raw = (json.verses ?? []) as Array<{
         verse_key: string;
         text_uthmani: string;
@@ -329,9 +391,7 @@ export async function fetchIndopakTexts(surahNumber: number): Promise<string[]> 
   const p = (async () => {
     try {
       const url = `${INDOPAK_API}?chapter_number=${surahNumber}`;
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const json = await res.json();
+      const json = await fetchJsonWithRetry(url);
       const verses = (json.verses ?? []) as { text_indopak: string }[];
       const texts: string[] = verses.map((v) => v.text_indopak ?? '');
       try {
@@ -369,9 +429,7 @@ export async function fetchTajweedTexts(surahNumber: number): Promise<string[]> 
   const p = (async () => {
     try {
       const url = `${TAJWEED_API}?chapter_number=${surahNumber}`;
-      const res = await fetch(url);
-      if (!res.ok) return [];
-      const json = await res.json();
+      const json = await fetchJsonWithRetry(url);
       const verses = (json.verses ?? []) as { text_uthmani_tajweed: string }[];
       const texts: string[] = verses.map((v) => v.text_uthmani_tajweed ?? '');
       try {

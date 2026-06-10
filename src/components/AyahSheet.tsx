@@ -51,8 +51,8 @@ export function AyahSheet({
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
   const [folder, setFolder] = useState<string>(DEFAULT_RECITER_FOLDER);
-  const [playing, setPlaying] = useState(false);
-  const [loadingAudio, setLoadingAudio] = useState(false);
+  const [audioStatus, setAudioStatus] =
+    useState<'idle' | 'loading' | 'playing' | 'paused' | 'error'>('idle');
   const soundRef = useRef<Audio.Sound | null>(null);
 
   // Refresh the reciter every time the sheet opens (not just on mount) — the
@@ -82,7 +82,7 @@ export function AyahSheet({
         soundRef.current?.stopAsync().catch(() => {});
         soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
-        setPlaying(false);
+        setAudioStatus('idle');
         onClose();
       }
     });
@@ -92,13 +92,17 @@ export function AyahSheet({
   const playAyah = async () => {
     if (!verse) return;
     try {
-      setLoadingAudio(true);
+      setAudioStatus('loading');
       await soundRef.current?.unloadAsync().catch(() => {});
       soundRef.current = null;
 
+      // Must match the surah player's global mode — this call is app-wide,
+      // and flipping staysActiveInBackground off here used to kill background
+      // playback for the main reader until the next launch. The sheet's own
+      // audio still stops on background via the AppState listener above.
       await Audio.setAudioModeAsync({
         playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
+        staysActiveInBackground: true,
         shouldDuckAndroid: true,
       });
 
@@ -107,19 +111,36 @@ export function AyahSheet({
         { shouldPlay: true }
       );
       soundRef.current = sound;
-      setPlaying(true);
+      setAudioStatus('playing');
       sound.setOnPlaybackStatusUpdate((status) => {
         if (!status.isLoaded) return;
         if (status.didJustFinish) {
-          setPlaying(false);
+          setAudioStatus('idle');
           sound.unloadAsync().catch(() => {});
           soundRef.current = null;
         }
       });
     } catch {
-      setPlaying(false);
-    } finally {
-      setLoadingAudio(false);
+      soundRef.current = null;
+      setAudioStatus('error');
+    }
+  };
+
+  // Real pause/resume — the old "Pause" stopped and discarded the sound, so
+  // resuming restarted the ayah from the beginning.
+  const togglePause = async () => {
+    const sound = soundRef.current;
+    if (!sound) return;
+    try {
+      if (audioStatus === 'playing') {
+        await sound.pauseAsync();
+        setAudioStatus('paused');
+      } else if (audioStatus === 'paused') {
+        await sound.playAsync();
+        setAudioStatus('playing');
+      }
+    } catch {
+      setAudioStatus('error');
     }
   };
 
@@ -129,7 +150,7 @@ export function AyahSheet({
       await soundRef.current?.unloadAsync().catch(() => {});
     } catch {}
     soundRef.current = null;
-    setPlaying(false);
+    setAudioStatus('idle');
   };
 
   const closeSheet = async () => {
@@ -222,16 +243,24 @@ export function AyahSheet({
               <View style={styles.actions}>
                 <TouchableOpacity
                   style={[styles.actionBtn, styles.playBtn]}
-                  onPress={playing ? stopAyah : playAyah}
-                  disabled={loadingAudio}
+                  onPress={
+                    audioStatus === 'playing' || audioStatus === 'paused'
+                      ? togglePause
+                      : playAyah
+                  }
+                  disabled={audioStatus === 'loading'}
                   activeOpacity={0.85}
                 >
-                  {loadingAudio ? (
+                  {audioStatus === 'loading' ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text style={styles.playBtnText}>
-                      {playing
-                        ? isUrdu ? '⏸  روکیں' : '⏸  Pause'
+                      {audioStatus === 'playing'
+                        ? isUrdu ? '⏸  وقفہ' : '⏸  Pause'
+                        : audioStatus === 'paused'
+                        ? isUrdu ? '▶  جاری رکھیں' : '▶  Resume'
+                        : audioStatus === 'error'
+                        ? isUrdu ? '↻  دوبارہ کوشش' : '↻  Retry'
                         : isUrdu ? '▶  سنیں' : '▶  Play Ayah'}
                     </Text>
                   )}

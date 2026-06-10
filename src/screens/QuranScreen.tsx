@@ -14,6 +14,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SURAH_LIST, SurahMeta } from '../constants/surahList';
 import { fetchSurah, SurahContent, Ayah, QuranScript } from '../services/quran';
@@ -455,6 +456,16 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
 
   const scrollRef = useRef<ScrollView>(null);
   const ayahYRef = useRef<Record<number, number>>({});
+  // Monotonic id per openSurah call. A slow fetch for surah A must not land
+  // its content (or its error banner) after the user has backed out or opened
+  // surah B — only the latest request may touch state.
+  const openReqRef = useRef(0);
+  // Ayah number to scroll to once the surah opened via a "2:255"-style search
+  // finishes loading and lays out.
+  const [pendingScrollAyah, setPendingScrollAyah] = useState<number | null>(null);
+  // Bumped by the retry button on the IndoPak/tajweed fallback notices to
+  // re-run those fetch effects after a failure.
+  const [scriptRetryNonce, setScriptRetryNonce] = useState(0);
 
   const {
     currentIndex: playingIndex,
@@ -516,7 +527,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setTajweedLoading(false); });
     return () => { cancelled = true; };
-  }, [tajweedOn, selectedSurah?.number, script]);
+  }, [tajweedOn, selectedSurah?.number, script, scriptRetryNonce]);
 
   // Pull IndoPak text whenever the user is on IndoPak script and a surah
   // is open. Cached per-surah; flips between scripts are instant after
@@ -530,9 +541,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
       .catch(() => {})
       .finally(() => { if (!cancelled) setIndopakLoading(false); });
     return () => { cancelled = true; };
-  }, [script, selectedSurah?.number]);
+  }, [script, selectedSurah?.number, scriptRetryNonce]);
 
   const openSurah = useCallback(async (surah: SurahMeta) => {
+    const reqId = ++openReqRef.current;
     await stop();
     setSelectedSurah(surah);
     setSurahContent(null);
@@ -544,14 +556,28 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     saveLastRead({ type: 'surah', value: surah.number });
     try {
       const content = await fetchSurah(surah.number);
+      if (reqId !== openReqRef.current) return;
       setSurahContent(content);
       prefetchAdjacent(surah.number);
     } catch {
+      if (reqId !== openReqRef.current) return;
       setError(isUrdu ? 'لوڈ نہیں ہو سکا۔ انٹرنیٹ چیک کریں۔' : 'Could not load. Check your internet connection.');
     } finally {
-      setLoading(false);
+      if (reqId === openReqRef.current) setLoading(false);
     }
   }, [isUrdu, stop]);
+
+  const closeSurah = useCallback(async () => {
+    // Invalidate any in-flight openSurah so its late resolution can't
+    // repopulate the reader we just closed.
+    openReqRef.current++;
+    await stop();
+    setSelectedSurah(null);
+    setSurahContent(null);
+    setPendingScrollAyah(null);
+    // Refresh the resume card — saveLastRead ran when the reader opened.
+    loadLastRead().then((lr) => { if (lr) setLastRead(lr); }).catch(() => {});
+  }, [stop]);
 
   useEffect(() => {
     if (initialSurah) {
@@ -560,6 +586,15 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The tab navigator keeps this screen mounted, so the resume card's value
+  // must re-read storage on every focus — Home-screen "Read Quran" entries and
+  // other readers update it while this screen is parked in the background.
+  useFocusEffect(
+    useCallback(() => {
+      loadLastRead().then((lr) => { if (lr) setLastRead(lr); }).catch(() => {});
+    }, [])
+  );
 
   const filtered = SURAH_LIST.filter((s) => matchesSurah(s, search));
 
@@ -572,22 +607,45 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
     scrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
   }, [playingIndex]);
 
+  // "2:255"-style search promised to open the ayah, not just the surah.
+  // Ayah positions arrive asynchronously via onLayout, so poll briefly for
+  // the target's y. Mushaf view has no per-ayah layout — clear silently there.
+  useEffect(() => {
+    if (pendingScrollAyah === null || !surahContent) return;
+    if (viewMode !== 'verse') { setPendingScrollAyah(null); return; }
+    const idx = surahContent.ayahs.findIndex((a) => a.numberInSurah === pendingScrollAyah);
+    if (idx < 0) { setPendingScrollAyah(null); return; }
+    let tries = 0;
+    const timer = setInterval(() => {
+      const y = ayahYRef.current[idx];
+      if (y !== undefined) {
+        scrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+        setPendingScrollAyah(null);
+        clearInterval(timer);
+      } else if (++tries > 20) {
+        setPendingScrollAyah(null);
+        clearInterval(timer);
+      }
+    }, 150);
+    return () => clearInterval(timer);
+  }, [pendingScrollAyah, surahContent, viewMode]);
+
   useEffect(() => {
     if (!selectedSurah && selectedPage === null) return;
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       (async () => {
-        await stop();
         if (selectedPage !== null) {
+          await stop();
           setSelectedPage(null);
+          loadLastRead().then((lr) => { if (lr) setLastRead(lr); }).catch(() => {});
         } else {
-          setSelectedSurah(null);
-          setSurahContent(null);
+          await closeSurah();
         }
       })();
       return true;
     });
     return () => sub.remove();
-  }, [selectedSurah, selectedPage, stop]);
+  }, [selectedSurah, selectedPage, stop, closeSurah]);
 
   if (selectedPage !== null) {
     return (
@@ -622,7 +680,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
         <View style={styles.readerHeader}>
           <TouchableOpacity
             style={styles.backBtn}
-            onPress={async () => { await stop(); setSelectedSurah(null); setSurahContent(null); }}
+            onPress={() => { closeSurah(); }}
           >
             <Text style={styles.backBtnText}>← {isUrdu ? 'فہرست' : 'List'}</Text>
           </TouchableOpacity>
@@ -723,6 +781,36 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             <Text style={styles.miniBarArrow}>›</Text>
           </TouchableOpacity>
         </View>
+
+        {/* A failed script/tajweed fetch used to fall back silently — the
+            toggle stayed on while the reader showed something else with no
+            hint or way to retry. */}
+        {script === 'indopak' && !indopakLoading && indopakTexts !== null && indopakTexts.length === 0 && (
+          <TouchableOpacity
+            style={styles.fallbackNotice}
+            onPress={() => setScriptRetryNonce((n) => n + 1)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.fallbackNoticeText, { fontSize: fs(12) }]}>
+              {isUrdu
+                ? 'انڈو پاک رسم الخط لوڈ نہیں ہو سکا — مدینہ رسم الخط دکھایا جا رہا ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
+                : 'Indo-Pak script unavailable — showing Madinah script. Tap to retry.'}
+            </Text>
+          </TouchableOpacity>
+        )}
+        {tajweedOn && script === 'uthmani' && !tajweedLoading && tajweedTexts !== null && tajweedTexts.length === 0 && (
+          <TouchableOpacity
+            style={styles.fallbackNotice}
+            onPress={() => setScriptRetryNonce((n) => n + 1)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.fallbackNoticeText, { fontSize: fs(12) }]}>
+              {isUrdu
+                ? 'تجوید کے رنگ لوڈ نہیں ہو سکے۔ دوبارہ کوشش کے لیے دبائیں۔'
+                : 'Tajweed colors unavailable. Tap to retry.'}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         {loading && (
           <View style={styles.loadingWrap}>
@@ -1148,7 +1236,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               setSearch('');
             } else if (intent.type === 'verse') {
               const s = SURAH_LIST.find((x) => x.number === intent.surah);
-              if (s) { openSurah(s); setSearch(''); }
+              if (s) { openSurah(s); setPendingScrollAyah(intent.ayah); setSearch(''); }
             }
           };
           let line = '';
@@ -1749,6 +1837,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontFamily: theme.typography.fontBodyBold,
     fontSize: 14,
+  },
+  fallbackNotice: {
+    marginHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    backgroundColor: theme.colors.accentMuted,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  fallbackNoticeText: {
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontBodyMedium,
+    textAlign: 'center',
   },
   viewModeRow: {
     flexDirection: 'row',

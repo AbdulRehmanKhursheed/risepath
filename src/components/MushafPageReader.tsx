@@ -335,6 +335,9 @@ function MushafPage({
   const [content, setContent] = useState<PageContent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Reconnecting used to leave the error text up forever — the fetch effect
+  // only re-ran on page change. Retry button bumps this to re-run it.
+  const [retryNonce, setRetryNonce] = useState(0);
 
   const arabicFont =
     script === 'indopak'
@@ -374,7 +377,7 @@ function MushafPage({
         setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [pageNum, isUrdu]);
+  }, [pageNum, isUrdu, retryNonce]);
 
   if (loading) {
     return (
@@ -391,6 +394,13 @@ function MushafPage({
     return (
       <View style={[styles.page, styles.loadingWrap]}>
         <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={() => setRetryNonce((n) => n + 1)}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.retryBtnText}>{isUrdu ? 'دوبارہ کوشش' : 'Retry'}</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -692,6 +702,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.xl,
     lineHeight: 22,
     fontSize: 15,
+  },
+  retryBtn: {
+    marginTop: theme.spacing.md,
+    backgroundColor: theme.colors.accent,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.borderRadius.md,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontFamily: theme.typography.fontBodyBold,
+    fontSize: 14,
   },
 
   footer: {
