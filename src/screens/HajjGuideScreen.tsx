@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Platform,
   Share,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { HAJJ_STEPS } from '../constants/hajjGuide';
@@ -17,19 +19,52 @@ import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { ArabicText } from '../components/ui/ArabicText';
 
+// Hajj is a 6-day ritual — checklist progress must survive back-navigation
+// and app restarts (this is a stack screen that unmounts on back).
+const STORAGE_KEY = 'hajj_guide_completed_v1';
+
 export function HajjGuideScreen() {
   const { language } = useLanguage();
   const [expandedId, setExpandedId] = useState<number | null>(1);
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
   const isUrdu = language === 'ur';
 
+  // Restore persisted checkmarks on mount.
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (!mounted || !raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setCompletedIds(new Set(parsed.filter((x) => typeof x === 'number')));
+          }
+        } catch {}
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   const toggleComplete = (id: number) => {
-    setCompletedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(completedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCompletedIds(next);
+    // Best-effort persist — never block the checkmark on storage.
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))).catch(() => {});
+  };
+
+  const onCopyDua = async (arabic: string) => {
+    try {
+      await Clipboard.setStringAsync(arabic);
+      Alert.alert('', isUrdu ? '✓ کلپ بورڈ پر نقل ہو گیا' : '✓ Copied to clipboard');
+    } catch {
+      Alert.alert(
+        isUrdu ? 'خرابی' : 'Error',
+        isUrdu ? 'کاپی نہیں ہو سکا' : 'Could not copy'
+      );
+    }
   };
 
   const completedCount = completedIds.size;
@@ -123,7 +158,7 @@ export function HajjGuideScreen() {
                         <View style={styles.duaActions}>
                           <TouchableOpacity
                             style={styles.duaAction}
-                            onPress={() => Clipboard.setStringAsync(step.dua!.arabic)}
+                            onPress={() => onCopyDua(step.dua!.arabic)}
                             accessibilityLabel={isUrdu ? 'عربی کاپی کریں' : 'Copy Arabic'}
                           >
                             <Text style={styles.duaActionText}>📋 {isUrdu ? 'کاپی' : 'Copy'}</Text>

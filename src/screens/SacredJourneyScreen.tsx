@@ -45,25 +45,42 @@ type CountdownParts = {
 };
 
 function computeCountdown(target: Date, now: Date = new Date()): CountdownParts {
-  // Normalize both to midnight so "days" counts full calendar days remaining.
-  const t = new Date(target); t.setHours(0, 0, 0, 0);
-  const n = new Date(now);    n.setHours(0, 0, 0, 0);
-  const diffMs = t.getTime() - n.getTime();
-  if (diffMs <= 0) {
-    // Event is today or past — show live hours/minutes using real timestamps.
-    const liveDiff = target.getTime() - now.getTime();
-    if (liveDiff <= 0) return { days: 0, hours: 0, minutes: 0, isNow: true };
-    return {
-      days: 0,
-      hours: Math.floor(liveDiff / (1000 * 60 * 60)),
-      minutes: Math.floor((liveDiff / (1000 * 60)) % 60),
-      isNow: false,
-    };
-  }
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const hours = Math.floor((target.getTime() - now.getTime()) / (1000 * 60 * 60)) % 24;
-  const minutes = Math.floor((target.getTime() - now.getTime()) / (1000 * 60)) % 60;
-  return { days, hours: Math.max(0, hours), minutes: Math.max(0, minutes), isNow: false };
+  // Pure real-time difference — same semantic as NextEventCard on Home, so
+  // the two countdowns for one event never disagree (the old version mixed
+  // midnight-anchored days with raw-diff hours and overstated by ~1 day).
+  const diff = target.getTime() - now.getTime();
+  if (diff <= 0) return { days: 0, hours: 0, minutes: 0, isNow: true };
+  return {
+    days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((diff / (1000 * 60)) % 60),
+    isNow: false,
+  };
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+type OngoingState = { dayN: number; total: number };
+
+// Non-null while `now` falls inside the event's day(s): single-day events on
+// the day itself, multi-day events (Ramadan, first 10 of Dhul Hijjah) for
+// their whole span. Drives the "Happening now — Day N of M" hero state
+// instead of a frozen 00/00/00 countdown.
+function getOngoingState(event: ResolvedEvent, now: Date): OngoingState | null {
+  const start = startOfDay(event.effectiveDate);
+  const today = startOfDay(now);
+  if (today < start) return null;
+  const end = event.effectiveEndDate ? startOfDay(event.effectiveEndDate) : start;
+  if (today > end) return null;
+  const dayMs = 1000 * 60 * 60 * 24;
+  return {
+    dayN: Math.round((today.getTime() - start.getTime()) / dayMs) + 1,
+    total: Math.round((end.getTime() - start.getTime()) / dayMs) + 1,
+  };
 }
 
 function eventGradient(type: EventType): [string, string] {
@@ -173,14 +190,28 @@ export function SacredJourneyScreen() {
   const pickRegion = async (r: CalendarRegion) => {
     setRegion(r);
     setRegionPickerOpen(false);
-    await storage.setCalendarRegion(r);
-    // Changing region changes effective dates → must reschedule.
-    if (masterEnabled) {
-      const granted = await requestNotificationPermissions();
-      if (granted) {
-        await setupNotificationChannel();
-        await scheduleSacredCountdownNotifications(sect, r, mutedIds, language);
+    try {
+      await storage.setCalendarRegion(r);
+      // Changing region changes effective dates → must reschedule. If this
+      // fails, reminders may still point at the OLD region's dates until the
+      // next automatic resync (PrayerTracker re-runs the scheduler on mount /
+      // new day) — so surface it instead of failing silently.
+      if (masterEnabled) {
+        const granted = await requestNotificationPermissions();
+        if (granted) {
+          await setupNotificationChannel();
+          await scheduleSacredCountdownNotifications(sect, r, mutedIds, language);
+        }
       }
+    } catch {
+      Alert.alert(
+        isUrdu ? 'یاد دہانیاں' : isArabic ? 'التذكيرات' : 'Reminders',
+        isUrdu
+          ? 'یاد دہانیاں اپ ڈیٹ نہیں ہو سکیں۔ ایپ دوبارہ کھولنے پر خود درست ہو جائیں گی۔'
+          : isArabic
+          ? 'تعذر تحديث التذكيرات. سيتم تصحيحها تلقائياً عند فتح التطبيق مرة أخرى.'
+          : 'Could not update reminders for the new region. They will resync automatically the next time you open the app.'
+      );
     }
   };
 
@@ -189,18 +220,32 @@ export function SacredJourneyScreen() {
     const eventName =
       isUrdu ? next.nameUr : isArabic ? next.nameAr : next.nameEn;
     const countdown = computeCountdown(next.effectiveDate, now);
-    const countdownStr = countdown.isNow
-      ? isUrdu ? 'آج' : 'today'
+    const ongoing = getOngoingState(next, now);
+    const countdownStr = ongoing
+      ? ongoing.total > 1
+        ? isUrdu
+          ? `${ongoing.total} میں سے دن ${ongoing.dayN}`
+          : isArabic
+          ? `اليوم ${ongoing.dayN} من ${ongoing.total}`
+          : `day ${ongoing.dayN} of ${ongoing.total}`
+        : isUrdu ? 'آج' : isArabic ? 'اليوم' : 'today'
       : isUrdu
       ? `${countdown.days} دن، ${countdown.hours} گھنٹے`
+      : isArabic
+      ? `${countdown.days} يوماً و ${countdown.hours} ساعة`
       : `${countdown.days} days, ${countdown.hours} hours`;
-    const quote = getQuoteForEvent(next.type, countdown.days);
-    const body = isUrdu ? quote.ur : quote.en;
+    const quote = getQuoteForEvent(next.type, ongoing ? ongoing.dayN : countdown.days);
+    // No authored Arabic translations exist for quotes — fall back to the
+    // quote's original Arabic source text when available.
+    const body = isUrdu ? quote.ur : isArabic && quote.arabic ? quote.arabic : quote.en;
     const text = `${next.icon} ${eventName} — ${countdownStr}\n\n"${body}"\n— ${quote.source}\n\nShared from Noor · Quran, Prayer Times, Eid Guide`;
     try {
       await Share.share({ message: text });
     } catch {
-      Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'شیئر نہیں ہو سکا' : 'Could not share');
+      Alert.alert(
+        isUrdu ? 'خرابی' : isArabic ? 'خطأ' : 'Error',
+        isUrdu ? 'شیئر نہیں ہو سکا' : isArabic ? 'تعذرت المشاركة' : 'Could not share'
+      );
     }
   };
 
@@ -385,17 +430,32 @@ function HeroCard({
   onShare: () => void;
 }) {
   const countdown = useMemo(() => computeCountdown(event.effectiveDate, now), [event, now]);
+  // While the event is ongoing, seed the quote with the day number so it
+  // rotates daily instead of pinning to quote 0 for a month of Ramadan.
+  const ongoing = useMemo(() => getOngoingState(event, now), [event, now]);
   const quote = useMemo(
-    () => getQuoteForEvent(event.type, countdown.days),
-    [event.type, countdown.days]
+    () => getQuoteForEvent(event.type, ongoing ? ongoing.dayN : countdown.days),
+    [event.type, ongoing, countdown.days]
   );
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
   const eventName = isUrdu ? event.nameUr : isArabic ? event.nameAr : event.nameEn;
-  const dateStr = event.effectiveDate.toLocaleDateString(
-    isUrdu ? 'ur-PK' : isArabic ? 'ar-SA' : 'en-US',
-    { weekday: 'long', month: 'long', day: 'numeric' }
-  );
+  const locale = isUrdu ? 'ur-PK' : isArabic ? 'ar-SA' : 'en-US';
+  const dateStr = event.effectiveDate.toLocaleDateString(locale, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+  });
+  // Mid-event the start date is in the past — say "Started <date>" instead of
+  // presenting a stale date under a "next event" headline.
+  const heroDateStr =
+    ongoing && ongoing.dayN > 1
+      ? isUrdu
+        ? `آغاز: ${dateStr}`
+        : isArabic
+        ? `بدأ: ${dateStr}`
+        : `Started ${dateStr}`
+      : dateStr;
   const body = isUrdu ? quote.ur : quote.en;
   const [gradStart, gradEnd] = eventGradient(event.type);
 
@@ -412,26 +472,47 @@ function HeroCard({
         </View>
 
         <Text style={[styles.heroLabel, { fontSize: fs(11) }]}>
-          {isUrdu ? 'اگلا مقدس دن' : isArabic ? 'الحدث القادم' : 'NEXT SACRED EVENT'}
+          {ongoing
+            ? isUrdu ? 'ابھی جاری' : isArabic ? 'يحدث الآن' : 'HAPPENING NOW'
+            : isUrdu ? 'اگلا مقدس دن' : isArabic ? 'الحدث القادم' : 'NEXT SACRED EVENT'}
         </Text>
         <Text style={[styles.heroTitle, { fontSize: fs(28) }]}>{eventName}</Text>
-        <Text style={[styles.heroDate, { fontSize: fs(12) }]}>{dateStr}</Text>
+        <Text style={[styles.heroDate, { fontSize: fs(12) }]}>{heroDateStr}</Text>
 
-        <View style={styles.countdownRow}>
-          <CountdownBlock value={countdown.days} label={isUrdu ? 'دن' : isArabic ? 'يوم' : 'days'} fs={fs} />
-          <View style={styles.countdownDivider} />
-          <CountdownBlock value={countdown.hours} label={isUrdu ? 'گھنٹے' : isArabic ? 'ساعة' : 'hrs'} fs={fs} />
-          <View style={styles.countdownDivider} />
-          <CountdownBlock value={countdown.minutes} label={isUrdu ? 'منٹ' : isArabic ? 'دقيقة' : 'mins'} fs={fs} />
-        </View>
+        {ongoing ? (
+          <View style={[styles.countdownRow, styles.ongoingRow]}>
+            <Text style={[styles.ongoingText, { fontSize: fs(22) }]}>
+              {ongoing.total > 1
+                ? isUrdu
+                  ? `${ongoing.total} میں سے دن ${ongoing.dayN}`
+                  : isArabic
+                  ? `اليوم ${ongoing.dayN} من ${ongoing.total}`
+                  : `Day ${ongoing.dayN} of ${ongoing.total}`
+                : isUrdu ? 'آج' : isArabic ? 'اليوم' : 'Today'}
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.countdownRow}>
+            <CountdownBlock value={countdown.days} label={isUrdu ? 'دن' : isArabic ? 'يوم' : 'days'} fs={fs} />
+            <View style={styles.countdownDivider} />
+            <CountdownBlock value={countdown.hours} label={isUrdu ? 'گھنٹے' : isArabic ? 'ساعة' : 'hrs'} fs={fs} />
+            <View style={styles.countdownDivider} />
+            <CountdownBlock value={countdown.minutes} label={isUrdu ? 'منٹ' : isArabic ? 'دقيقة' : 'mins'} fs={fs} />
+          </View>
+        )}
 
         <View style={styles.quoteBox}>
           {quote.arabic ? (
             <Text style={styles.quoteArabic}>{quote.arabic}</Text>
           ) : null}
-          <Text style={[styles.quoteBody, { fontSize: fs(14), textAlign: isUrdu ? 'right' : 'left' }]}>
-            {body}
-          </Text>
+          {/* Arabic UI: the original Arabic source text above already serves
+              as the body (no authored Arabic translations exist) — avoid
+              showing an English translation line under it. */}
+          {isArabic && quote.arabic ? null : (
+            <Text style={[styles.quoteBody, { fontSize: fs(14), textAlign: isUrdu ? 'right' : 'left' }]}>
+              {body}
+            </Text>
+          )}
           <Text style={[styles.quoteSource, { fontSize: fs(11) }]}>— {quote.source}</Text>
         </View>
 
@@ -677,6 +758,17 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  ongoingRow: {
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.lg,
+  },
+  ongoingText: {
+    color: '#FFFFFF',
+    fontFamily: theme.typography.fontHeadingBold,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textAlign: 'center',
   },
 
   quoteBox: {

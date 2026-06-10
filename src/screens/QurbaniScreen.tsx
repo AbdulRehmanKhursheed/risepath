@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   Alert,
+  AppState,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -30,6 +31,7 @@ import {
   isDontCutWindow,
 } from '../utils/qurbani';
 import { UPCOMING_EID_DATES } from '../constants/eidGuide';
+import { storage } from '../services/storage';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { getAnimalIcon, PersonIcon } from '../components/AnimalSvgIcons';
@@ -79,7 +81,35 @@ export function QurbaniScreen() {
     [people, selected]
   );
 
-  const hijri = useMemo(() => gregorianToHijri(new Date()), []);
+  // The user's Hijri-offset correction (Prayer Settings / auto-detect) —
+  // window gating must honour the same offset HomeScreen applies, or the
+  // banners point at the wrong day for moonsighting-corrected regions.
+  const [hijriOffset, setHijriOffset] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    storage.getHijriOffset().then((off) => {
+      if (mounted) setHijriOffset(off);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  // Recompute across midnight / app foregrounding so the window banners
+  // don't freeze at the mount-time date if the screen stays open.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') setNow(new Date());
+    });
+    return () => { clearInterval(id); sub.remove(); };
+  }, []);
+
+  const dayKey = now.toDateString();
+  const hijri = useMemo(
+    () => gregorianToHijri(now, hijriOffset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dayKey, hijriOffset]
+  );
   // Qurbani days are 10–13 Dhul Hijjah (month index 12). The Hijri-conversion
   // util is approximate — we still display the window banner outside it as an
   // informational countdown rather than as a hard gate.
@@ -198,12 +228,6 @@ export function QurbaniScreen() {
     setPeople((n) => Math.min(cap, n + 1));
   };
 
-  // Re-clamp when switching to a goat/sheep (max 1) from a 7-share animal.
-  // Simple guard, runs on every render but short-circuits when already valid.
-  if (selected.shares === 1 && people > 1 && animalsNeeded > 1) {
-    // allow many goats — keep people as-is, animalsNeeded reflects count.
-  }
-
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -235,7 +259,11 @@ export function QurbaniScreen() {
               inQurbaniWindow && styles.bannerTextActive,
             ]}
           >
-            {inQurbaniWindow ? labels.windowOpen : labels.windowSoon}
+            {inQurbaniWindow
+              ? labels.windowOpen
+              : daysUntil !== null
+              ? labels.windowSoon
+              : labels.windowClosed}
           </Text>
         </View>
 
@@ -251,7 +279,12 @@ export function QurbaniScreen() {
                 style={[styles.animalTile, active && styles.animalTileActive]}
                 onPress={() => {
                   setSelectedKey(a.key);
+                  // Keep the counter in sync with the new animal: goats/sheep
+                  // restart at 1 person (existing behaviour); 7-share animals
+                  // clamp to 7 so the share visualizer and '+' stepper never
+                  // desync (e.g. 10 people carried over from a goat).
                   if (a.shares === 1) setPeople(1);
+                  else setPeople((n) => Math.min(n, 7));
                 }}
                 activeOpacity={0.85}
               >
@@ -308,10 +341,10 @@ export function QurbaniScreen() {
           {selected.shares === 7 && (
             <Text style={[styles.peopleRowLabel, { fontSize: fs(11) }]}>
               {isUrdu
-                ? `${people} میں سے ۷ حصے`
+                ? `۷ میں سے ${Math.min(people, 7)} حصے`
                 : isArabic
-                ? `${people} من ٧ أنصبة`
-                : `${people} of 7 shares claimed`}
+                ? `${Math.min(people, 7)} من ٧ أنصبة`
+                : `${Math.min(people, 7)} of 7 shares claimed`}
             </Text>
           )}
         </View>

@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Platform,
   Share,
+  Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -216,6 +217,20 @@ function StepCard({
   const title = isUrdu ? step.titleUr : step.title;
   const description = isUrdu ? step.descriptionUr : step.description;
 
+  // At a funeral the user needs certainty the text actually copied — confirm
+  // on success, surface (rather than swallow) the rare failure.
+  const onCopyArabic = async () => {
+    try {
+      await Clipboard.setStringAsync(step.arabic ?? '');
+      Alert.alert('', isUrdu ? '✓ کلپ بورڈ پر نقل ہو گیا' : '✓ Copied to clipboard');
+    } catch {
+      Alert.alert(
+        isUrdu ? 'خرابی' : 'Error',
+        isUrdu ? 'کاپی نہیں ہو سکا' : 'Could not copy'
+      );
+    }
+  };
+
   return (
     <TouchableOpacity
       style={[
@@ -261,7 +276,7 @@ function StepCard({
                 <View style={styles.arabicActions}>
                   <TouchableOpacity
                     style={styles.arabicAction}
-                    onPress={() => Clipboard.setStringAsync(step.arabic ?? '')}
+                    onPress={onCopyArabic}
                     accessibilityLabel={isUrdu ? 'کاپی کریں' : 'Copy Arabic'}
                   >
                     <Text style={styles.arabicActionText}>📋 {isUrdu ? 'کاپی' : 'Copy'}</Text>

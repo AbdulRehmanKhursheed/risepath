@@ -665,10 +665,21 @@ export type EidDate = {
 };
 
 // Dates anchored to Saudi/Umm al-Qura. Actual local date may shift ±1 day by region.
-// Kept in sync with src/constants/islamicCalendar.ts.
+// Kept in sync with src/constants/islamicCalendar.ts (which currently ends at
+// Adha 1449 / May 2028). Entries beyond that are Umm al-Qura projections —
+// verified against the official Umm al-Qura tables (Aladhan hToG
+// calendarMethod=UAQ and the KACST-based hijridate tables agree on all of
+// them) — and remain estimates subject to moon sighting like every entry here.
 export const UPCOMING_EID_DATES: EidDate[] = [
   { name: 'Eid ul-Adha 2026', nameUr: 'عیدالاضحی ۲۰۲۶', date: new Date(2026, 4, 27), type: 'adha' },
   { name: 'Eid ul-Fitr 2027', nameUr: 'عیدالفطر ۲۰۲۷', date: new Date(2027, 2, 10), type: 'fitr' },
   { name: 'Eid ul-Adha 2027', nameUr: 'عیدالاضحی ۲۰۲۷', date: new Date(2027, 4, 17), type: 'adha' },
   { name: 'Eid ul-Fitr 2028', nameUr: 'عیدالفطر ۲۰۲۸', date: new Date(2028, 1, 27), type: 'fitr' },
+  { name: 'Eid ul-Adha 2028', nameUr: 'عیدالاضحی ۲۰۲۸', date: new Date(2028, 4, 5), type: 'adha' },
+  { name: 'Eid ul-Fitr 2029', nameUr: 'عیدالفطر ۲۰۲۹', date: new Date(2029, 1, 14), type: 'fitr' },
+  { name: 'Eid ul-Adha 2029', nameUr: 'عیدالاضحی ۲۰۲۹', date: new Date(2029, 3, 24), type: 'adha' },
+  { name: 'Eid ul-Fitr 2030', nameUr: 'عیدالفطر ۲۰۳۰', date: new Date(2030, 1, 4), type: 'fitr' },
+  { name: 'Eid ul-Adha 2030', nameUr: 'عیدالاضحی ۲۰۳۰', date: new Date(2030, 3, 13), type: 'adha' },
+  { name: 'Eid ul-Fitr 2031', nameUr: 'عیدالفطر ۲۰۳۱', date: new Date(2031, 0, 24), type: 'fitr' },
+  { name: 'Eid ul-Adha 2031', nameUr: 'عیدالاضحی ۲۰۳۱', date: new Date(2031, 3, 2), type: 'adha' },
 ];

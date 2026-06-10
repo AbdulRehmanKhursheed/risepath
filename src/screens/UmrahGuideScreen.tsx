@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,9 @@ import {
   StyleSheet,
   Platform,
   Share,
+  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { UMRAH_STEPS } from '../constants/umrahGuide';
@@ -17,19 +19,65 @@ import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { ArabicText } from '../components/ui/ArabicText';
 
+// Checklist progress must survive back-navigation and app restarts (this is
+// a stack screen that unmounts on back). Keyed per guide.
+const STORAGE_KEY = 'umrah_guide_completed_v1';
+
+// The guide data (umrahGuide.ts) carries English-only phase strings; these
+// are standard ritual terms, mapped to their conventional Urdu labels so the
+// Before Travel / Ihram / Tawaf / Sa'i grouping isn't dropped in Urdu mode.
+const PHASE_UR: Record<string, string> = {
+  'Before Travel': 'سفر سے پہلے',
+  'Ihram': 'احرام',
+  'Arriving in Makkah': 'مکہ آمد',
+  'Tawaf': 'طواف',
+  'Zamzam': 'زم زم',
+  "Sa'i": 'سعی',
+  'Completion': 'تکمیل',
+};
+
 export function UmrahGuideScreen() {
   const { language } = useLanguage();
   const [expandedId, setExpandedId] = useState<number | null>(1);
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
   const isUrdu = language === 'ur';
 
+  // Restore persisted checkmarks on mount.
+  useEffect(() => {
+    let mounted = true;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((raw) => {
+        if (!mounted || !raw) return;
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setCompletedIds(new Set(parsed.filter((x) => typeof x === 'number')));
+          }
+        } catch {}
+      })
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
   const toggleComplete = (id: number) => {
-    setCompletedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(completedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setCompletedIds(next);
+    // Best-effort persist — never block the checkmark on storage.
+    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))).catch(() => {});
+  };
+
+  const onCopyDua = async (arabic: string) => {
+    try {
+      await Clipboard.setStringAsync(arabic);
+      Alert.alert('', isUrdu ? '✓ کلپ بورڈ پر نقل ہو گیا' : '✓ Copied to clipboard');
+    } catch {
+      Alert.alert(
+        isUrdu ? 'خرابی' : 'Error',
+        isUrdu ? 'کاپی نہیں ہو سکا' : 'Could not copy'
+      );
+    }
   };
 
   const completedCount = completedIds.size;
@@ -101,7 +149,7 @@ export function UmrahGuideScreen() {
                 </View>
                 <View style={styles.stepMeta}>
                   <Text style={styles.phaseLabel}>
-                    {step.icon}{'  '}{isUrdu ? '' : step.phase}
+                    {step.icon}{'  '}{isUrdu ? PHASE_UR[step.phase] ?? step.phase : step.phase}
                   </Text>
                   <Text style={[styles.stepTitle, isDone && styles.stepTitleDone]}>
                     {title}
@@ -121,7 +169,7 @@ export function UmrahGuideScreen() {
                         <View style={styles.duaActions}>
                           <TouchableOpacity
                             style={styles.duaAction}
-                            onPress={() => Clipboard.setStringAsync(step.dua!.arabic)}
+                            onPress={() => onCopyDua(step.dua!.arabic)}
                             accessibilityLabel={isUrdu ? 'عربی کاپی کریں' : 'Copy Arabic'}
                           >
                             <Text style={styles.duaActionText}>📋 {isUrdu ? 'کاپی' : 'Copy'}</Text>

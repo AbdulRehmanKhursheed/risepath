@@ -9,6 +9,7 @@ import {
   Vibration,
   Share,
   Alert,
+  AppState,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -17,6 +18,7 @@ import { ArabicText } from '../components/ui/ArabicText';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { gregorianToHijri } from '../utils/hijri';
+import { storage } from '../services/storage';
 import { AdBanner } from '../components/AdBanner';
 import { AD_UNITS } from '../services/ads';
 import { PLAY_STORE_URL } from '../constants/appLinks';
@@ -75,7 +77,36 @@ export function TakbirScreen() {
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [hydrated, setHydrated] = useState(false);
 
-  const hijri = useMemo(() => gregorianToHijri(new Date()), []);
+  // The user's Hijri-offset correction (Prayer Settings / auto-detect). The
+  // tabular algorithm drifts ±1-2 days from regional moonsighting, so the
+  // window gating must honour the same offset HomeScreen applies.
+  const [hijriOffset, setHijriOffset] = useState(0);
+  useEffect(() => {
+    let mounted = true;
+    storage.getHijriOffset().then((off) => {
+      if (mounted) setHijriOffset(off);
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
+
+  // Recompute the Hijri day across midnight / app foregrounding — this screen
+  // is exactly the one users keep open overnight during tashreeq, and a
+  // mount-frozen date leaves the TODAY highlight and window banner stale.
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60 * 1000);
+    const sub = AppState.addEventListener('change', (s) => {
+      if (s === 'active') setNow(new Date());
+    });
+    return () => { clearInterval(id); sub.remove(); };
+  }, []);
+
+  const dayKey = now.toDateString();
+  const hijri = useMemo(
+    () => gregorianToHijri(now, hijriOffset),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dayKey, hijriOffset]
+  );
   // Window: 9th-13th Dhul Hijjah. Hijri conversion is approximate (±1 day);
   // the tracker still works outside the window — just shows a soft state.
   const inWindow = hijri.month === 12 && hijri.day >= 9 && hijri.day <= 13;

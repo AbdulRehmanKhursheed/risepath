@@ -24,11 +24,26 @@ import { AD_UNITS } from '../services/ads';
 
 type EidTab = 'fitr' | 'adha';
 
-function getNextEid() {
-  const now = new Date();
-  return UPCOMING_EID_DATES.find((e) => e.date > now) ?? null;
+// How many days after Eid day the Eid still counts as "current". Adha keeps
+// the full tashreeq window (10th–13th Dhul Hijjah); Fitr lingers through the
+// customary 3-day celebration. Mirrors EidHubCard's linger behaviour so the
+// guide doesn't jump to next year's Eid on Eid morning.
+const EID_GRACE_DAYS: Record<EidTab, number> = { fitr: 2, adha: 3 };
+
+function getNextEid(now: Date = new Date()) {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  return (
+    UPCOMING_EID_DATES.find((e) => {
+      const lastDay = new Date(e.date);
+      lastDay.setHours(0, 0, 0, 0);
+      lastDay.setDate(lastDay.getDate() + EID_GRACE_DAYS[e.type]);
+      return lastDay >= today;
+    }) ?? null
+  );
 }
 
+// Calendar days until `date` — 0 on Eid day, negative during the grace days.
 function daysUntil(date: Date): number {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -138,15 +153,19 @@ function SectionBlock({ section, isUrdu, fs }: { section: EidSection; isUrdu: bo
 
 export function EidScreen() {
   const nextEid = getNextEid();
-  // Default the tab to whichever Eid is upcoming so the user lands on the
-  // relevant content immediately, instead of always starting on Fitr.
+  // Default the tab to whichever Eid is upcoming (or currently running, on
+  // Eid day / tashreeq days) so the user lands on the relevant content
+  // immediately, instead of always starting on Fitr.
   const [activeTab, setActiveTab] = useState<EidTab>(nextEid?.type ?? 'fitr');
   const { language } = useLanguage();
   const { fs } = useSimpleMode();
   const isUrdu = language === 'ur';
+  const isArabic = language === 'ar';
 
   const sections = activeTab === 'fitr' ? EID_FITR_SECTIONS : EID_ADHA_SECTIONS;
   const days = nextEid ? daysUntil(nextEid.date) : null;
+  // days === 0 → Eid day itself; days < 0 → grace days (Eid period).
+  const isEidNow = days !== null && days <= 0;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -156,10 +175,10 @@ export function EidScreen() {
       >
         <Text style={[styles.heroEmoji, { fontSize: fs(40) }]}>🌙</Text>
         <Text style={[styles.heroTitle, { fontSize: fs(24) }]}>
-          {isUrdu ? 'عید گائیڈ' : 'Eid Guide'}
+          {isUrdu ? 'عید گائیڈ' : isArabic ? 'دليل العيد' : 'Eid Guide'}
         </Text>
         <Text style={[styles.heroSub, { fontSize: fs(13) }]}>
-          {isUrdu ? 'مسائل، احکام اور دعائیں' : 'Masail, Rulings & Duas'}
+          {isUrdu ? 'مسائل، احکام اور دعائیں' : isArabic ? 'مسائل وأحكام وأدعية' : 'Masail, Rulings & Duas'}
         </Text>
       </LinearGradient>
 
@@ -167,7 +186,9 @@ export function EidScreen() {
         <View style={styles.countdownCard}>
           <View>
             <Text style={[styles.countdownLabel, { fontSize: fs(11) }]}>
-              {isUrdu ? 'اگلی عید' : 'NEXT EID'}
+              {isEidNow
+                ? isUrdu ? 'عید مبارک!' : isArabic ? 'عيد مبارك!' : 'EID MUBARAK'
+                : isUrdu ? 'اگلی عید' : isArabic ? 'العيد القادم' : 'NEXT EID'}
             </Text>
             <Text style={[styles.countdownName, { fontSize: fs(15) }]}>
               {isUrdu ? nextEid.nameUr : nextEid.name}
@@ -175,14 +196,31 @@ export function EidScreen() {
             <Text style={[styles.countdownDisclaimer, { fontSize: fs(10) }]}>
               {isUrdu
                 ? '* چاند دیکھنے پر منحصر'
+                : isArabic
+                ? '* تقريبي — حسب رؤية الهلال'
                 : '* Approx. — subject to moon sighting'}
             </Text>
           </View>
           <View style={styles.daysBox}>
-            <Text style={[styles.daysNumber, { fontSize: fs(28) }]}>{days}</Text>
-            <Text style={[styles.daysLabel, { fontSize: fs(10) }]}>
-              {isUrdu ? 'دن باقی' : 'DAYS'}
-            </Text>
+            {isEidNow ? (
+              <>
+                <Text style={[styles.daysNumber, { fontSize: fs(28) }]}>
+                  {days === 0 ? '🎉' : 1 - days}
+                </Text>
+                <Text style={[styles.daysLabel, { fontSize: fs(10) }]}>
+                  {days === 0
+                    ? isUrdu ? 'آج' : isArabic ? 'اليوم' : 'TODAY'
+                    : isUrdu ? 'دن' : isArabic ? 'اليوم' : 'DAY'}
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.daysNumber, { fontSize: fs(28) }]}>{days}</Text>
+                <Text style={[styles.daysLabel, { fontSize: fs(10) }]}>
+                  {isUrdu ? 'دن باقی' : isArabic ? 'يوم' : 'DAYS'}
+                </Text>
+              </>
+            )}
           </View>
         </View>
       )}
@@ -194,7 +232,7 @@ export function EidScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.tabText, activeTab === 'fitr' && styles.tabTextActive, { fontSize: fs(13) }]}>
-            {isUrdu ? 'عیدالفطر' : 'Eid ul-Fitr'}
+            {isUrdu ? 'عیدالفطر' : isArabic ? 'عيد الفطر' : 'Eid ul-Fitr'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -203,7 +241,7 @@ export function EidScreen() {
           activeOpacity={0.85}
         >
           <Text style={[styles.tabText, activeTab === 'adha' && styles.tabTextActive, { fontSize: fs(13) }]}>
-            {isUrdu ? 'عیدالاضحی' : 'Eid ul-Adha'}
+            {isUrdu ? 'عیدالاضحی' : isArabic ? 'عيد الأضحى' : 'Eid ul-Adha'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -216,6 +254,8 @@ export function EidScreen() {
         <Text style={[styles.disclaimerText, { fontSize: fs(11) }]}>
           {isUrdu
             ? 'یہ گائیڈ تعلیمی مقاصد کے لیے ہے۔ اپنے مسلک کے عالم سے مشورہ کریں۔'
+            : isArabic
+            ? 'هذا الدليل لأغراض تعليمية. استشر عالماً مؤهلاً وفق مذهبك.'
             : 'This guide is for educational purposes. Consult a qualified scholar for your specific madhab.'}
         </Text>
       </View>
