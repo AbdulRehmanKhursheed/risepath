@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform, NativeModules } from 'react-native';
 import { theme } from '../constants/theme';
+import { whenAdsInitialized } from '../services/ads';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAd: any = null;
@@ -26,16 +27,48 @@ type Props = {
   unitId: string;
 };
 
+// Retry ladder for failed ad loads. Tab screens are keep-alive (mounted for
+// the whole session), so without retries a single no-fill / network blip at
+// cold start would remove the banner from that screen permanently.
+const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000];
+
 export function AdBanner({ unitId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  // Gate on Mobile Ads SDK init, which is itself gated on UMP consent
+  // (canRequestAds). Ensures no ad request fires before/without consent.
+  const [adsReady, setAdsReady] = useState(false);
 
-  if (!adsAvailable || failed) return null;
+  useEffect(() => {
+    let mounted = true;
+    whenAdsInitialized().then(() => {
+      if (mounted) setAdsReady(true);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // On failure, schedule a re-attempt with backoff; bumping `attempt` remounts
+  // BannerAd (via key) which issues a fresh request.
+  useEffect(() => {
+    if (!failed || attempt >= RETRY_DELAYS_MS.length) return;
+    const t = setTimeout(() => {
+      setFailed(false);
+      setLoaded(false);
+      setAttempt((a) => a + 1);
+    }, RETRY_DELAYS_MS[attempt]);
+    return () => clearTimeout(t);
+  }, [failed, attempt]);
+
+  if (!adsAvailable || !adsReady || failed) return null;
 
   return (
     <View style={[styles.wrapper, !loaded && styles.hidden]}>
       <Text style={styles.label}>Sponsored</Text>
       <BannerAd
+        key={attempt}
         unitId={unitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{

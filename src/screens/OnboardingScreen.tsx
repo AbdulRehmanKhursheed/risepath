@@ -14,8 +14,25 @@ import { theme } from '../constants/theme';
 import { useLanguage } from '../contexts/LanguageContext';
 import { CALCULATION_METHODS, MADHABS } from '../constants/prayerMethods';
 import { storage } from '../services/storage';
+import { captureError } from '../services/sentry';
 import { ArabicText } from '../components/ui/ArabicText';
 import type { CalculationMethodId, MadhabId, FiqhSchool } from '../constants/prayerMethods';
+
+// Default Asr madhab for a calculation method, used until the user picks a
+// madhab explicitly. The Karachi method targets Pakistan/Bangladesh/India,
+// which are overwhelmingly Hanafi — pairing it with the old blanket 'Shafi'
+// default put Asr ~1h early for exactly the audience the default targets.
+function defaultMadhabFor(method: CalculationMethodId): MadhabId {
+  return method === 'Karachi' ? 'Hanafi' : 'Shafi';
+}
+
+function isKnownMethod(id: string): id is CalculationMethodId {
+  return CALCULATION_METHODS.some((m) => m.id === id);
+}
+
+function isKnownMadhab(id: string): id is MadhabId {
+  return MADHABS.some((m) => m.id === id);
+}
 
 type Props = {
   onComplete: () => void;
@@ -28,19 +45,68 @@ export function OnboardingScreen({ onComplete }: Props) {
   const [step, setStep] = useState<Step>('language');
   const [selectedSchool, setSelectedSchool] = useState<FiqhSchool>('sunni');
   const [selectedMethod, setSelectedMethod] = useState<CalculationMethodId>('Karachi');
-  const [selectedMadhab, setSelectedMadhab] = useState<MadhabId>('Shafi');
+  const [selectedMadhab, setSelectedMadhab] = useState<MadhabId>(defaultMadhabFor('Karachi'));
 
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
 
+  // Once the user explicitly taps a prayer option, the storage hydration
+  // below must never overwrite it; once they explicitly pick a madhab, the
+  // per-method madhab default stops second-guessing them.
+  const touchedRef = useRef(false);
+  const madhabTouchedRef = useRef(false);
+
+  // This screen can re-show for users who already completed onboarding
+  // (slow/failed onboarding-flag read in App.tsx). finish() — including the
+  // Skip path — writes the on-screen selections to storage, so seed them
+  // from any previously saved settings; otherwise a re-onboard silently
+  // resets the user's calculation method, madhab, and fiqh school.
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const [settings, school] = await Promise.all([
+        storage.getPrayerSettings(),
+        storage.getFiqhSchool(),
+      ]);
+      if (!mounted || touchedRef.current) return;
+      if (settings) {
+        if (isKnownMethod(settings.calculationMethod)) setSelectedMethod(settings.calculationMethod);
+        if (isKnownMadhab(settings.madhab)) {
+          setSelectedMadhab(settings.madhab);
+          // Stored madhab is an earlier explicit/derived choice — preserve it.
+          madhabTouchedRef.current = true;
+        }
+      }
+      const storedSchool = settings?.fiqhSchool ?? school;
+      if (storedSchool) setSelectedSchool(storedSchool);
+    })().catch(() => {
+      // Best-effort hydration; keep the regional defaults on a failed read.
+    });
+    return () => { mounted = false; };
+  }, []);
+
   const selectSchool = (school: FiqhSchool) => {
+    touchedRef.current = true;
     setSelectedSchool(school);
     if (school === 'shia') {
       setSelectedMethod('Jafari');
       setSelectedMadhab('Shafi');
     } else {
       setSelectedMethod('Karachi');
+      if (!madhabTouchedRef.current) setSelectedMadhab(defaultMadhabFor('Karachi'));
     }
+  };
+
+  const selectMethod = (method: CalculationMethodId) => {
+    touchedRef.current = true;
+    setSelectedMethod(method);
+    if (!madhabTouchedRef.current) setSelectedMadhab(defaultMadhabFor(method));
+  };
+
+  const selectMadhab = (madhab: MadhabId) => {
+    touchedRef.current = true;
+    madhabTouchedRef.current = true;
+    setSelectedMadhab(madhab);
   };
 
   // Hardware back on Android should step backwards through the flow, not
@@ -70,10 +136,12 @@ export function OnboardingScreen({ onComplete }: Props) {
         madhab: selectedMadhab,
         fiqhSchool: selectedSchool,
       });
-    } catch {
+    } catch (e) {
       // Storage may fail (full disk, corrupted SQLite). Still advance the
       // user out of onboarding rather than trapping them — next launch will
-      // re-show the flow if nothing got persisted.
+      // re-show the flow if nothing got persisted. Report it so repeated
+      // re-onboarding in the wild is visible.
+      captureError(e, { scope: 'onboarding-finish' });
     } finally {
       onComplete();
     }
@@ -254,7 +322,7 @@ export function OnboardingScreen({ onComplete }: Props) {
               <TouchableOpacity
                 key={m.id}
                 style={[styles.optionCard, selectedMethod === m.id && styles.optionCardActive]}
-                onPress={() => setSelectedMethod(m.id)}
+                onPress={() => selectMethod(m.id)}
               >
                 <View style={styles.optionLeft}>
                   <Text style={styles.optionLabel}>{m.label}</Text>
@@ -276,7 +344,7 @@ export function OnboardingScreen({ onComplete }: Props) {
                 <TouchableOpacity
                   key={m.id}
                   style={[styles.optionCard, selectedMadhab === m.id && styles.optionCardActive]}
-                  onPress={() => setSelectedMadhab(m.id)}
+                  onPress={() => selectMadhab(m.id)}
                 >
                   <View style={styles.optionLeft}>
                     <Text style={styles.optionLabel}>{m.label}</Text>

@@ -67,9 +67,11 @@ Sentry.init({
   // The listing claims "no tracking, data stays on device". Sentry crash
   // payloads are an acceptable narrow exception (anonymous error reports),
   // but routing console.log output to Sentry would broaden that and break
-  // the claim. Keep logs local.
+  // the claim. Keep logs local. Same reasoning for performance tracing:
+  // transactions are not crash reports, so sampling stays at 0 to keep the
+  // "anonymous crash reports only" disclosure truthful.
   enableLogs: false,
-  tracesSampleRate: 0.2,
+  tracesSampleRate: 0,
   sendDefaultPii: false,
 });
 
@@ -96,19 +98,16 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 SplashScreen.preventAutoHideAsync();
 
 // Ads consent + init at module load is fire-and-forget so it can't block
-// render, but each step is wrapped in a 4s timeout so a slow Google
-// SDK init or a stalled consent form can't keep the JS thread busy on
-// cold start. Functionality degrades gracefully (non-personalized
-// ads or no ads) rather than the app feeling slow on first launch.
-function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
-  return Promise.race([
-    p,
-    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-  ]);
-}
+// render. The network step inside requestAdsConsent (requestInfoUpdate) is
+// capped at 4s internally so a dead network can't stall this chain on cold
+// start — but the consent *form* itself is user-paced and never timed out,
+// because cutting it off would record no choice. initAds() is gated on UMP
+// canRequestAds (Google policy: no SDK init / ad requests until consent
+// gathering is complete); when consent isn't granted, ads simply stay off
+// rather than the app feeling slow on first launch.
 (async () => {
-  await withTimeout(requestAdsConsent(), 4000);
-  await withTimeout(initAds(), 4000);
+  await requestAdsConsent();
+  await initAds();
 })().catch(() => {});
 
 const Tab = createBottomTabNavigator();
@@ -145,19 +144,37 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 function QuranTab() {
-  const { pendingSurah } = useQuranNav();
+  // QuranTab owns the pendingSurah lifecycle: it consumes the value and only
+  // then clears it. AppStack deliberately does NOT clearPending — clearing
+  // there used to batch with the navigation dispatch (React 19 automatic
+  // batching), so on the first lazy mount of this tab the useState
+  // initializer saw null and the "Read Surah" deep link dropped the surah.
+  const { pendingSurah, clearPending } = useQuranNav();
 
   const [activeSurah, setActiveSurah] = useState<number | undefined>(() =>
     pendingSurah !== null ? pendingSurah : undefined
   );
   const [mountKey, setMountKey] = useState(0);
+  // Surah captured by the useState initializer at first mount (if any). The
+  // first effect run must not bump mountKey for it — QuranScreen is already
+  // mounted with that surah, and bumping would unmount/remount it (double
+  // mount + duplicate openSurah bookkeeping).
+  const initialPendingRef = useRef(pendingSurah);
 
   useEffect(() => {
-    if (pendingSurah !== null) {
-      setActiveSurah(pendingSurah);
-      setMountKey((k) => k + 1);
+    if (pendingSurah === null) return;
+    const consumedAtMount = initialPendingRef.current;
+    initialPendingRef.current = null;
+    if (consumedAtMount === pendingSurah) {
+      // Already showing this surah via the initializer; just release the
+      // pending value now that it has been consumed.
+      clearPending();
+      return;
     }
-  }, [pendingSurah]);
+    setActiveSurah(pendingSurah);
+    setMountKey((k) => k + 1);
+    clearPending();
+  }, [pendingSurah, clearPending]);
 
   return <QuranScreen key={mountKey} initialSurah={activeSurah} />;
 }
@@ -215,12 +232,18 @@ function routeForNotificationId(id: string): { name: string; params?: object } |
 }
 
 function AppStack({ onLayout }: { onLayout: () => void }) {
-  const { pendingSurah, clearPending } = useQuranNav();
+  const { pendingSurah } = useQuranNav();
   const navRef = useNavigationContainerRef();
   const [navReady, setNavReady] = useState(false);
   const lastNotifResponse = Notifications.useLastNotificationResponse();
   const handledNotifIdRef = useRef<string | null>(null);
 
+  // Only dispatch the navigation here. Do NOT clearPending in this effect:
+  // with a lazily-mounted Quran tab, the clear would batch into the same
+  // commit as the navigation state update, so QuranTab's useState
+  // initializer would read pendingSurah as null and the deep link would
+  // land on the surah list instead of the requested surah. QuranTab clears
+  // the value itself once it has actually consumed it.
   useEffect(() => {
     if (pendingSurah === null || !navReady || !navRef.isReady()) return;
     navRef.dispatch(
@@ -229,8 +252,7 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
         params: { screen: 'Quran' },
       })
     );
-    clearPending();
-  }, [pendingSurah, navReady, navRef, clearPending]);
+  }, [pendingSurah, navReady, navRef]);
 
   // Cold-launch tap: useLastNotificationResponse fires once with the response
   // that opened the app. Deduped by identifier so we don't re-navigate on
@@ -388,16 +410,20 @@ function AppInner() {
       });
     // Safety net: if AsyncStorage hangs (corrupted SQLite, locked DB,
     // extreme system load), don't trap users on an infinite loading
-    // spinner. Fall back to "show onboarding" after 3s — fresh-install
+    // spinner. Fall back to "show onboarding" after 5s — fresh-install
     // users were going to see it anyway, and returning users will be
-    // re-onboarded once (annoying but recoverable).
+    // re-onboarded once (annoying but recoverable; OnboardingScreen now
+    // hydrates from + preserves previously saved prayer settings, so a
+    // re-onboard no longer clobbers their choices). 5s rather than 3s so
+    // merely-slow storage (not hung) resolves before the fallback fires;
+    // the normal path settles in milliseconds.
     const t = setTimeout(() => {
       if (!mounted || settled) return;
       // Mark settled before the state set so a late-resolving promise
       // doesn't double-write and cause an onboarding flicker.
       settled = true;
       setOnboardingDone(false);
-    }, 3000);
+    }, 5000);
     return () => {
       mounted = false;
       clearTimeout(t);
@@ -423,10 +449,14 @@ function AppInner() {
     const t = setTimeout(() => { prefetchAllSurahs().catch(() => {}); }, 4000);
     let reviewTimer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
-    trackAppOpen().then(() => {
-      if (cancelled) return;
-      reviewTimer = setTimeout(() => { maybePromptReview().catch(() => {}); }, 20000);
-    });
+    trackAppOpen()
+      .then(() => {
+        if (cancelled) return;
+        reviewTimer = setTimeout(() => {
+          maybePromptReview().catch((e) => captureError(e, { scope: 'review-prompt' }));
+        }, 20000);
+      })
+      .catch((e) => captureError(e, { scope: 'review-track-open' }));
 
     // Bundle first-launch permission prompts (notifications + location),
     // schedule streak + 7-day prayer reminders, and start an AppState listener
@@ -441,9 +471,16 @@ function AppInner() {
           const savedLang = (await AsyncStorage.getItem('app_language')) as 'en' | 'ur' | 'ar' | null;
           await scheduleStreakReminder(savedLang ?? 'en');
           await scheduleJumuahReminder(savedLang ?? 'en');
-          await rebuildPrayerScheduleFromStorage().catch(() => {});
+          await rebuildPrayerScheduleFromStorage().catch((e) =>
+            captureError(e, { scope: 'startup-prayer-schedule' })
+          );
         }
-      } catch {}
+      } catch (e) {
+        // Notification setup failing silently is exactly the class of
+        // intermittent "reminders never fired" issue we can't reproduce
+        // locally — report it instead of flying blind.
+        captureError(e, { scope: 'startup-notifications' });
+      }
 
       try {
         const { status } = await requestLocationPermissionOnce();
@@ -457,9 +494,15 @@ function AppInner() {
           });
           // Reschedule once we know the real location so day-1 prayers are
           // computed with the user's coords instead of the Karachi default.
-          await rebuildPrayerScheduleFromStorage().catch(() => {});
+          await rebuildPrayerScheduleFromStorage().catch((e) =>
+            captureError(e, { scope: 'startup-prayer-schedule' })
+          );
         }
-      } catch {}
+      } catch {
+        // Intentionally silent: getCurrentPositionAsync rejects routinely
+        // (location services off, airplane mode) and the Karachi fallback
+        // handles it — reporting would be pure noise.
+      }
     })();
 
     return () => {
@@ -479,7 +522,9 @@ function AppInner() {
       const now = Date.now();
       if (now - lastResumeRebuildAt.current < 30_000) return;
       lastResumeRebuildAt.current = now;
-      rebuildPrayerScheduleFromStorage().catch(() => {});
+      rebuildPrayerScheduleFromStorage().catch((e) =>
+        captureError(e, { scope: 'resume-prayer-schedule' })
+      );
     };
     const sub = AppState.addEventListener('change', onChange);
     return () => sub.remove();
@@ -488,11 +533,13 @@ function AppInner() {
   const completeOnboarding = async () => {
     try {
       await AsyncStorage.setItem('onboarding_complete', 'true');
-    } catch {
+    } catch (e) {
       // Storage write can fail (full disk, corrupted SQLite); we still
       // want to advance the user out of the onboarding screen rather
       // than trapping them there. Next launch will re-show onboarding,
-      // which is the correct degradation.
+      // which is the correct degradation — but report it so repeated
+      // re-onboarding in the wild is visible.
+      captureError(e, { scope: 'onboarding-flag-write' });
     }
     setOnboardingDone(true);
   };

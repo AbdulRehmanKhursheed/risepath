@@ -24,6 +24,7 @@ import Constants from 'expo-constants';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
+import { isPrivacyOptionsRequired, showPrivacyOptions } from '../services/consent';
 import { theme } from '../constants/theme';
 import { PLAY_STORE_URL } from '../constants/appLinks';
 
@@ -113,6 +114,20 @@ export function Sidebar() {
   const [mounted, setMounted] = useState(false);
   const [disclaimerVisible, setDisclaimerVisible] = useState(false);
   const [langPickerVisible, setLangPickerVisible] = useState(false);
+  // Google UMP: EEA users must have a way to change/withdraw ads consent
+  // after first launch. Only shown when the SDK reports it is required.
+  const [adPrivacyRequired, setAdPrivacyRequired] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let active = true;
+    isPrivacyOptionsRequired().then((required) => {
+      if (active) setAdPrivacyRequired(required);
+    });
+    return () => {
+      active = false;
+    };
+  }, [isOpen]);
 
   const translateX = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const overlayOpacity = useRef(new Animated.Value(0)).current;
@@ -175,7 +190,10 @@ export function Sidebar() {
         : `🌙 Noor — Quran with Tajweed, Prayer Times, Azan, Qibla, Dua, Eid Guide & Tasbih. Free, no account, private.\n${PLAY_STORE_URL}`;
       await Share.share({ message });
     } catch {
-      Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'شیئر نہیں ہو سکا' : 'Could not share app');
+      Alert.alert(
+        isUrdu ? 'خرابی' : isArabic ? 'خطأ' : 'Error',
+        isUrdu ? 'شیئر نہیں ہو سکا' : isArabic ? 'تعذرت مشاركة التطبيق' : 'Could not share app'
+      );
     }
   };
 
@@ -290,10 +308,16 @@ export function Sidebar() {
       if (supported) {
         await Linking.openURL(PLAY_STORE_URL);
       } else {
-        Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'لنک نہیں کھل سکا' : 'Could not open store link');
+        Alert.alert(
+          isUrdu ? 'خرابی' : isArabic ? 'خطأ' : 'Error',
+          isUrdu ? 'لنک نہیں کھل سکا' : isArabic ? 'تعذر فتح رابط المتجر' : 'Could not open store link'
+        );
       }
     } catch {
-      Alert.alert(isUrdu ? 'خرابی' : 'Error', isUrdu ? 'لنک نہیں کھل سکا' : 'Could not open store link');
+      Alert.alert(
+          isUrdu ? 'خرابی' : isArabic ? 'خطأ' : 'Error',
+          isUrdu ? 'لنک نہیں کھل سکا' : isArabic ? 'تعذر فتح رابط المتجر' : 'Could not open store link'
+        );
     }
   };
 
@@ -354,7 +378,7 @@ export function Sidebar() {
               onPress={() => setDisclaimerVisible(false)}
             >
               <Text style={styles.modalCloseBtnText}>
-                {isUrdu ? 'بند کریں' : 'Close'}
+                {isUrdu ? 'بند کریں' : isArabic ? 'إغلاق' : 'Close'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -562,6 +586,25 @@ export function Sidebar() {
               <Text style={styles.aboutVersion}>  ·  v{APP_VERSION}</Text>
             </Text>
           </TouchableOpacity>
+
+          {adPrivacyRequired && (
+            <TouchableOpacity
+              style={styles.aboutLink}
+              onPress={() => {
+                showPrivacyOptions();
+              }}
+              activeOpacity={0.6}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Text style={[styles.aboutLinkText, { fontSize: fs(11) }]}>
+                {isUrdu
+                  ? '🔒  اشتہارات کی پرائیویسی ترتیبات'
+                  : isArabic
+                  ? '🔒  خيارات خصوصية الإعلانات'
+                  : '🔒  Ad privacy options'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* Dev-only zero-friction wipe. Stripped from production bundles
               (__DEV__ is true under Metro/Expo Go, false in EAS builds). */}
