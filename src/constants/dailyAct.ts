@@ -174,7 +174,7 @@ function hijriOverride(now: Date, sect: 'sunni' | 'shia' | null, hijriOffset = 0
         id: 'tashreeq',
         icon: '📅',
         titleEn: `Ayyam al-Tashreeq — day ${h.day - 10} of 3`,
-        titleUr: `ایامِ تشریق — تیسرا دن ${h.day - 10}/۳`,
+        titleUr: `ایامِ تشریق — ${h.day === 11 ? 'پہلا' : h.day === 12 ? 'دوسرا' : 'تیسرا'} دن ${'۱۲۳'[h.day - 11]}/۳`,
         titleAr: `أيام التشريق — اليوم ${h.day - 10} من ٣`,
         actionEn: 'Days of eating, drinking, and dhikr of Allah. Continue Takbeer al-Tashreeq after every fard Salah through Asr of the 13th.',
         actionUr: 'کھانے، پینے اور اللہ کے ذکر کے دن۔ ہر فرض نماز کے بعد ۱۳ ذوالحجہ کی عصر تک تکبیراتِ تشریق جاری رکھیں۔',

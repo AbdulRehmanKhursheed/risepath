@@ -42,9 +42,9 @@ export const EID_FITR_SECTIONS: EidSection[] = [
         title: 'Who Must Pay?',
         titleUr: 'کس پر واجب ہے؟',
         description:
-          'Zakat ul-Fitr is obligatory (Wajib) on every free Muslim who possesses food beyond their own and their family\'s needs on the day and night of Eid. In the Hanafi school, the head of the household pays on behalf of all dependents (wife, minor children). Other schools require each adult to pay for themselves.',
+          'Zakat ul-Fitr is obligatory (Wajib) on every free Muslim who possesses food beyond their own and their family\'s needs on the day and night of Eid. In the Hanafi school it is an individual obligation: each adult pays for themselves (a wife pays from her own wealth), and the father also pays for his minor children. In the Shafi\'i, Maliki, and Hanbali schools, the head of the household pays on behalf of everyone he is obliged to maintain, including his wife.',
         descriptionUr:
-          'ہر آزاد مسلمان پر جو عیدالفطر کی رات اپنی اور اپنے زیرکفالت افراد کی ایک دن کی خوراک سے زیادہ مال رکھتا ہو، زکوٰۃ الفطر واجب ہے۔ حنفی مسلک میں گھر کا سرپرست اپنی اور اہلِ خانہ کی طرف سے ادا کرتا ہے۔',
+          'ہر آزاد مسلمان پر جو عیدالفطر کی رات اپنی اور اپنے زیرکفالت افراد کی ایک دن کی خوراک سے زیادہ مال رکھتا ہو، زکوٰۃ الفطر واجب ہے۔ حنفی مسلک میں ہر بالغ اپنی طرف سے خود ادا کرتا ہے (بیوی اپنے مال سے) اور والد اپنے نابالغ بچوں کی طرف سے بھی ادا کرتا ہے۔ شافعی، مالکی اور حنبلی مسالک میں گھر کا سرپرست بیوی سمیت تمام زیرِ کفالت افراد کی طرف سے ادا کرتا ہے۔',
         source: 'Bukhari 1503, Muslim 985',
         important: true,
       },
@@ -203,9 +203,9 @@ export const EID_FITR_SECTIONS: EidSection[] = [
         title: 'How to Pray — Extra Takbeers',
         titleUr: 'نمازِ عید کا طریقہ',
         description:
-          'Eid prayer is 2 rakats. No adhan, no iqamah.\n\nHanafi: After the opening takbeer, say 3 additional takbeers (hands drop at sides between each), then recite Surah Fatiha + surah. In the second rakat, recite first, then say 3 additional takbeers before ruku\'.\n\nShafi\'i / Maliki / Hanbali: 7 takbeers in the first rakat after the opening (before Fatiha); 5 takbeers in the second rakat after rising from the last sujood (before Fatiha).',
+          'Eid prayer is 2 rakats. No adhan, no iqamah.\n\nHanafi: After the opening takbeer, say 3 additional takbeers (hands drop at sides between each), then recite Surah Fatiha + surah. In the second rakat, recite first, then say 3 additional takbeers before ruku\'.\n\nShafi\'i: 7 takbeers in the first rakat after the opening (before Fatiha); 5 takbeers in the second rakat after rising (before Fatiha).\n\nMaliki / Hanbali: 6 takbeers after the opening takbeer in the first rakat; 5 in the second rakat.',
         descriptionUr:
-          'نمازِ عید دو رکعت ہے، اذان اور اقامت نہیں۔\n\nحنفی: افتتاحی تکبیر کے بعد تین زائد تکبیریں (ہر تکبیر کے بعد ہاتھ چھوڑیں)، پھر قرأت۔ دوسری رکعت میں پہلے قرأت، پھر رکوع سے پہلے تین زائد تکبیریں۔\n\nشافعی/مالکی/حنبلی: پہلی رکعت میں سات تکبیریں (فاتحہ سے پہلے)، دوسری رکعت میں پانچ تکبیریں۔',
+          'نمازِ عید دو رکعت ہے، اذان اور اقامت نہیں۔\n\nحنفی: افتتاحی تکبیر کے بعد تین زائد تکبیریں (ہر تکبیر کے بعد ہاتھ چھوڑیں)، پھر قرأت۔ دوسری رکعت میں پہلے قرأت، پھر رکوع سے پہلے تین زائد تکبیریں۔\n\nشافعی: پہلی رکعت میں سات زائد تکبیریں (فاتحہ سے پہلے)، دوسری رکعت میں پانچ۔\n\nمالکی/حنبلی: پہلی رکعت میں افتتاحی تکبیر کے بعد چھ زائد تکبیریں، دوسری رکعت میں پانچ۔',
         source: 'Abu Dawud 1149, Tirmidhi 536',
         important: true,
         madhabNote:
@@ -516,9 +516,9 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
         title: 'Who Must Do Qurbani?',
         titleUr: 'قربانی کس پر واجب ہے؟',
         description:
-          'Qurbani is for the adult Muslim of sound mind who possesses **nisab** on the days of qurbani.\n\nNisab = the value of 87.48 g of gold OR 612.36 g of silver in cash, savings, or wealth beyond essential needs (home, clothing, tools of trade, debt obligations). Most contemporary scholars use the silver standard since it benefits more recipients.\n\nHanafi: **Wajib** (obligatory). One qurbani per household; the head of family acts on behalf of dependents.\nShafi\'i / Maliki / Hanbali: **Sunnah Mu\'akkadah** (strongly emphasised) — one per individual adult who can afford it.\nJa\'fari (Shia): Mustahabb (recommended) for those who can; not obligatory.',
+          'Qurbani is for the adult Muslim of sound mind who possesses **nisab** on the days of qurbani.\n\nNisab = the value of 87.48 g of gold OR 612.36 g of silver in cash, savings, or wealth beyond essential needs (home, clothing, tools of trade, debt obligations). Most contemporary scholars use the silver standard since it benefits more recipients.\n\nHanafi: **Wajib** (obligatory) on each adult who owns nisab — including a wife with her own wealth; one person\'s qurbani does not cover other nisab-owning family members.\nShafi\'i / Maliki / Hanbali: **Sunnah Mu\'akkadah** (strongly emphasised) — one sheep offered by the head of the household suffices on behalf of the whole family (hadith of Abu Ayyub al-Ansari, Tirmidhi 1505).\nJa\'fari (Shia): Mustahabb (recommended) for those who can; not obligatory.',
         descriptionUr:
-          'قربانی ہر اس بالغ، عاقل مسلمان پر ہے جو قربانی کے دنوں میں **نصاب** کا مالک ہو۔\n\nنصاب = ۸۷.۴۸ گرام سونا یا ۶۱۲.۳۶ گرام چاندی کی قیمت کے برابر نقد یا مال (بنیادی ضروریات سے زائد)۔ آج کے علماء عموماً چاندی کا معیار لیتے ہیں کیونکہ اس سے زیادہ غرباء کو فائدہ پہنچتا ہے۔\n\nحنفی: **واجب** — ایک قربانی پورے گھرانے کی طرف سے کافی۔\nشافعی/مالکی/حنبلی: **سنتِ مؤکدہ** — ہر صاحبِ نصاب بالغ پر الگ۔\nجعفری: مستحب — جس پر آسان ہو۔',
+          'قربانی ہر اس بالغ، عاقل مسلمان پر ہے جو قربانی کے دنوں میں **نصاب** کا مالک ہو۔\n\nنصاب = ۸۷.۴۸ گرام سونا یا ۶۱۲.۳۶ گرام چاندی کی قیمت کے برابر نقد یا مال (بنیادی ضروریات سے زائد)۔ آج کے علماء عموماً چاندی کا معیار لیتے ہیں کیونکہ اس سے زیادہ غرباء کو فائدہ پہنچتا ہے۔\n\nحنفی: **واجب** — ہر صاحبِ نصاب بالغ پر الگ (صاحبِ نصاب بیوی پر اپنے مال سے)؛ ایک شخص کی قربانی دوسرے صاحبِ نصاب افراد کی طرف سے کافی نہیں۔\nشافعی/مالکی/حنبلی: **سنتِ مؤکدہ** — گھر کے سرپرست کی ایک قربانی پورے گھرانے کی طرف سے کافی (حدیثِ ابو ایوب انصاریؓ، ترمذی ۱۵۰۵)۔\nجعفری: مستحب — جس پر آسان ہو۔',
         source: 'Abu Dawud 2788, Ibn Majah 3123, Al-Hidayah, Al-Mughni',
         important: true,
       },
@@ -527,9 +527,9 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
         title: 'Who Does NOT Have to Do Qurbani?',
         titleUr: 'قربانی کس پر واجب نہیں؟',
         description:
-          'There is no obligation on:\n\n• **Children** (before puberty) — no shar\'i taklif yet, even if the child owns wealth\n• **Anyone of unsound mind** — same reason (no taklif)\n• **The poor** — anyone whose total wealth on the days of qurbani is below nisab\n• **Travellers** (Hanafi school) — a musafir during the days of qurbani is exempt from the wajib status; if he later has nisab while resident he may do it as nafl\n• **A wife / adult child** living in a household where the head of family is performing one qurbani in the Hanafi household-pooling view (other schools require each adult to do their own when capable)\n\nFor someone who is exempt but still wants to perform a qurbani, it counts as **nafl** (voluntary) and is highly rewarded.',
+          'There is no obligation on:\n\n• **Children** (before puberty) — no shar\'i taklif yet, even if the child owns wealth\n• **Anyone of unsound mind** — same reason (no taklif)\n• **The poor** — anyone whose total wealth on the days of qurbani is below nisab\n• **Travellers** (Hanafi school) — a musafir during the days of qurbani is exempt from the wajib status; if he later has nisab while resident he may do it as nafl\n• **A wife / adult child** without nisab of their own — and in the Shafi\'i / Maliki / Hanbali view, even those with means are covered by the head of household\'s single qurbani. (In the Hanafi school, each family member who owns nisab must offer their own.)\n\nFor someone who is exempt but still wants to perform a qurbani, it counts as **nafl** (voluntary) and is highly rewarded.',
         descriptionUr:
-          'ان پر قربانی واجب نہیں:\n\n• **بچے** (نابالغ) — ابھی شرعی تکلیف نہیں\n• **مجنون / غیر عاقل** — وہی وجہ\n• **غریب / فقیر** — جس کا مال قربانی کے دنوں میں نصاب سے کم ہو\n• **مسافر** (حنفی مسلک) — قربانی کے دنوں میں مسافر پر وجوب نہیں\n• **بیوی / بالغ اولاد** اگر گھر کا سرپرست اپنی طرف سے ایک قربانی کر رہا ہو (حنفی گھرانے کی رائے میں؛ دیگر مسالک میں ہر صاحبِ استطاعت پر الگ ہے)\n\nاگر کوئی غیر مکلف ہوتے ہوئے بھی قربانی کرے تو یہ **نفل** ہے اور بہت ثواب کا باعث ہے۔',
+          'ان پر قربانی واجب نہیں:\n\n• **بچے** (نابالغ) — ابھی شرعی تکلیف نہیں\n• **مجنون / غیر عاقل** — وہی وجہ\n• **غریب / فقیر** — جس کا مال قربانی کے دنوں میں نصاب سے کم ہو\n• **مسافر** (حنفی مسلک) — قربانی کے دنوں میں مسافر پر وجوب نہیں\n• **بیوی / بالغ اولاد** جو خود صاحبِ نصاب نہ ہوں — شافعی/مالکی/حنبلی مسالک میں سرپرست کی ایک قربانی پورے گھرانے کو کافی ہے (حنفی مسلک میں ہر صاحبِ نصاب فرد پر الگ قربانی ہے)\n\nاگر کوئی غیر مکلف ہوتے ہوئے بھی قربانی کرے تو یہ **نفل** ہے اور بہت ثواب کا باعث ہے۔',
         source: 'Al-Hidayah (Marghinani), Al-Mughni (Ibn Qudama), Bada\'i al-Sana\'i (Al-Kasani)',
         important: true,
       },
@@ -538,21 +538,23 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
         title: 'Time of Qurbani',
         titleUr: 'قربانی کا وقت',
         description:
-          'Qurbani begins after the Eid prayer on 10th Dhul Hijjah and continues until sunset of 13th Dhul Hijjah (3 days, 2 nights). The best time is the 10th, immediately after the Eid prayer.',
+          'Qurbani begins after the Eid prayer on 10th Dhul Hijjah and continues until sunset of 12th Dhul Hijjah (3 days, 2 nights). The best time is the 10th, immediately after the Eid prayer.',
         descriptionUr:
-          '۱۰ ذوالحجہ کو نمازِ عید کے بعد سے ۱۳ ذوالحجہ کے غروب تک (۳ دن، ۲ راتیں)۔ سب سے بہتر وقت: ۱۰ ذوالحجہ کو نماز کے فوراً بعد۔',
+          '۱۰ ذوالحجہ کو نمازِ عید کے بعد سے ۱۲ ذوالحجہ کے غروب تک (۳ دن، ۲ راتیں)۔ سب سے بہتر وقت: ۱۰ ذوالحجہ کو نماز کے فوراً بعد۔',
         source: 'Musnad Ahmad, Daraqutni',
         important: true,
+        madhabNote:
+          'Hanafi / Maliki / Hanbali: qurbani ends at sunset of the 12th. The Shafi\'i school extends it until sunset of the 13th Dhul Hijjah (4 days).',
       },
       {
         id: 'adha-qr-3',
         title: 'Animals & Minimum Age',
         titleUr: 'جانور اور کم از کم عمر',
         description:
-          '• Goat / Sheep — 1 person. Min. 1 full year. (Hanafi: 6+ months if large & healthy)\n• Cow / Buffalo / Bull — up to 7 people. Min. 2 full years.\n• Camel — up to 7 people. Min. 5 full years.\n\nWhen 7 people share a cow or camel, all shares must be for qurbani (or aqeeqah) — not commercial purposes.',
+          '• Goat — 1 person. Min. 1 full year (all schools).\n• Sheep — 1 person. Min. 1 full year; a sheep of 6+ months is also valid if so large and healthy it looks a year old (Muslim 1963). This concession is for sheep only — never goats.\n• Cow / Buffalo / Bull — up to 7 people. Min. 2 full years.\n• Camel — up to 7 people. Min. 5 full years.\n\nWhen 7 people share a cow or camel, all shares must be for qurbani (or aqeeqah) — not commercial purposes.',
         descriptionUr:
-          '• بکرا/بکری/دنبہ — ۱ شخص، کم از کم ۱ سال (حنفی: ۶ ماہ اگر بڑا ہو)\n• گائے/بھینس/بیل — ۷ افراد، کم از کم ۲ سال\n• اونٹ — ۷ افراد، کم از کم ۵ سال\n\nاشتراک میں سب حصے قربانی (یا عقیقہ) کی نیت سے ہوں۔',
-        source: 'Muslim 1318, Abu Dawud 2799',
+          '• بکرا/بکری — ۱ شخص، کم از کم ۱ سال (تمام مسالک)\n• دنبہ/بھیڑ — ۱ شخص، کم از کم ۱ سال؛ ۶ ماہ کا دنبہ بھی جائز اگر اتنا بڑا اور صحت مند ہو کہ سال بھر کا لگے (مسلم ۱۹۶۳)۔ یہ رعایت صرف دنبے/بھیڑ کے لیے ہے، بکرے کے لیے نہیں\n• گائے/بھینس/بیل — ۷ افراد، کم از کم ۲ سال\n• اونٹ — ۷ افراد، کم از کم ۵ سال\n\nاشتراک میں سب حصے قربانی (یا عقیقہ) کی نیت سے ہوں۔',
+        source: 'Muslim 1318, Muslim 1963, Abu Dawud 2799',
         important: true,
       },
       {
@@ -605,7 +607,7 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
           'Recommended: Divide into three equal parts — one for yourself, one for relatives / friends, one for the poor. This is recommended (mustahabb), not obligatory.\n\nHanafi: The hide (skin) must not be sold — keep for personal use or give as charity.',
         descriptionUr:
           'مستحب: تین برابر حصے — ایک اپنے لیے، ایک رشتہ داروں/دوستوں کو، ایک فقراء کو۔ یہ تقسیم مستحب ہے، واجب نہیں۔\n\nحنفی: قربانی کی کھال فروخت نہ کریں — ذاتی استعمال یا صدقہ۔',
-        source: 'Ibn Qudama, Bukhari 5547',
+        source: 'Ibn Qudama (al-Mughni); cf. Bukhari 5569, Muslim 1971',
         tips: [
           'Give the poor\'s share as raw meat so they can cook it themselves',
           'Qurbani meat may be given to non-Muslims in need',
@@ -628,9 +630,9 @@ export const EID_ADHA_SECTIONS: EidSection[] = [
         title: 'Days of Eating, Drinking & Dhikr',
         titleUr: 'کھانے، پینے اور ذکر کے دن',
         description:
-          'The 11th, 12th, and 13th of Dhul Hijjah are the Ayyam al-Tashreeq. The Prophet ﷺ said: "These are days of eating, drinking, and dhikr of Allah." (Muslim 1141)\n\nQurbani remains valid on all three days. Takbeer al-Tashreeq continues after every fard salah through Asr of the 13th.',
+          'The 11th, 12th, and 13th of Dhul Hijjah are the Ayyam al-Tashreeq. The Prophet ﷺ said: "These are days of eating, drinking, and dhikr of Allah." (Muslim 1141)\n\nQurbani remains valid on the 11th and 12th (and through the 13th in the Shafi\'i school — Hanafi, Maliki and Hanbali hold it ends at sunset of the 12th). Takbeer al-Tashreeq continues after every fard salah through Asr of the 13th.',
         descriptionUr:
-          '۱۱، ۱۲، ۱۳ ذوالحجہ ایامِ تشریق ہیں — کھانے، پینے اور اللہ کے ذکر کے دن۔\nان تمام دنوں میں قربانی جائز ہے اور تکبیراتِ تشریق جاری رہتی ہیں۔',
+          '۱۱، ۱۲، ۱۳ ذوالحجہ ایامِ تشریق ہیں — کھانے، پینے اور اللہ کے ذکر کے دن۔\nقربانی ۱۱ اور ۱۲ ذوالحجہ تک جائز ہے (شافعی مسلک میں ۱۳ تک)۔ تکبیراتِ تشریق ۱۳ کی عصر تک جاری رہتی ہیں۔',
         source: 'Muslim 1141',
       },
     ],
@@ -665,16 +667,15 @@ export type EidDate = {
 };
 
 // Dates anchored to Saudi/Umm al-Qura. Actual local date may shift ±1 day by region.
-// Kept in sync with src/constants/islamicCalendar.ts (which currently ends at
-// Adha 1449 / May 2028). Entries beyond that are Umm al-Qura projections —
-// verified against the official Umm al-Qura tables (Aladhan hToG
-// calendarMethod=UAQ and the KACST-based hijridate tables agree on all of
-// them) — and remain estimates subject to moon sighting like every entry here.
+// Every entry verified against the official Umm al-Qura tables (Aladhan hToG
+// calendarMethod=UAQ) — one convention for the whole list, kept in sync with
+// src/constants/islamicCalendar.ts. All remain estimates subject to moon
+// sighting.
 export const UPCOMING_EID_DATES: EidDate[] = [
   { name: 'Eid ul-Adha 2026', nameUr: 'عیدالاضحی ۲۰۲۶', date: new Date(2026, 4, 27), type: 'adha' },
-  { name: 'Eid ul-Fitr 2027', nameUr: 'عیدالفطر ۲۰۲۷', date: new Date(2027, 2, 10), type: 'fitr' },
-  { name: 'Eid ul-Adha 2027', nameUr: 'عیدالاضحی ۲۰۲۷', date: new Date(2027, 4, 17), type: 'adha' },
-  { name: 'Eid ul-Fitr 2028', nameUr: 'عیدالفطر ۲۰۲۸', date: new Date(2028, 1, 27), type: 'fitr' },
+  { name: 'Eid ul-Fitr 2027', nameUr: 'عیدالفطر ۲۰۲۷', date: new Date(2027, 2, 9), type: 'fitr' },
+  { name: 'Eid ul-Adha 2027', nameUr: 'عیدالاضحی ۲۰۲۷', date: new Date(2027, 4, 16), type: 'adha' },
+  { name: 'Eid ul-Fitr 2028', nameUr: 'عیدالفطر ۲۰۲۸', date: new Date(2028, 1, 26), type: 'fitr' },
   { name: 'Eid ul-Adha 2028', nameUr: 'عیدالاضحی ۲۰۲۸', date: new Date(2028, 4, 5), type: 'adha' },
   { name: 'Eid ul-Fitr 2029', nameUr: 'عیدالفطر ۲۰۲۹', date: new Date(2029, 1, 14), type: 'fitr' },
   { name: 'Eid ul-Adha 2029', nameUr: 'عیدالاضحی ۲۰۲۹', date: new Date(2029, 3, 24), type: 'adha' },

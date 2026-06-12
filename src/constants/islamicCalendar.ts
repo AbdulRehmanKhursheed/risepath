@@ -118,13 +118,14 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     nameEn: "Isra & Mi'raj", nameUr: 'شب معراج', nameAr: 'الإسراء والمعراج',
     icon: '✨', regionOffsets: MOONSIGHT_OFFSET },
   { id: 'shabebarat-1448', type: 'shab_e_barat',
-    baseDate: d(2027, 1, 24),
+    baseDate: d(2027, 1, 23),
     nameEn: 'Shab-e-Barat', nameUr: 'شب برات', nameAr: 'ليلة البراءة',
     icon: '🕯️', regionOffsets: MOONSIGHT_OFFSET },
 
-  // Ramadan 1448: Feb 8 – Mar 9, 2027 (30 days). Eid al-Fitr = Mar 10.
+  // Ramadan 1448: Feb 8 – Mar 8, 2027 (29 days per Umm al-Qura).
+  // Eid al-Fitr = Mar 9.
   { id: 'ramadan-1448', type: 'ramadan_start',
-    baseDate: d(2027, 2, 8), endDate: d(2027, 3, 9),
+    baseDate: d(2027, 2, 8), endDate: d(2027, 3, 8),
     nameEn: 'Ramadan', nameUr: 'رمضان المبارک', nameAr: 'شهر رمضان',
     icon: '🌙', regionOffsets: MOONSIGHT_OFFSET },
 
@@ -146,21 +147,24 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     icon: '✨', regionOffsets: MOONSIGHT_OFFSET },
 
   { id: 'fitr-1448', type: 'eid_fitr',
-    baseDate: d(2027, 3, 10),
+    baseDate: d(2027, 3, 9),
     nameEn: 'Eid al-Fitr', nameUr: 'عیدالفطر', nameAr: 'عيد الفطر',
     icon: '🌟', regionOffsets: MOONSIGHT_OFFSET },
 
-  // Eid al-Adha 1448 = May 17, 2027. 1 Dhul Hijjah = May 8.
+  // Eid al-Adha 1448 = May 16, 2027 (Umm al-Qura). 1 Dhul Hijjah = May 7.
+  // The previous +1 dates chained a 30-day-Ramadan assumption into Dhul
+  // Hijjah; UAQ fixes Dhul Hijjah independently (the 1449 block below
+  // already follows UAQ — this aligns 1448 with it).
   { id: 'dhj-1448', type: 'dhul_hijjah_start',
-    baseDate: d(2027, 5, 8), endDate: d(2027, 5, 17),
+    baseDate: d(2027, 5, 7), endDate: d(2027, 5, 16),
     nameEn: 'First 10 Days of Dhul Hijjah', nameUr: 'ذوالحجہ کے پہلے ۱۰ دن', nameAr: 'العشر الأوائل من ذي الحجة',
     icon: '🕋', regionOffsets: MOONSIGHT_OFFSET },
   { id: 'arafah-1448', type: 'arafah',
-    baseDate: d(2027, 5, 16),
+    baseDate: d(2027, 5, 15),
     nameEn: 'Day of Arafah', nameUr: 'یوم عرفہ', nameAr: 'يوم عرفة',
     icon: '🤲', regionOffsets: MOONSIGHT_OFFSET },
   { id: 'adha-1448', type: 'eid_adha',
-    baseDate: d(2027, 5, 17),
+    baseDate: d(2027, 5, 16),
     nameEn: 'Eid al-Adha', nameUr: 'عیدالاضحی', nameAr: 'عيد الأضحى',
     icon: '🐑', regionOffsets: MOONSIGHT_OFFSET },
 

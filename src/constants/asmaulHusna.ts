@@ -88,7 +88,7 @@ export const ASMAUL_HUSNA: Name99[] = [
   { number: 79, arabic: 'الْبَرّ',             transliteration: 'Al-Barr',             meaning: 'The Source of All Good',      description: 'The One who is kind and good to His servants in ways they cannot count.' },
   { number: 80, arabic: 'التَّوَّاب',          transliteration: 'At-Tawwab',           meaning: 'The Acceptor of Repentance',  description: 'The One who repeatedly accepts repentance and returns to His servant with mercy.' },
   { number: 81, arabic: 'الْمُنْتَقِم',        transliteration: 'Al-Muntaqim',         meaning: 'The Avenger',                 description: 'The One who takes retribution from those who persist in wrongdoing.' },
-  { number: 82, arabic: 'الْعَفُوّ',           transliteration: "Al-'Afu",             meaning: 'The Pardoner',                description: 'The One who pardons and erases sins, leaving no trace of them.' },
+  { number: 82, arabic: 'الْعَفُوّ',           transliteration: "Al-'Afuww",           meaning: 'The Pardoner',                description: 'The One who pardons and erases sins, leaving no trace of them.' },
   { number: 83, arabic: 'الرَّؤُوف',           transliteration: "Ar-Ra'uf",            meaning: 'The Most Kind',               description: 'The One who is extremely compassionate and tender toward His servants.' },
   { number: 84, arabic: 'مَالِكُ الْمُلْك',    transliteration: 'Malik-ul-Mulk',       meaning: 'Owner of All Sovereignty',    description: 'The One who owns all dominion and grants or takes it as He wills.' },
   { number: 85, arabic: 'ذُو الْجَلَالِ وَالْإِكْرَام', transliteration: 'Dhul-Jalali wal-Ikram', meaning: 'Lord of Majesty & Generosity', description: 'The One who combines perfect majesty and infinite generosity.' },
