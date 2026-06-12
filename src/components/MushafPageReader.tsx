@@ -398,6 +398,8 @@ function MushafPage({
           style={styles.retryBtn}
           onPress={() => setRetryNonce((n) => n + 1)}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={isUrdu ? 'صفحہ دوبارہ لوڈ کریں' : 'Retry loading page'}
         >
           <Text style={styles.retryBtnText}>{isUrdu ? 'دوبارہ کوشش' : 'Retry'}</Text>
         </TouchableOpacity>
@@ -463,9 +465,16 @@ function MushafPage({
         ]}
       >
         {seg.map((v) => {
-          const sajdah = isSajdahAyah(v.surahNumber, v.ayahNumber);
           const isSelected = selectedVerse?.verseKey === v.verseKey;
-          const arabic = script === 'indopak' && v.textIndopak ? v.textIndopak : v.textUthmani;
+          const rawArabic = script === 'indopak' && v.textIndopak ? v.textIndopak : v.textUthmani;
+          // The Quran.com rasm already embeds ۩ on sajdah verses; appending
+          // our styled mark on top showed it twice. Strip the embedded one
+          // and render a single styled mark — driven by the text itself OR
+          // the list (the text covers 22:77, the list covers IndoPak 38:24
+          // whose text lacks the mark).
+          const hasEmbedded = rawArabic.includes('۩');
+          const sajdah = hasEmbedded || isSajdahAyah(v.surahNumber, v.ayahNumber);
+          const arabic = hasEmbedded ? rawArabic.replace(/\s*۩/g, '') : rawArabic;
           return (
             <Text
               key={v.verseKey}

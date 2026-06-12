@@ -57,9 +57,19 @@ async function fetchJsonWithRetry(url: string): Promise<any> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const res = await fetchWithTimeout(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+      if (!res.ok) {
+        // 4xx is permanent — retrying just doubles the wait for the same
+        // answer (and stacked the worst case to ~31.5s before the error UI).
+        if (res.status >= 400 && res.status < 500) {
+          const err = new Error(`HTTP ${res.status} for ${url}`);
+          (err as Error & { permanent?: boolean }).permanent = true;
+          throw err;
+        }
+        throw new Error(`HTTP ${res.status} for ${url}`);
+      }
       return await res.json();
     } catch (e) {
+      if ((e as Error & { permanent?: boolean })?.permanent) throw e;
       lastErr = e;
       if (attempt === 0) await new Promise((r) => setTimeout(r, 1500));
     }
@@ -70,14 +80,29 @@ async function fetchJsonWithRetry(url: string): Promise<any> {
 // alquran.cloud's quran-uthmani edition embeds the Bismillah in ayah 1 of
 // every surah except 9 (and 1:1 IS the Bismillah, prefixed with a BOM).
 // The reader renders its own Bismillah header, so the embedded copy showed
-// it twice. Exact codepoints verified against the live API.
-const EMBEDDED_BISMILLAH = 'بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
+// it twice. Matching must be mark-tolerant, NOT byte equality: the wire
+// text carries combining marks in non-NFC order (shadda before fatha) and
+// surahs 95/97 even add an extra shadda on the ba — a literal startsWith
+// silently never matched. The regex matches the base-letter skeleton and
+// skips any harakat/Quranic annotation marks between them. Validated
+// against ayah 1 of all 114 surahs from the live API: strips 112/112, no
+// match on surah 9, and surah 1 (where the whole ayah IS the Bismillah)
+// is kept by the empty-result guard.
+const MARKS = '[\\u064B-\\u065F\\u0670\\u06D6-\\u06ED]*';
+const EMBEDDED_BISMILLAH_RE = new RegExp(
+  '^\\uFEFF?' +
+  '\u0628' + MARKS + '\u0633' + MARKS + '\u0645' + MARKS + ' +' +
+  '\u0671' + MARKS + '\u0644' + MARKS + '\u0644' + MARKS + '\u0647' + MARKS + ' +' +
+  '\u0671' + MARKS + '\u0644' + MARKS + '\u0631' + MARKS + '\u062D' + MARKS + '\u0645' + MARKS + '\u0646' + MARKS + ' +' +
+  '\u0671' + MARKS + '\u0644' + MARKS + '\u0631' + MARKS + '\u062D' + MARKS + '\u064A' + MARKS + '\u0645' + MARKS + ' *'
+);
 
-function stripEmbeddedBismillah(text: string, surahNumber: number, idx: number): string {
+export function stripEmbeddedBismillah(text: string, surahNumber: number, idx: number): string {
   const t = text.replace(/^\uFEFF/, '');
   if (idx !== 0 || surahNumber === 1 || surahNumber === 9) return t;
-  if (t.startsWith(EMBEDDED_BISMILLAH)) {
-    const rest = t.slice(EMBEDDED_BISMILLAH.length).trim();
+  const m = EMBEDDED_BISMILLAH_RE.exec(t);
+  if (m) {
+    const rest = t.slice(m[0].length).trim();
     return rest.length > 0 ? rest : t;
   }
   return t;
@@ -91,7 +116,17 @@ async function readCache(n: number): Promise<SurahContent | null> {
   try {
     const raw = await AsyncStorage.getItem(cacheKey(n));
     if (!raw) return null;
-    return JSON.parse(raw) as SurahContent;
+    const parsed = JSON.parse(raw) as SurahContent;
+    // Self-heal: entries cached while the Bismillah strip was broken still
+    // carry the embedded copy in ayah 1 — strip on read so they fix
+    // themselves without invalidating the whole cache version again.
+    if (parsed?.ayahs?.[0]) {
+      parsed.ayahs[0] = {
+        ...parsed.ayahs[0],
+        arabic: stripEmbeddedBismillah(parsed.ayahs[0].arabic, n, 0),
+      };
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -521,7 +556,38 @@ export async function prefetchAllSurahs(_options?: { gapMs?: number }): Promise<
 // after this point are refetched on demand and cached individually.
 const PURGE_FLAG_KEY = 'quran_cache_purged_v1';
 
+// Old-version cache entries become unreadable garbage after a CACHE_VERSION
+// bump (the key prefix changes), and the one-shot bulk purge above has
+// already run on existing installs — so without this, superseded
+// quran_surah_v2_*/quran_page_v1_* blobs squat in the 6MB SQLite budget
+// forever. Versioned flag: re-runs once after every CACHE_VERSION bump.
+const ORPHAN_PURGE_FLAG_KEY = `quran_orphan_purge_for_v${CACHE_VERSION}`;
+
+async function purgeOrphanedVersions(): Promise<void> {
+  try {
+    const done = await AsyncStorage.getItem(ORPHAN_PURGE_FLAG_KEY);
+    if (done === '1') return;
+    const allKeys = await AsyncStorage.getAllKeys();
+    const orphaned = allKeys.filter((k) => {
+      const surah = /^quran_surah_v(\d+)_/.exec(k);
+      if (surah) return Number(surah[1]) !== CACHE_VERSION;
+      const page = /^quran_page_v(\d+)_/.exec(k);
+      if (page) return `quran_page_v${page[1]}_` !== PAGE_PREFIX;
+      const taj = /^quran_tajweed_v(\d+)_/.exec(k);
+      if (taj) return `quran_tajweed_v${taj[1]}_` !== TAJWEED_PREFIX;
+      return false;
+    });
+    if (orphaned.length > 0) {
+      await AsyncStorage.multiRemove(orphaned);
+    }
+    await AsyncStorage.setItem(ORPHAN_PURGE_FLAG_KEY, '1');
+  } catch {
+    // Flag stays unset → retried next launch.
+  }
+}
+
 export async function purgeQuranCacheOnce(): Promise<void> {
+  await purgeOrphanedVersions();
   try {
     const done = await AsyncStorage.getItem(PURGE_FLAG_KEY);
     if (done === '1') return;

@@ -9,6 +9,7 @@ import {
   Linking,
   AppState,
 } from 'react-native';
+import * as Location from 'expo-location';
 import Svg, {
   Circle,
   Line,
@@ -71,9 +72,19 @@ export function QiblaScreen() {
 
   // Returning from OS Settings doesn't remount this screen — re-fetch
   // location on foreground if we're stuck on denied/fallback coords.
+  // MUST pre-check the permission silently first: retry() goes through
+  // requestForegroundPermissionsAsync, and firing that uninvited on every
+  // foreground while denied re-pops the OS dialog (and on Android the
+  // dialog itself backgrounds the app — a deny re-prompt loop that burns
+  // the user's last 'ask' and forces Settings-only recovery).
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active' && (permissionDenied || usingFallback)) retry();
+      if (state !== 'active' || !(permissionDenied || usingFallback)) return;
+      Location.getForegroundPermissionsAsync()
+        .then(({ status }) => {
+          if (status === 'granted') retry();
+        })
+        .catch(() => {});
     });
     return () => sub.remove();
   }, [permissionDenied, usingFallback, retry]);
@@ -226,10 +237,15 @@ export function QiblaScreen() {
         )}
       </View>
 
-      {approximate && (
+      {/* Suppressed while the compass permission card (!available) is up —
+          two stacked cards about the same denial gave conflicting CTAs.
+          When denied, 'retry' can't show a dialog anymore (iOS never
+          re-prompts; Android suppresses after two denials) — deep-link to
+          Settings instead. */}
+      {approximate && available && (
         <TouchableOpacity
           style={styles.warningCard}
-          onPress={retry}
+          onPress={permissionDenied ? () => Linking.openSettings().catch(() => {}) : retry}
           accessibilityRole="button"
         >
           <Text style={styles.warningTitle}>
@@ -240,11 +256,17 @@ export function QiblaScreen() {
                 : '⚠️ Approximate — location unavailable'}
           </Text>
           <Text style={styles.warningBody}>
-            {isUrdu
-              ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے اور غلط ہو سکتی ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
-              : isArabic
-                ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي وقد يكون خاطئًا. اضغط لإعادة المحاولة.'
-                : 'Qibla is shown for a default location and may be wrong here. Tap to retry.'}
+            {permissionDenied
+              ? (isUrdu
+                  ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے۔ درست سمت کے لیے سیٹنگز میں لوکیشن کی اجازت دیں — کھولنے کے لیے دبائیں۔'
+                  : isArabic
+                    ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي. للاتجاه الدقيق فعّل إذن الموقع من الإعدادات — اضغط للفتح.'
+                    : 'Qibla is shown for a default location. Enable location in Settings for your real direction — tap to open.')
+              : (isUrdu
+                  ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے اور غلط ہو سکتی ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
+                  : isArabic
+                    ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي وقد يكون خاطئًا. اضغط لإعادة المحاولة.'
+                    : 'Qibla is shown for a default location and may be wrong here. Tap to retry.')}
           </Text>
         </TouchableOpacity>
       )}

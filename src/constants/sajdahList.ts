@@ -1,12 +1,13 @@
 // Verses where the reader (and listener) is recommended to perform
-// Sajdat al-Tilawah (the prostration of recitation). The classical schools
-// agree on 14 of these in the Hafs an Asim recitation; some include
-// Sad 38:24 as a 15th (sajdah of gratitude per Imam ash-Shafi'i).
+// Sajdat al-Tilawah (the prostration of recitation). The Madinah Mushaf
+// (King Fahd Complex) marks 15 places with ۩. The schools' counts of ~14
+// disagree in opposite directions on two of them: Hanafi counts Sad 38:24
+// but not the second Hajj sajdah 22:77; Shafi'i & Hanbali count 22:77 but
+// treat 38:24 as a sajdah of gratitude. Both carry fiqh notes below so the
+// list covers every position a physical Madinah mushaf marks.
 //
 // Sources: Sahih al-Bukhari (Book 19), Sahih Muslim (Book 5), and the
-// standardized Madinah Mushaf legend (King Fahd Glorious Quran Printing
-// Complex). The exact ayah marker (the ۩ symbol) is part of the Uthmani
-// rasm and matches these references.
+// standardized Madinah Mushaf legend.
 export type SajdahVerse = {
   surah: number;
   ayah: number;
@@ -21,6 +22,7 @@ export const SAJDAH_VERSES: SajdahVerse[] = [
   { surah: 17, ayah: 109 },
   { surah: 19, ayah: 58 },
   { surah: 22, ayah: 18 },
+  { surah: 22, ayah: 77, note: "Counted as a sajdah of recitation by Shafi'i & Hanbali; Hanafi & Maliki do not." },
   { surah: 25, ayah: 60 },
   { surah: 27, ayah: 26 },
   { surah: 32, ayah: 15 },

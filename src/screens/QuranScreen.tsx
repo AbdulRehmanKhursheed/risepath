@@ -790,6 +790,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             style={styles.fallbackNotice}
             onPress={() => setScriptRetryNonce((n) => n + 1)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={isUrdu ? 'انڈو پاک رسم الخط دوبارہ لوڈ کریں' : 'Retry loading Indo-Pak script'}
           >
             <Text style={[styles.fallbackNoticeText, { fontSize: fs(12) }]}>
               {isUrdu
@@ -803,6 +805,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
             style={styles.fallbackNotice}
             onPress={() => setScriptRetryNonce((n) => n + 1)}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={isUrdu ? 'تجوید کے رنگ دوبارہ لوڈ کریں' : 'Retry loading tajweed colors'}
           >
             <Text style={[styles.fallbackNoticeText, { fontSize: fs(12) }]}>
               {isUrdu
@@ -839,7 +843,9 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 contentContainerStyle={[styles.mushafContent, { paddingBottom: isPlayerActive ? 84 : theme.spacing.xxxl }]}
                 showsVerticalScrollIndicator={false}
               >
-                {selectedSurah.number !== 9 && (
+                {/* No header for surah 1 either — 1:1 IS the Bismillah and
+                    renders as the first ayah; the header doubled it. */}
+                {selectedSurah.number !== 9 && selectedSurah.number !== 1 && (
                   <Text style={[styles.bismillah, { fontSize: fs(24), fontFamily: arabicFont }]}>
                     {bismillahText}
                   </Text>
@@ -847,11 +853,17 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                 <Text style={[styles.mushafText, { fontSize: fs(26), lineHeight: fs(26) * 2.1, fontFamily: arabicFont }]}>
                   {surahContent.ayahs.map((ayah, idx) => {
                     const indopakText = script === 'indopak' ? indopakTexts?.[idx] : null;
+                    // Falling back to Uthmani text must also fall back the
+                    // font: NoorehudaQuran lacks U+0671 (alef wasla), which
+                    // appears in nearly every Uthmani ayah.
+                    const ayahFont = script === 'indopak' && !indopakText
+                      ? theme.typography.fontQuranUthmani
+                      : arabicFont;
                     return (
                       <React.Fragment key={ayah.numberInSurah}>
                         {tajweedOn && tajweedTexts && script === 'uthmani'
-                          ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: arabicFont }]} />
-                          : <Text style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: arabicFont }]}>{indopakText ?? ayah.arabic}</Text>
+                          ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: ayahFont }]} />
+                          : <Text style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: ayahFont }]}>{indopakText ?? ayah.arabic}</Text>
                         }
                         <Text style={[styles.mushafVerseNum, { fontSize: fs(14) }]}>{` ﴿${ayah.numberInSurah}﴾ `}</Text>
                       </React.Fragment>
@@ -869,8 +881,10 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               ]}
               showsVerticalScrollIndicator={false}
             >
-              {/* Bismillah omitted for Surah 9 (At-Tawbah) by convention. */}
-              {selectedSurah.number !== 9 && (
+              {/* Bismillah omitted for Surah 9 (At-Tawbah) by convention,
+                  and for Surah 1 where ayah 1 IS the Bismillah — the header
+                  doubled it. */}
+              {selectedSurah.number !== 9 && selectedSurah.number !== 1 && (
                 <Text style={[styles.bismillah, { fontSize: fs(22), fontFamily: arabicFont }]}>
                   {bismillahText}
                 </Text>
@@ -879,6 +893,11 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
               {surahContent.ayahs.map((ayah, idx) => {
                 const isPlaying = playingIndex === idx;
                 const indopakText = script === 'indopak' ? indopakTexts?.[idx] : null;
+                // Uthmani fallback text needs the Uthmani font — Noorehuda
+                // lacks U+0671 (alef wasla).
+                const ayahFont = script === 'indopak' && !indopakText
+                  ? theme.typography.fontQuranUthmani
+                  : arabicFont;
                 return (
                   <View
                     key={ayah.numberInSurah}
@@ -908,8 +927,8 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                     </View>
 
                     {tajweedOn && tajweedTexts && script === 'uthmani'
-                      ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: arabicFont }]} />
-                      : <Text style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: arabicFont }]}>{indopakText ?? ayah.arabic}</Text>
+                      ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: ayahFont }]} />
+                      : <Text style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: ayahFont }]}>{indopakText ?? ayah.arabic}</Text>
                     }
 
                     {(translationMode === 'urdu' || translationMode === 'both') && (

@@ -54,6 +54,11 @@ export function AyahSheet({
   const [audioStatus, setAudioStatus] =
     useState<'idle' | 'loading' | 'playing' | 'paused' | 'error'>('idle');
   const soundRef = useRef<Audio.Sound | null>(null);
+  // Same phantom-audio class as useAudioPlayer: createAsync({shouldPlay:true})
+  // resolving after the sheet closed/changed verse starts an unowned sound
+  // (which staysActiveInBackground keeps alive under the lock screen). Every
+  // play/stop/verse-change bumps the generation; stale resolutions unload.
+  const genRef = useRef(0);
 
   // Refresh the reciter every time the sheet opens (not just on mount) — the
   // user may have changed it in the main reader between sheet opens.
@@ -67,6 +72,7 @@ export function AyahSheet({
   // Unload any sound when the sheet closes or the selected verse changes.
   useEffect(() => {
     return () => {
+      genRef.current++;
       soundRef.current?.unloadAsync().catch(() => {});
       soundRef.current = null;
     };
@@ -78,7 +84,9 @@ export function AyahSheet({
   useEffect(() => {
     if (!verse) return;
     const sub = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') {
+      // Only real backgrounding — iOS fires 'inactive' for Control Center /
+      // notification shade pulls, which shouldn't kill playback or the sheet.
+      if (state === 'background') {
         soundRef.current?.stopAsync().catch(() => {});
         soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;
@@ -91,6 +99,7 @@ export function AyahSheet({
 
   const playAyah = async () => {
     if (!verse) return;
+    const gen = ++genRef.current;
     try {
       setAudioStatus('loading');
       await soundRef.current?.unloadAsync().catch(() => {});
@@ -110,9 +119,14 @@ export function AyahSheet({
         { uri: buildAyahUrl(folder, verse.surahNumber, verse.ayahNumber) },
         { shouldPlay: true }
       );
+      if (gen !== genRef.current) {
+        sound.unloadAsync().catch(() => {});
+        return;
+      }
       soundRef.current = sound;
       setAudioStatus('playing');
       sound.setOnPlaybackStatusUpdate((status) => {
+        if (gen !== genRef.current) return;
         if (!status.isLoaded) return;
         if (status.didJustFinish) {
           setAudioStatus('idle');
@@ -121,6 +135,7 @@ export function AyahSheet({
         }
       });
     } catch {
+      if (gen !== genRef.current) return;
       soundRef.current = null;
       setAudioStatus('error');
     }
@@ -145,6 +160,7 @@ export function AyahSheet({
   };
 
   const stopAyah = async () => {
+    genRef.current++;
     try {
       await soundRef.current?.stopAsync().catch(() => {});
       await soundRef.current?.unloadAsync().catch(() => {});
