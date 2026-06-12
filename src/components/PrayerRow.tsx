@@ -57,7 +57,10 @@ export function PrayerRow({ name, prayerKey, time, status, onPress }: Props) {
         label: language === 'ur' ? 'ابھی وقت ہے' : language === 'ar' ? 'حان وقتها' : 'Due now',
         icon: '◉',
         bg: theme.colors.accentMuted,
-        color: theme.colors.accent,
+        // textSecondary, not accent: 13px accent text on the amber-tinted
+        // badge is ~3:1, below the 4.5:1 WCAG AA floor. The accent border
+        // and bg keep the amber "due" identity.
+        color: theme.colors.textSecondary,
         border: theme.colors.accent,
       },
     }),

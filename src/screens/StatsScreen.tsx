@@ -21,6 +21,7 @@ const ERROR_LABELS: Record<'en' | 'ur' | 'ar', { loadError: string; retry: strin
 
 export function StatsScreen() {
   const { t, language } = useLanguage();
+  const isRtl = language === 'ur' || language === 'ar';
   const errorLabels = ERROR_LABELS[language] ?? ERROR_LABELS.en;
   const [streak, setStreak] = useState(0);
   const [longest, setLongest] = useState(0);
@@ -130,8 +131,15 @@ export function StatsScreen() {
       <Text style={styles.subtitle}>{t.statsSubtitle}</Text>
 
       {loadFailed && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{errorLabels.loadError}</Text>
+        <View style={[styles.errorBanner, isRtl && { flexDirection: 'row-reverse' }]}>
+          <Text
+            style={[
+              styles.errorText,
+              isRtl && { textAlign: 'right', writingDirection: 'rtl' },
+            ]}
+          >
+            {errorLabels.loadError}
+          </Text>
           <TouchableOpacity
             onPress={() => setRetryNonce((n) => n + 1)}
             accessibilityRole="button"

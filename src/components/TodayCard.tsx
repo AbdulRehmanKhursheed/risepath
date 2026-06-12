@@ -25,6 +25,40 @@ import type { Sect } from '../constants/islamicCalendar';
 // Re-derives the local date key on focus, on app foreground, and on a cheap
 // minute tick; setState bails out when the key hasn't changed, so consumers
 // only re-render at the actual day boundary.
+//
+// One module-level AppState listener + interval serves every hook instance
+// (HomeScreen, TodayCard, and HadithOfDay all call useDayKey and stay
+// mounted all session — per-hook timers tripled the cost for no benefit).
+// The shared timer tears down when the last subscriber leaves.
+type DayKeySubscriber = () => void;
+const dayKeySubscribers = new Set<DayKeySubscriber>();
+let stopDayKeyTick: (() => void) | null = null;
+
+function notifyDayKeySubscribers() {
+  dayKeySubscribers.forEach((fn) => fn());
+}
+
+function subscribeDayKey(fn: DayKeySubscriber): () => void {
+  dayKeySubscribers.add(fn);
+  if (!stopDayKeyTick) {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') notifyDayKeySubscribers();
+    });
+    const id = setInterval(notifyDayKeySubscribers, 60_000);
+    stopDayKeyTick = () => {
+      sub.remove();
+      clearInterval(id);
+    };
+  }
+  return () => {
+    dayKeySubscribers.delete(fn);
+    if (dayKeySubscribers.size === 0 && stopDayKeyTick) {
+      stopDayKeyTick();
+      stopDayKeyTick = null;
+    }
+  };
+}
+
 export function useDayKey(): string {
   const [dayKey, setDayKey] = useState(() => getLocalDateKey());
   const refresh = useCallback(() => {
@@ -34,16 +68,7 @@ export function useDayKey(): string {
     });
   }, []);
   useFocusEffect(refresh);
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') refresh();
-    });
-    const id = setInterval(refresh, 60_000);
-    return () => {
-      sub.remove();
-      clearInterval(id);
-    };
-  }, [refresh]);
+  useEffect(() => subscribeDayKey(refresh), [refresh]);
   return dayKey;
 }
 

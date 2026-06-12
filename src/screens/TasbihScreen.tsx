@@ -65,6 +65,21 @@ export function TasbihScreen() {
   const [customTarget, setCustomTarget] = useState('');
   const [hydrated, setHydrated] = useState(false);
 
+  // Synchronous mirror of `count`. Every count mutation goes through
+  // bumpCount/zeroCount so the ref always matches what the functional
+  // updaters will produce — increment() needs the post-update value
+  // synchronously for the target-vibration check, and a plain `count + 1`
+  // closure would clobber the hydration merge it races against.
+  const countRef = useRef(0);
+  const bumpCount = (delta: number) => {
+    countRef.current += delta;
+    setCount((c) => c + delta);
+  };
+  const zeroCount = () => {
+    countRef.current = 0;
+    setCount(0);
+  };
+
   useEffect(() => {
     (async () => {
       const [rawState, rawLife, rawToday] = await Promise.all([
@@ -81,7 +96,7 @@ export function TasbihScreen() {
           const saved: TasbihState = JSON.parse(rawState);
           const matched = TASBIH_PRESETS.find((p) => p.id === saved.presetId) ?? TASBIH_PRESETS[0];
           setPreset(matched);
-          setCount((c) => c + (saved.count ?? 0));
+          bumpCount(saved.count ?? 0);
           setTarget(saved.target ?? matched.defaultTarget);
         } catch {}
       }
@@ -169,12 +184,11 @@ export function TasbihScreen() {
     // Never credit a new bead to yesterday's record — the day may have
     // rolled since the last minute tick.
     rollDayIfNeeded();
-    const next = count + 1;
-    setCount(next);
+    bumpCount(1);
     setLifetime((l) => l + 1);
     setTodayCount((c) => c + 1);
 
-    if (next === target) {
+    if (countRef.current === target) {
       Vibration.vibrate(Platform.OS === 'ios' ? [0, 50, 100, 200] : 400);
     } else {
       Vibration.vibrate(40);
@@ -192,18 +206,18 @@ export function TasbihScreen() {
         : { title: `Reset count of ${count}?`, msg: "You'll lose your current dhikr count. Lifetime and today totals are kept.", cancel: 'Cancel', confirm: 'Reset' };
       Alert.alert(labels.title, labels.msg, [
         { text: labels.cancel, style: 'cancel' },
-        { text: labels.confirm, style: 'destructive', onPress: () => { setCount(0); Vibration.vibrate(20); } },
+        { text: labels.confirm, style: 'destructive', onPress: () => { zeroCount(); Vibration.vibrate(20); } },
       ]);
       return;
     }
-    setCount(0);
+    zeroCount();
     Vibration.vibrate(20);
   };
 
   const selectPreset = (p: TasbihPreset) => {
     setPreset(p);
     setTarget(p.defaultTarget);
-    setCount(0);
+    zeroCount();
   };
 
   const saveCustomTarget = () => {
@@ -213,7 +227,7 @@ export function TasbihScreen() {
       return;
     }
     setTarget(n);
-    setCount(0);
+    zeroCount();
     setCustomTarget('');
     setTargetModalOpen(false);
   };
@@ -335,7 +349,7 @@ export function TasbihScreen() {
                   style={[styles.targetOption, target === n && styles.targetOptionActive]}
                   onPress={() => {
                     setTarget(n);
-                    setCount(0);
+                    zeroCount();
                     setTargetModalOpen(false);
                   }}
                 >

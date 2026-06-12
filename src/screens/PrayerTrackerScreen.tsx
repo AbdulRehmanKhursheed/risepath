@@ -233,7 +233,9 @@ export function PrayerTrackerScreen() {
     // later. The effect re-runs when locationLoading settles.
     if (locationLoading && !location) return;
     const todayKey = getDateString(today);
-    const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}`;
+    // language is part of the key — both schedules below render notification
+    // copy in the user's language, so a language switch must rebuild them.
+    const scheduleKey = `${todayKey}|${calculationMethod}|${madhab}|${lat.toFixed(3)}|${lng.toFixed(3)}|${language}`;
     if (lastScheduledKey.current === scheduleKey) return;
     let cancelled = false;
     (async () => {
