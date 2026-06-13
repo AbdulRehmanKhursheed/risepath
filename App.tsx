@@ -21,6 +21,7 @@ import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
 import { prefetchAllSurahs, purgeQuranCacheOnce } from './src/services/quran';
+import { startOfflineTextDownload } from './src/services/offlineDownloader';
 import { captureError } from './src/services/sentry';
 import { requestAdsConsent } from './src/services/consent';
 import { trackAppOpen, maybePromptReview } from './src/services/review';
@@ -447,6 +448,11 @@ function AppInner() {
     // prefetchAllSurahs is now a no-op (kept for signature compat); the
     // call stays so a future re-enable point is visible in this file.
     const t = setTimeout(() => { prefetchAllSurahs().catch(() => {}); }, 4000);
+    // Progressively download the whole Mushaf (both scripts + both
+    // translations) to PERSISTENT filesystem storage so the Quran reads fully
+    // offline. Self-throttling, pauses on background, resumes from disk across
+    // launches; ~18MB total. Idempotent — safe to call on every start.
+    startOfflineTextDownload();
     let reviewTimer: ReturnType<typeof setTimeout> | undefined;
     let cancelled = false;
     trackAppOpen()

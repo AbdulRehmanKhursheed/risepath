@@ -8,6 +8,19 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   default: { getItem: jest.fn(), setItem: jest.fn(), getAllKeys: jest.fn(), multiRemove: jest.fn() },
 }));
 
+// quran.ts now imports the filesystem-backed offline store, which pulls in the
+// expo-file-system native module — stub it so this pure-logic test can load.
+jest.mock('@sentry/react-native', () => ({ captureException: jest.fn(), init: jest.fn(), wrap: (c: unknown) => c }));
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: '/tmp/test/',
+  getInfoAsync: jest.fn().mockResolvedValue({ exists: false }),
+  makeDirectoryAsync: jest.fn().mockResolvedValue(undefined),
+  readAsStringAsync: jest.fn().mockResolvedValue(''),
+  writeAsStringAsync: jest.fn().mockResolvedValue(undefined),
+  downloadAsync: jest.fn(),
+  deleteAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { stripEmbeddedBismillah } from '../quran';
 
 const WIRE_1_1 = '\ufeff\u0628\u0650\u0633\u0652\u0645\u0650 \u0671\u0644\u0644\u0651\u064e\u0647\u0650 \u0671\u0644\u0631\u0651\u064e\u062d\u0652\u0645\u064e\u0670\u0646\u0650 \u0671\u0644\u0631\u0651\u064e\u062d\u0650\u064a\u0645\u0650';

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { readOfflinePage, writeOfflinePage } from './offlineStore';
 
 const BASE = 'https://api.alquran.cloud/v1';
 // v3: strips the Bismillah alquran.cloud embeds in ayah 1 (it duplicated the
@@ -277,14 +278,12 @@ export async function fetchPage(pageNumber: number): Promise<PageContent> {
     throw new Error(`Page ${pageNumber} out of range`);
   }
 
-  const key = `${PAGE_PREFIX}${pageNumber}`;
-  try {
-    const cached = await AsyncStorage.getItem(key);
-    if (cached) {
-      const parsed = JSON.parse(cached) as PageContent;
-      if (parsed?.verses?.length > 0) return parsed;
-    }
-  } catch {}
+  // Persistent filesystem store first (proper offline app storage). Pages are
+  // no longer written to AsyncStorage — bulk page JSON there hit Android's
+  // ~6MB SQLite cap (SQLITE_FULL) and broke other writes. The filesystem has
+  // no such cap, so a fully-downloaded Mushaf lives there permanently.
+  const offline = await readOfflinePage<PageContent>(pageNumber);
+  if (offline?.verses?.length) return offline;
 
   const existing = pageInflight.get(pageNumber);
   if (existing) return existing;
@@ -331,9 +330,7 @@ export async function fetchPage(pageNumber: number): Promise<PageContent> {
         juzNumber: verses[0]?.juzNumber ?? 1,
         fetchedAt: Date.now(),
       };
-      try {
-        await AsyncStorage.setItem(key, JSON.stringify(content));
-      } catch {}
+      await writeOfflinePage(pageNumber, content);
       return content;
     } finally {
       pageInflight.delete(pageNumber);
