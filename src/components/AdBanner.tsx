@@ -24,7 +24,9 @@ if (adsAvailable) {
 }
 
 type Props = {
-  unitId: string;
+  // null when this placement has no real unit ID in a production build —
+  // we render nothing rather than a test ad (see resolveBanner in ads.ts).
+  unitId: string | null;
 };
 
 // Retry ladder for failed ad loads. Tab screens are keep-alive (mounted for
@@ -73,7 +75,7 @@ export function AdBanner({ unitId }: Props) {
     return () => clearTimeout(t);
   }, [failed]);
 
-  if (!adsAvailable || !adsReady || failed) return null;
+  if (!unitId || !adsAvailable || !adsReady || failed) return null;
 
   return (
     <View style={[styles.wrapper, !loaded && styles.hidden]}>

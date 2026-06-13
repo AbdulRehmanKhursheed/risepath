@@ -36,10 +36,15 @@ const TEST_BANNER = Platform.select({
   default: 'ca-app-pub-3940256099942544/6300978111',
 }) as string;
 
-function resolveBanner(envValue: string | undefined): string {
+// In a DEV build, missing IDs fall back to Google's test unit (devs must see
+// test ads, never live ones). In PRODUCTION, a missing/placeholder ID returns
+// null → the banner renders nothing. Showing a real Google TEST ad in a
+// shipped app is worse than no ad: it earns nothing AND risks an AdMob
+// invalid-traffic/policy strike if a real user taps it. No ad is the safe
+// degradation until the real unit ID is supplied via the EAS production env.
+function resolveBanner(envValue: string | undefined): string | null {
   if (!IS_PRODUCTION) return TEST_BANNER;
-  if (!envValue) return TEST_BANNER;
-  if (envValue.includes('XXXX')) return TEST_BANNER;
+  if (!envValue || envValue.includes('XXXX')) return null;
   return envValue;
 }
 
