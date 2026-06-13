@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { readOfflinePage, writeOfflinePage } from './offlineStore';
+import { readOfflinePage, writeOfflinePage, readOfflineSurah, writeOfflineSurah } from './offlineStore';
 
 const BASE = 'https://api.alquran.cloud/v1';
 // v3: strips the Bismillah alquran.cloud embeds in ayah 1 (it duplicated the
@@ -114,31 +114,24 @@ function cacheKey(n: number): string {
 }
 
 async function readCache(n: number): Promise<SurahContent | null> {
-  try {
-    const raw = await AsyncStorage.getItem(cacheKey(n));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as SurahContent;
-    // Self-heal: entries cached while the Bismillah strip was broken still
-    // carry the embedded copy in ayah 1 — strip on read so they fix
-    // themselves without invalidating the whole cache version again.
-    if (parsed?.ayahs?.[0]) {
-      parsed.ayahs[0] = {
-        ...parsed.ayahs[0],
-        arabic: stripEmbeddedBismillah(parsed.ayahs[0].arabic, n, 0),
-      };
-    }
-    return parsed;
-  } catch {
-    return null;
+  // Persistent filesystem store (proper offline storage) — surah content is no
+  // longer kept in AsyncStorage, which capped at ~6MB (SQLITE_FULL). A surah
+  // opened online is saved here so it reads offline next time.
+  const parsed = await readOfflineSurah<SurahContent>(n);
+  if (!parsed) return null;
+  // Self-heal: entries saved while the Bismillah strip was broken still carry
+  // the embedded copy in ayah 1 — strip on read so they fix themselves.
+  if (parsed?.ayahs?.[0]) {
+    parsed.ayahs[0] = {
+      ...parsed.ayahs[0],
+      arabic: stripEmbeddedBismillah(parsed.ayahs[0].arabic, n, 0),
+    };
   }
+  return parsed;
 }
 
 async function writeCache(content: SurahContent): Promise<void> {
-  try {
-    await AsyncStorage.setItem(cacheKey(content.number), JSON.stringify(content));
-  } catch {
-    // Storage may be full on Android (6MB default). Non-fatal; next open refetches.
-  }
+  await writeOfflineSurah(content.number, content);
 }
 
 async function fetchFromNetwork(surahNumber: number): Promise<SurahContent> {

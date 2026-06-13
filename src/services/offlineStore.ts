@@ -122,6 +122,33 @@ export async function writeOfflinePage(n: number, content: unknown): Promise<voi
   }
 }
 
+// ── Surah content (verse-by-verse reader) ────────────────────────────────
+
+function surahPath(n: number): string {
+  return `${TEXT_DIR}surah_${n}.json`;
+}
+
+export async function readOfflineSurah<T>(n: number): Promise<T | null> {
+  await ensureDirs();
+  try {
+    const info = await FileSystem.getInfoAsync(surahPath(n));
+    if (!info.exists) return null;
+    const raw = await FileSystem.readAsStringAsync(surahPath(n));
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function writeOfflineSurah(n: number, content: unknown): Promise<void> {
+  await ensureDirs();
+  try {
+    await FileSystem.writeAsStringAsync(surahPath(n), JSON.stringify(content));
+  } catch (e) {
+    captureError(e, { scope: 'offline:writeOfflineSurah' });
+  }
+}
+
 // ── Audio (per-ayah, per-reciter) ────────────────────────────────────────
 
 function audioPath(reciterFolder: string, fileName: string): string {
