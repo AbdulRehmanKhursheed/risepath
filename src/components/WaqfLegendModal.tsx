@@ -16,8 +16,10 @@ type LegendEntry = {
   symbol: string;
   nameEn: string;
   nameUr: string;
+  nameAr: string;
   meaningEn: string;
   meaningUr: string;
+  meaningAr: string;
   // 'must' = strong rule (pause required / forbidden);
   // 'soft' = preference; 'info' = informational marker.
   tone: 'must' | 'soft' | 'info';
@@ -31,80 +33,100 @@ const WAQF_ENTRIES: LegendEntry[] = [
     symbol: 'مـ',
     nameEn: 'Waqf Lazim',
     nameUr: 'وقفِ لازم',
+    nameAr: 'الوقف اللازم',
     meaningEn: 'Must pause. Continuing here can change the meaning of the verse.',
     meaningUr: 'یہاں ٹھہرنا لازم ہے۔ اگر نہ ٹھہریں تو معنی بدل سکتا ہے۔',
+    meaningAr: 'يجب الوقف هنا؛ الوصل قد يغيّر المعنى.',
     tone: 'must',
   },
   {
     symbol: 'لا',
     nameEn: 'La Waqf',
     nameUr: 'لا (وقف ممنوع)',
+    nameAr: 'لا (ممنوع الوقف)',
     meaningEn: "Do NOT pause here. If you must breathe, go back a few words and continue.",
     meaningUr: 'یہاں ٹھہرنا منع ہے۔ سانس لینے کی ضرورت ہو تو پیچھے سے پڑھ کر ملا کر پڑھیں۔',
+    meaningAr: 'لا تقف هنا؛ إن اضطررت للتنفس فارجع كلمات قليلة ثم صِل القراءة.',
     tone: 'must',
   },
   {
     symbol: 'قلى',
     nameEn: 'Al-Waqf Awla',
     nameUr: 'وقفِ اولیٰ',
+    nameAr: 'الوقف أولى',
     meaningEn: 'Pausing is preferred, though continuing is allowed.',
     meaningUr: 'یہاں ٹھہرنا بہتر ہے۔ ملا کر پڑھنا بھی جائز ہے۔',
+    meaningAr: 'الوقف أولى، والوصل جائز.',
     tone: 'soft',
   },
   {
     symbol: 'صلى',
     nameEn: 'Al-Wasl Awla',
     nameUr: 'وصلِ اولیٰ',
+    nameAr: 'الوصل أولى',
     meaningEn: 'Continuing is preferred, though pausing is allowed.',
     meaningUr: 'یہاں ملا کر پڑھنا بہتر ہے۔ ٹھہرنا بھی جائز ہے۔',
+    meaningAr: 'الوصل أولى، والوقف جائز.',
     tone: 'soft',
   },
   {
     symbol: 'ج',
     nameEn: 'Waqf Jaaiz',
     nameUr: 'وقفِ جائز',
+    nameAr: 'الوقف الجائز',
     meaningEn: 'Pause is permitted. Both pausing and continuing are equal.',
     meaningUr: 'ٹھہرنا اور ملانا دونوں جائز ہیں۔',
+    meaningAr: 'الوقف والوصل كلاهما جائز.',
     tone: 'soft',
   },
   {
     symbol: 'ط',
     nameEn: 'Waqf Mutlaq',
     nameUr: 'وقفِ مطلق',
+    nameAr: 'الوقف المطلق',
     meaningEn: 'Absolute pause. The breath stops here completely.',
     meaningUr: 'مکمل وقف کریں۔ سانس یہاں توڑ دیں۔',
+    meaningAr: 'وقف تام؛ يُقطع النَّفَس هنا.',
     tone: 'soft',
   },
   {
     symbol: 'ز',
     nameEn: 'Waqf Mujawwaz',
     nameUr: 'وقفِ مجوز',
+    nameAr: 'الوقف المجوَّز',
     meaningEn: 'Pause is permissible (less common; continuing is generally preferred).',
     meaningUr: 'ٹھہرنا جائز ہے، لیکن ملا کر پڑھنا عموماً بہتر ہے۔',
+    meaningAr: 'الوقف جائز، والوصل أولى غالبًا.',
     tone: 'soft',
   },
   {
     symbol: 'ص',
     nameEn: 'Waqf Murakhkhas',
     nameUr: 'وقفِ مرخص',
+    nameAr: 'الوقف المرخَّص',
     meaningEn: 'Pause is permitted only when needed (e.g. running out of breath).',
     meaningUr: 'صرف ضرورت پر، جیسے سانس ختم ہونے پر، ٹھہریں۔',
+    meaningAr: 'يجوز الوقف عند الحاجة فقط، كانقطاع النَّفَس.',
     tone: 'soft',
   },
   {
     symbol: 'ق',
     nameEn: 'Qad Qila',
     nameUr: 'قد قیل',
+    nameAr: 'قد قيل',
     meaningEn: '"It has been said" — some scholars said to pause; continuing is more common.',
     meaningUr: 'کچھ علماء نے یہاں ٹھہرنے کو کہا ہے۔ ملا کر پڑھنا زیادہ مشہور ہے۔',
+    meaningAr: 'قال بعض العلماء بالوقف هنا؛ والوصل أشهر.',
     tone: 'soft',
   },
   {
     symbol: '∴ ⋯ ∴',
     nameEn: "Mu'anaqah",
     nameUr: 'معانقہ',
+    nameAr: 'المعانقة',
     meaningEn: 'Embracing pause: stop at ONE of the two marked spots, not both.',
     meaningUr: 'دونوں میں سے کسی ایک جگہ ٹھہریں، دونوں پر نہیں۔',
+    meaningAr: 'قف عند إحدى العلامتين لا عند كلتيهما.',
     tone: 'must',
   },
 ];
@@ -114,32 +136,40 @@ const OTHER_ENTRIES: LegendEntry[] = [
     symbol: '۩',
     nameEn: 'Sajdah',
     nameUr: 'سجدۂ تلاوت',
+    nameAr: 'سجدة التلاوة',
     meaningEn: 'A prostration ayah. Reader (and listener) should perform sajdat al-tilawah.',
     meaningUr: 'یہ آیتِ سجدہ ہے۔ پڑھنے اور سننے والے دونوں پر سجدہ تلاوت لازم ہے۔',
+    meaningAr: 'آية سجدة؛ يسجد القارئ والمستمع سجدة التلاوة.',
     tone: 'must',
   },
   {
     symbol: '۞',
     nameEn: 'Rub' + " al-Hizb",
     nameUr: 'ربع الحزب',
+    nameAr: 'ربع الحزب',
     meaningEn: 'Marks every quarter of a hizb (one-eighth of a juz).',
     meaningUr: 'ربع الحزب کی نشانی۔ ہر حزب کے چوتھائی پر آتی ہے۔',
+    meaningAr: 'علامة ربع الحزب (ثُمن الجزء).',
     tone: 'info',
   },
   {
     symbol: 'ع',
     nameEn: "Ruku'",
     nameUr: 'رکوع',
+    nameAr: 'الركوع',
     meaningEn: "End of a ruku' — a thematic section used as a stopping point in salah.",
     meaningUr: 'رکوع کا اختتام۔ نماز میں ایک سیکشن ختم کرنے کی نشانی۔',
+    meaningAr: 'نهاية ركوع — مقطع موضوعي يُتوقَّف عنده في الصلاة.',
     tone: 'info',
   },
   {
     symbol: '﴿ ﴾',
     nameEn: 'Verse Marker',
     nameUr: 'نشانیٔ آیت',
+    nameAr: 'علامة الآية',
     meaningEn: 'Marks the end of an ayah. The number inside is the ayah number.',
     meaningUr: 'آیت کا اختتام۔ درمیان میں نمبر آیت کا ہوتا ہے۔',
+    meaningAr: 'نهاية الآية، والرقم بداخلها رقم الآية.',
     tone: 'info',
   },
 ];
@@ -174,10 +204,10 @@ export function WaqfLegendModal({
         </View>
         <View style={styles.rowText}>
           <Text style={[styles.rowName, { color: tc.fg }]}>
-            {isUrdu ? e.nameUr : e.nameEn}
+            {isUrdu ? e.nameUr : isArabic ? e.nameAr : e.nameEn}
           </Text>
           <Text style={styles.rowMeaning}>
-            {isUrdu ? e.meaningUr : e.meaningEn}
+            {isUrdu ? e.meaningUr : isArabic ? e.meaningAr : e.meaningEn}
           </Text>
         </View>
       </View>
@@ -208,18 +238,20 @@ export function WaqfLegendModal({
 
           <ScrollView contentContainerStyle={styles.scroll}>
             <Text style={styles.sectionTitle}>
-              {isUrdu ? 'وقف کی علامات' : 'Pause / Stop Marks'}
+              {isUrdu ? 'وقف کی علامات' : isArabic ? 'علامات الوقف' : 'Pause / Stop Marks'}
             </Text>
             {WAQF_ENTRIES.map(renderRow)}
 
             <Text style={[styles.sectionTitle, { marginTop: theme.spacing.lg }]}>
-              {isUrdu ? 'دیگر نشانیاں' : 'Other Markers'}
+              {isUrdu ? 'دیگر نشانیاں' : isArabic ? 'علامات أخرى' : 'Other Markers'}
             </Text>
             {OTHER_ENTRIES.map(renderRow)}
 
             <Text style={styles.footnote}>
               {isUrdu
                 ? 'یہ علامات کنگ فہد قرآن کمپلیکس مدینہ منورہ کے مصحف پر مبنی ہیں (روایتِ حفص عن عاصم)۔'
+                : isArabic
+                ? 'بناءً على مصحف مجمع الملك فهد لطباعة المصحف الشريف بالمدينة المنورة (رواية حفص عن عاصم).'
                 : 'Based on the King Fahd Quran Printing Complex Mushaf, Madinah (Hafs an Asim recitation).'}
             </Text>
           </ScrollView>

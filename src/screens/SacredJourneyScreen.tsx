@@ -37,6 +37,13 @@ import { getLocalDateKey } from '../utils/date';
 
 const TICK_INTERVAL_MS = 60 * 1000;
 
+// Western → Urdu (Eastern Arabic-Indic) digits, matching the numerals the
+// app's hardcoded Urdu strings already use (e.g. QurbaniScreen's '۷ میں سے').
+const URDU_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
+function toUrduDigits(n: number): string {
+  return String(n).replace(/\d/g, (d) => URDU_DIGITS[+d]);
+}
+
 type CountdownParts = {
   days: number;
   hours: number;
@@ -224,7 +231,7 @@ export function SacredJourneyScreen() {
     const countdownStr = ongoing
       ? ongoing.total > 1
         ? isUrdu
-          ? `${ongoing.total} میں سے دن ${ongoing.dayN}`
+          ? `${toUrduDigits(ongoing.total)} میں سے ${toUrduDigits(ongoing.dayN)}واں دن`
           : isArabic
           ? `اليوم ${ongoing.dayN} من ${ongoing.total}`
           : `day ${ongoing.dayN} of ${ongoing.total}`
@@ -484,7 +491,7 @@ function HeroCard({
             <Text style={[styles.ongoingText, { fontSize: fs(22) }]}>
               {ongoing.total > 1
                 ? isUrdu
-                  ? `${ongoing.total} میں سے دن ${ongoing.dayN}`
+                  ? `${toUrduDigits(ongoing.total)} میں سے ${toUrduDigits(ongoing.dayN)}واں دن`
                   : isArabic
                   ? `اليوم ${ongoing.dayN} من ${ongoing.total}`
                   : `Day ${ongoing.dayN} of ${ongoing.total}`

@@ -21,7 +21,9 @@
     },
     "production": {
       "env": {
-        "NODE_ENV": "production"
+        "NODE_ENV": "production",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD_WHY": "Safety net: source-map upload would FAIL the release build (no 'project' in the Sentry plugin config, no SENTRY_AUTH_TOKEN in EAS). Remove this once SENTRY_PROJECT + SENTRY_AUTH_TOKEN are set as EAS env vars."
       },
       "android": {
         "buildType": "app-bundle"

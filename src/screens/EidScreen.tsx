@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useDayKey } from '../components/TodayCard';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
 import { theme } from '../constants/theme';
@@ -41,6 +42,15 @@ function getNextEid(now: Date = new Date()) {
       return lastDay >= today;
     }) ?? null
   );
+}
+
+// The EidDate data carries only name/nameUr — derive the Arabic name from
+// the Eid type (the same terms the tabs below already use) plus the year in
+// Eastern Arabic-Indic digits, so the Arabic UI never shows a Latin name.
+const ARABIC_DIGITS = '٠١٢٣٤٥٦٧٨٩';
+function eidNameAr(eid: { type: EidTab; date: Date }): string {
+  const year = String(eid.date.getFullYear()).replace(/\d/g, (d) => ARABIC_DIGITS[+d]);
+  return `${eid.type === 'fitr' ? 'عيد الفطر' : 'عيد الأضحى'} ${year}`;
 }
 
 // Calendar days until `date` — 0 on Eid day, negative during the grace days.
@@ -152,7 +162,13 @@ function SectionBlock({ section, isUrdu, fs }: { section: EidSection; isUrdu: bo
 }
 
 export function EidScreen() {
-  const nextEid = getNextEid();
+  // Day-rollover tick: re-derives the countdown / EID-MUBARAK / grace-window
+  // state when the local date changes (screen left open or app backgrounded
+  // on it across midnight — exactly the Chand-Raat-to-Eid-morning
+  // transition), on focus, and on app foreground.
+  const dayKey = useDayKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const nextEid = useMemo(() => getNextEid(), [dayKey]);
   // Default the tab to whichever Eid is upcoming (or currently running, on
   // Eid day / tashreeq days) so the user lands on the relevant content
   // immediately, instead of always starting on Fitr.
@@ -163,7 +179,8 @@ export function EidScreen() {
   const isArabic = language === 'ar';
 
   const sections = activeTab === 'fitr' ? EID_FITR_SECTIONS : EID_ADHA_SECTIONS;
-  const days = nextEid ? daysUntil(nextEid.date) : null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const days = useMemo(() => (nextEid ? daysUntil(nextEid.date) : null), [nextEid, dayKey]);
   // days === 0 → Eid day itself; days < 0 → grace days (Eid period).
   const isEidNow = days !== null && days <= 0;
 
@@ -191,7 +208,7 @@ export function EidScreen() {
                 : isUrdu ? 'اگلی عید' : isArabic ? 'العيد القادم' : 'NEXT EID'}
             </Text>
             <Text style={[styles.countdownName, { fontSize: fs(15) }]}>
-              {isUrdu ? nextEid.nameUr : nextEid.name}
+              {isUrdu ? nextEid.nameUr : isArabic ? eidNameAr(nextEid) : nextEid.name}
             </Text>
             <Text style={[styles.countdownDisclaimer, { fontSize: fs(10) }]}>
               {isUrdu

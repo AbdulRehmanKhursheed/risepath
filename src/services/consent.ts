@@ -46,6 +46,12 @@ export async function requestAdsConsent(): Promise<void> {
   if (gatherPromise) return gatherPromise;
   if (!loadModule()) return;
 
+  // withTimeout resolves null instead of rejecting, so a timed-out info
+  // update never hits the catch below — track it explicitly and clear the
+  // latch, otherwise a 4s cap on first launch would latch a fulfilled
+  // promise forever and no retry could ever re-run requestInfoUpdate.
+  let timedOut = false;
+
   gatherPromise = (async () => {
     // requestInfoUpdate hits Google's servers; capped so a dead network
     // can't stall the startup chain. UMP persists the previous session's
@@ -57,7 +63,11 @@ export async function requestAdsConsent(): Promise<void> {
       }),
       4000
     );
-    if (info && (info as { isConsentFormAvailable?: boolean }).isConsentFormAvailable) {
+    if (info === null) {
+      timedOut = true;
+      return;
+    }
+    if ((info as { isConsentFormAvailable?: boolean }).isConsentFormAvailable) {
       // User-paced; intentionally not wrapped in a timeout.
       await _AdsConsent.loadAndShowConsentFormIfRequired();
     }
@@ -65,6 +75,7 @@ export async function requestAdsConsent(): Promise<void> {
 
   try {
     await gatherPromise;
+    if (timedOut) gatherPromise = null; // allow a retry later in the session
   } catch (e) {
     gatherPromise = null; // allow a retry later in the session
     captureError(e, { scope: 'ads-consent' });

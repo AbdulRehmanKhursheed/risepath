@@ -51,10 +51,39 @@ export function OnboardingScreen({ onComplete }: Props) {
   const isArabic = language === 'ar';
 
   // Once the user explicitly taps a prayer option, the storage hydration
-  // below must never overwrite it; once they explicitly pick a madhab, the
-  // per-method madhab default stops second-guessing them.
+  // below must never overwrite it; once they explicitly pick a madhab or a
+  // calculation method, the per-school/per-method defaults stop
+  // second-guessing them.
   const touchedRef = useRef(false);
   const madhabTouchedRef = useRef(false);
+  const methodTouchedRef = useRef(false);
+  // finish() awaits this so Skip/Get Started tapped before the hydration
+  // read resolves can never persist the regional defaults over a returning
+  // user's saved settings (this screen re-shows exactly when storage is
+  // slow, which is also when the race is most likely).
+  const hydrationPromiseRef = useRef<Promise<void> | null>(null);
+  // Latest selections, kept in lockstep with the state via the apply*
+  // helpers below. finish() reads these after awaiting hydration — its
+  // render closure may predate the hydration setStates, so reading the
+  // state variables there would persist stale defaults.
+  const selectionRef = useRef<{
+    school: FiqhSchool;
+    method: CalculationMethodId;
+    madhab: MadhabId;
+  }>({ school: 'sunni', method: 'Karachi', madhab: defaultMadhabFor('Karachi') });
+
+  const applySchool = (school: FiqhSchool) => {
+    selectionRef.current.school = school;
+    setSelectedSchool(school);
+  };
+  const applyMethod = (method: CalculationMethodId) => {
+    selectionRef.current.method = method;
+    setSelectedMethod(method);
+  };
+  const applyMadhab = (madhab: MadhabId) => {
+    selectionRef.current.madhab = madhab;
+    setSelectedMadhab(madhab);
+  };
 
   // This screen can re-show for users who already completed onboarding
   // (slow/failed onboarding-flag read in App.tsx). finish() — including the
@@ -63,22 +92,26 @@ export function OnboardingScreen({ onComplete }: Props) {
   // resets the user's calculation method, madhab, and fiqh school.
   useEffect(() => {
     let mounted = true;
-    (async () => {
+    hydrationPromiseRef.current = (async () => {
       const [settings, school] = await Promise.all([
         storage.getPrayerSettings(),
         storage.getFiqhSchool(),
       ]);
       if (!mounted || touchedRef.current) return;
       if (settings) {
-        if (isKnownMethod(settings.calculationMethod)) setSelectedMethod(settings.calculationMethod);
+        if (isKnownMethod(settings.calculationMethod)) {
+          applyMethod(settings.calculationMethod);
+          // Stored method is an earlier explicit/derived choice — preserve it.
+          methodTouchedRef.current = true;
+        }
         if (isKnownMadhab(settings.madhab)) {
-          setSelectedMadhab(settings.madhab);
+          applyMadhab(settings.madhab);
           // Stored madhab is an earlier explicit/derived choice — preserve it.
           madhabTouchedRef.current = true;
         }
       }
       const storedSchool = settings?.fiqhSchool ?? school;
-      if (storedSchool) setSelectedSchool(storedSchool);
+      if (storedSchool) applySchool(storedSchool);
     })().catch(() => {
       // Best-effort hydration; keep the regional defaults on a failed read.
     });
@@ -87,26 +120,31 @@ export function OnboardingScreen({ onComplete }: Props) {
 
   const selectSchool = (school: FiqhSchool) => {
     touchedRef.current = true;
-    setSelectedSchool(school);
+    applySchool(school);
     if (school === 'shia') {
-      setSelectedMethod('Jafari');
-      setSelectedMadhab('Shafi');
-    } else {
-      setSelectedMethod('Karachi');
-      if (!madhabTouchedRef.current) setSelectedMadhab(defaultMadhabFor('Karachi'));
+      applyMethod('Jafari');
+      applyMadhab('Shafi');
+    } else if (selectionRef.current.method === 'Jafari' || !methodTouchedRef.current) {
+      // Only fall back to the regional default when switching away from Shia
+      // (Jafari is invalid for Sunni) or when no explicit/saved method
+      // exists — re-tapping the already-selected Sunni card must not
+      // silently reset a chosen method (e.g. ISNA) to Karachi.
+      applyMethod('Karachi');
+      if (!madhabTouchedRef.current) applyMadhab(defaultMadhabFor('Karachi'));
     }
   };
 
   const selectMethod = (method: CalculationMethodId) => {
     touchedRef.current = true;
-    setSelectedMethod(method);
-    if (!madhabTouchedRef.current) setSelectedMadhab(defaultMadhabFor(method));
+    methodTouchedRef.current = true;
+    applyMethod(method);
+    if (!madhabTouchedRef.current) applyMadhab(defaultMadhabFor(method));
   };
 
   const selectMadhab = (madhab: MadhabId) => {
     touchedRef.current = true;
     madhabTouchedRef.current = true;
-    setSelectedMadhab(madhab);
+    applyMadhab(madhab);
   };
 
   // Hardware back on Android should step backwards through the flow, not
@@ -129,12 +167,18 @@ export function OnboardingScreen({ onComplete }: Props) {
     if (finishingRef.current) return;
     finishingRef.current = true;
     try {
+      // A returning user can hit Skip before the seed-from-storage read
+      // resolves; wait for it so we never write regional defaults over
+      // saved settings. Resolves immediately once hydration has settled
+      // (it never rejects — failures are caught in the effect).
+      await hydrationPromiseRef.current;
+      const { school, method, madhab } = selectionRef.current;
       await setLanguage(language);
-      await storage.setFiqhSchool(selectedSchool);
+      await storage.setFiqhSchool(school);
       await storage.setPrayerSettings({
-        calculationMethod: selectedMethod,
-        madhab: selectedMadhab,
-        fiqhSchool: selectedSchool,
+        calculationMethod: method,
+        madhab,
+        fiqhSchool: school,
       });
     } catch (e) {
       // Storage may fail (full disk, corrupted SQLite). Still advance the

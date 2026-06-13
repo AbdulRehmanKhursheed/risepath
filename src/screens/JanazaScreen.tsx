@@ -222,7 +222,7 @@ function StepCard({
   const onCopyArabic = async () => {
     try {
       await Clipboard.setStringAsync(step.arabic ?? '');
-      Alert.alert('', isUrdu ? '✓ کلپ بورڈ پر نقل ہو گیا' : '✓ Copied to clipboard');
+      Alert.alert('', isUrdu ? '✓ کاپی ہو گیا' : '✓ Copied to clipboard');
     } catch {
       Alert.alert(
         isUrdu ? 'خرابی' : 'Error',

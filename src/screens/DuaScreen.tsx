@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Modal, ScrollView, Animated, AppState, Share,
+  StyleSheet, Modal, ScrollView, Animated, AppState, Share, Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useFocusEffect } from '@react-navigation/native';
@@ -220,10 +220,17 @@ export function DuaScreen() {
                 <View style={styles.shareRow}>
                   <TouchableOpacity
                     style={styles.shareBtn}
-                    onPress={() => Clipboard.setStringAsync(selected.arabic)}
+                    onPress={async () => {
+                      try {
+                        await Clipboard.setStringAsync(selected.arabic);
+                        Alert.alert('', isUrdu ? '✓ کاپی ہو گیا' : '✓ Copied to clipboard');
+                      } catch {
+                        Alert.alert('', isUrdu ? 'کاپی نہیں ہو سکا' : 'Could not copy');
+                      }
+                    }}
                     accessibilityLabel={isUrdu ? 'عربی متن کاپی کریں' : 'Copy Arabic text'}
                   >
-                    <Text style={styles.shareBtnText}>📋 Copy Arabic</Text>
+                    <Text style={styles.shareBtnText}>📋 {isUrdu ? 'کاپی کریں' : 'Copy Arabic'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.shareBtn}

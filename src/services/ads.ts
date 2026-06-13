@@ -1,5 +1,5 @@
-import { Platform, NativeModules } from 'react-native';
-import { canRequestAds } from './consent';
+import { Platform, NativeModules, AppState } from 'react-native';
+import { canRequestAds, requestAdsConsent } from './consent';
 import { captureError } from './sentry';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,14 +90,22 @@ function reportTestUnitsInProduction(): void {
   }
 }
 
+export function isAdsInitialized(): boolean {
+  return initialized;
+}
+
 export async function initAds(): Promise<void> {
   if (initialized) return;
   if (!loadAdsModule()) return;
   try {
     // UMP gate (Google policy): do not initialize the SDK / request ads
-    // until consent gathering is complete. requestAdsConsent() may retry
-    // and call initAds() again later in the session.
-    if (!(await canRequestAds())) return;
+    // until consent gathering is complete. If the gate blocks (e.g. the
+    // first-launch UMP info update timed out on a dead network), register
+    // a foreground retry so the whole session isn't a dead end.
+    if (!(await canRequestAds())) {
+      registerForegroundRetry();
+      return;
+    }
     await _MobileAds().initialize();
     await _MobileAds().setRequestConfiguration({
       maxAdContentRating: _MaxAdContentRating.G,
@@ -111,5 +119,50 @@ export async function initAds(): Promise<void> {
     // non-fatal for the user, but worth seeing in Sentry — a failed init
     // means zero ads for the whole session.
     captureError(e, { scope: 'ads-init' });
+    registerForegroundRetry();
   }
+}
+
+// ---------------------------------------------------------------------------
+// Recovery path. The startup chain in App.tsx runs requestAdsConsent() +
+// initAds() exactly once; if the first-launch consent/info-update fails or
+// times out, nothing used to ever call initAds() again and every AdBanner
+// stayed dead for the session. retryAdsInit() re-attempts the full
+// consent + init chain, throttled, and stops for good once initialized.
+// It is invoked from a foreground (AppState 'active') listener and from
+// AdBanner mounts while ads aren't initialized.
+// ---------------------------------------------------------------------------
+
+const RETRY_THROTTLE_MS = 60_000;
+let lastRetryAt = 0;
+let retryInFlight = false;
+
+export async function retryAdsInit(): Promise<void> {
+  if (initialized || retryInFlight) return;
+  const now = Date.now();
+  if (now - lastRetryAt < RETRY_THROTTLE_MS) return;
+  lastRetryAt = now;
+  retryInFlight = true;
+  try {
+    // requestAdsConsent() is latched while a gather is in flight and clears
+    // its latch on timeout/failure, so this re-runs the UMP info update only
+    // when the previous attempt actually failed. initAds() is idempotent.
+    await requestAdsConsent();
+    await initAds();
+  } catch {
+    // Best-effort recovery; the next foreground/banner mount tries again.
+  } finally {
+    retryInFlight = false;
+  }
+}
+
+let foregroundRetryRegistered = false;
+function registerForegroundRetry(): void {
+  if (foregroundRetryRegistered) return;
+  foregroundRetryRegistered = true;
+  AppState.addEventListener('change', (state) => {
+    if (state === 'active' && !initialized) {
+      retryAdsInit().catch(() => {});
+    }
+  });
 }

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform, NativeModules } from 'react-native';
 import { theme } from '../constants/theme';
-import { whenAdsInitialized } from '../services/ads';
+import { whenAdsInitialized, isAdsInitialized, retryAdsInit } from '../services/ads';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAd: any = null;
@@ -35,13 +35,23 @@ const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000];
 export function AdBanner({ unitId }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
+  // Remount key for BannerAd — monotonic, bumped on every retry.
+  const [retryNonce, setRetryNonce] = useState(0);
+  // Backoff budget for the CURRENT failure streak. Kept separate from the
+  // remount key so a successful load can reset it to 0 (restarting the
+  // ladder for later auto-refresh failures on keep-alive tabs) without
+  // remounting — and thus re-requesting — a banner that just loaded.
+  const attemptRef = useRef(0);
   // Gate on Mobile Ads SDK init, which is itself gated on UMP consent
   // (canRequestAds). Ensures no ad request fires before/without consent.
   const [adsReady, setAdsReady] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    // If the one-shot startup chain failed (e.g. UMP info update timed out
+    // on first launch), a banner mounting is a natural moment to re-attempt
+    // consent + SDK init. Throttled + idempotent inside the service.
+    if (!isAdsInitialized()) retryAdsInit().catch(() => {});
     whenAdsInitialized().then(() => {
       if (mounted) setAdsReady(true);
     });
@@ -50,17 +60,18 @@ export function AdBanner({ unitId }: Props) {
     };
   }, []);
 
-  // On failure, schedule a re-attempt with backoff; bumping `attempt` remounts
-  // BannerAd (via key) which issues a fresh request.
+  // On failure, schedule a re-attempt with backoff; bumping `retryNonce`
+  // remounts BannerAd (via key) which issues a fresh request.
   useEffect(() => {
-    if (!failed || attempt >= RETRY_DELAYS_MS.length) return;
+    if (!failed || attemptRef.current >= RETRY_DELAYS_MS.length) return;
     const t = setTimeout(() => {
+      attemptRef.current += 1;
       setFailed(false);
       setLoaded(false);
-      setAttempt((a) => a + 1);
-    }, RETRY_DELAYS_MS[attempt]);
+      setRetryNonce((n) => n + 1);
+    }, RETRY_DELAYS_MS[attemptRef.current]);
     return () => clearTimeout(t);
-  }, [failed, attempt]);
+  }, [failed]);
 
   if (!adsAvailable || !adsReady || failed) return null;
 
@@ -68,13 +79,19 @@ export function AdBanner({ unitId }: Props) {
     <View style={[styles.wrapper, !loaded && styles.hidden]}>
       <Text style={styles.label}>Sponsored</Text>
       <BannerAd
-        key={attempt}
+        key={retryNonce}
         unitId={unitId}
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           keywords: ['islamic', 'muslim', 'prayer', 'quran', 'education', 'family'],
         }}
-        onAdLoaded={() => setLoaded(true)}
+        onAdLoaded={() => {
+          // Reset the backoff budget: a banner that served successfully for
+          // hours must not vanish for the rest of the session just because
+          // auto-refresh failures eventually exhausted a lifetime cap.
+          attemptRef.current = 0;
+          setLoaded(true);
+        }}
         onAdFailedToLoad={() => setFailed(true)}
       />
     </View>

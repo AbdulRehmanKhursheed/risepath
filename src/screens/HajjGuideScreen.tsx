@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -29,36 +29,62 @@ export function HajjGuideScreen() {
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
   const isUrdu = language === 'ur';
 
-  // Restore persisted checkmarks on mount.
+  // Set once the AsyncStorage read settles. Until then, toggles are kept
+  // in memory but NOT persisted — otherwise a tap racing the read would
+  // write a one-item array over multi-day saved Hajj progress.
+  const hydratedRef = useRef(false);
+
+  // Restore persisted checkmarks on mount, merging with (not replacing) any
+  // toggles made before the read resolved, so a fast first tap is neither
+  // visually reverted by late hydration nor allowed to wipe saved progress.
   useEffect(() => {
     let mounted = true;
     AsyncStorage.getItem(STORAGE_KEY)
       .then((raw) => {
-        if (!mounted || !raw) return;
+        if (!mounted) return;
+        let stored: number[] = [];
         try {
-          const parsed = JSON.parse(raw);
+          const parsed = raw ? JSON.parse(raw) : [];
           if (Array.isArray(parsed)) {
-            setCompletedIds(new Set(parsed.filter((x) => typeof x === 'number')));
+            stored = parsed.filter((x) => typeof x === 'number');
           }
         } catch {}
+        hydratedRef.current = true;
+        setCompletedIds((prev) => {
+          const merged = new Set<number>(stored);
+          prev.forEach((id) => merged.add(id));
+          // Persist the merge if pre-hydration taps happened, so storage
+          // reflects them too (their own persist was skipped).
+          if (prev.size > 0) {
+            AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(merged))).catch(() => {});
+          }
+          return merged;
+        });
       })
-      .catch(() => {});
+      .catch(() => {
+        if (mounted) hydratedRef.current = true;
+      });
     return () => { mounted = false; };
   }, []);
 
   const toggleComplete = (id: number) => {
-    const next = new Set(completedIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setCompletedIds(next);
-    // Best-effort persist — never block the checkmark on storage.
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))).catch(() => {});
+    setCompletedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      // Best-effort persist — never block the checkmark on storage. Skipped
+      // pre-hydration (the hydration merge persists those taps instead).
+      if (hydratedRef.current) {
+        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next))).catch(() => {});
+      }
+      return next;
+    });
   };
 
   const onCopyDua = async (arabic: string) => {
     try {
       await Clipboard.setStringAsync(arabic);
-      Alert.alert('', isUrdu ? '✓ کلپ بورڈ پر نقل ہو گیا' : '✓ Copied to clipboard');
+      Alert.alert('', isUrdu ? '✓ کاپی ہو گیا' : '✓ Copied to clipboard');
     } catch {
       Alert.alert(
         isUrdu ? 'خرابی' : 'Error',
