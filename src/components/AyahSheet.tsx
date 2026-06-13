@@ -87,6 +87,10 @@ export function AyahSheet({
       // Only real backgrounding — iOS fires 'inactive' for Control Center /
       // notification shade pulls, which shouldn't kill playback or the sheet.
       if (state === 'background') {
+        // Bump the generation so an in-flight playAyah (createAsync resolving
+        // after we background) fails its guard and self-unloads, instead of
+        // starting unowned audio under the lock screen.
+        genRef.current++;
         soundRef.current?.stopAsync().catch(() => {});
         soundRef.current?.unloadAsync().catch(() => {});
         soundRef.current = null;

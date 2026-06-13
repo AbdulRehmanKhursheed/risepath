@@ -863,7 +863,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
                       <React.Fragment key={ayah.numberInSurah}>
                         {tajweedOn && tajweedTexts && script === 'uthmani'
                           ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: ayahFont }]} />
-                          : <Text style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: ayahFont }]}>{indopakText ?? ayah.arabic}</Text>
+                          : <Text style={[styles.mushafAyahText, { fontSize: fs(26), fontFamily: ayahFont }]}>{indopakText || ayah.arabic}</Text>
                         }
                         <Text style={[styles.mushafVerseNum, { fontSize: fs(14) }]}>{` ﴿${ayah.numberInSurah}﴾ `}</Text>
                       </React.Fragment>
@@ -928,7 +928,7 @@ export function QuranScreen({ initialSurah }: { initialSurah?: number }) {
 
                     {tajweedOn && tajweedTexts && script === 'uthmani'
                       ? <TajweedText text={tajweedTexts[idx] ?? ayah.arabic} style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: ayahFont }]} />
-                      : <Text style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: ayahFont }]}>{indopakText ?? ayah.arabic}</Text>
+                      : <Text style={[styles.ayahArabic, { fontSize: fs(20), fontFamily: ayahFont }]}>{indopakText || ayah.arabic}</Text>
                     }
 
                     {(translationMode === 'urdu' || translationMode === 'both') && (

@@ -160,9 +160,13 @@ let foregroundRetryRegistered = false;
 function registerForegroundRetry(): void {
   if (foregroundRetryRegistered) return;
   foregroundRetryRegistered = true;
-  AppState.addEventListener('change', (state) => {
-    if (state === 'active' && !initialized) {
-      retryAdsInit().catch(() => {});
+  const sub = AppState.addEventListener('change', (state) => {
+    if (state !== 'active') return;
+    if (initialized) {
+      // Recovered — detach so we don't keep a live listener for the session.
+      sub.remove();
+      return;
     }
+    retryAdsInit().catch(() => {});
   });
 }

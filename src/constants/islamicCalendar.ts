@@ -200,9 +200,10 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     nameEn: 'Shab-e-Barat', nameUr: 'شب برات', nameAr: 'ليلة البراءة',
     icon: '🕯️', regionOffsets: MOONSIGHT_OFFSET },
 
-  // Ramadan 1449: Jan 28 – Feb 26, 2028 (30 days). Eid al-Fitr = Feb 27.
+  // Ramadan 1449: Jan 28 – Feb 25, 2028 (29 days per Umm al-Qura).
+  // Eid al-Fitr = Feb 26.
   { id: 'ramadan-1449', type: 'ramadan_start',
-    baseDate: d(2028, 1, 28), endDate: d(2028, 2, 26),
+    baseDate: d(2028, 1, 28), endDate: d(2028, 2, 25),
     nameEn: 'Ramadan', nameUr: 'رمضان المبارک', nameAr: 'شهر رمضان',
     icon: '🌙', regionOffsets: MOONSIGHT_OFFSET },
 
@@ -224,7 +225,7 @@ export const ISLAMIC_EVENTS: IslamicEvent[] = [
     icon: '✨', regionOffsets: MOONSIGHT_OFFSET },
 
   { id: 'fitr-1449', type: 'eid_fitr',
-    baseDate: d(2028, 2, 27),
+    baseDate: d(2028, 2, 26),
     nameEn: 'Eid al-Fitr', nameUr: 'عیدالفطر', nameAr: 'عيد الفطر',
     icon: '🌟', regionOffsets: MOONSIGHT_OFFSET },
 

@@ -54,7 +54,7 @@ export function QiblaScreen() {
   const { t, language } = useLanguage();
   const isUrdu = language === 'ur';
   const isArabic = language === 'ar';
-  const { location, loading, usingFallback, permissionDenied, retry } = useLocation();
+  const { location, loading, usingFallback, permissionDenied, retry, refreshIfStale } = useLocation();
   const { heading, available, lowAccuracy } = useCompass();
   const lat = location?.latitude ?? 24.8607;
   const lng = location?.longitude ?? 67.0011;
@@ -82,7 +82,10 @@ export function QiblaScreen() {
       if (state !== 'active' || !(permissionDenied || usingFallback)) return;
       Location.getForegroundPermissionsAsync()
         .then(({ status }) => {
-          if (status === 'granted') retry();
+          // Throttled refresh, not retry() — retry refetches on every single
+          // foreground (a 10s GPS pull each time); refreshIfStale honors the
+          // 15-min throttle.
+          if (status === 'granted') refreshIfStale();
         })
         .catch(() => {});
     });
@@ -242,10 +245,14 @@ export function QiblaScreen() {
           When denied, 'retry' can't show a dialog anymore (iOS never
           re-prompts; Android suppresses after two denials) — deep-link to
           Settings instead. */}
-      {approximate && available && (
+      {/* When permission is denied the compass card (!available) already
+          shows a Settings CTA — gating on !permissionDenied avoids stacking
+          two cards, and still shows this card on a granted-but-GPS-timeout
+          fallback even on devices with no magnetometer. */}
+      {approximate && !permissionDenied && (
         <TouchableOpacity
           style={styles.warningCard}
-          onPress={permissionDenied ? () => Linking.openSettings().catch(() => {}) : retry}
+          onPress={retry}
           accessibilityRole="button"
         >
           <Text style={styles.warningTitle}>
@@ -256,17 +263,11 @@ export function QiblaScreen() {
                 : '⚠️ Approximate — location unavailable'}
           </Text>
           <Text style={styles.warningBody}>
-            {permissionDenied
-              ? (isUrdu
-                  ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے۔ درست سمت کے لیے سیٹنگز میں لوکیشن کی اجازت دیں — کھولنے کے لیے دبائیں۔'
-                  : isArabic
-                    ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي. للاتجاه الدقيق فعّل إذن الموقع من الإعدادات — اضغط للفتح.'
-                    : 'Qibla is shown for a default location. Enable location in Settings for your real direction — tap to open.')
-              : (isUrdu
-                  ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے اور غلط ہو سکتی ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
-                  : isArabic
-                    ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي وقد يكون خاطئًا. اضغط لإعادة المحاولة.'
-                    : 'Qibla is shown for a default location and may be wrong here. Tap to retry.')}
+            {isUrdu
+              ? 'قبلہ کی سمت ایک طے شدہ مقام سے دکھائی جا رہی ہے اور غلط ہو سکتی ہے۔ دوبارہ کوشش کے لیے دبائیں۔'
+              : isArabic
+                ? 'يُعرض اتجاه القبلة بناءً على موقع افتراضي وقد يكون خاطئًا. اضغط لإعادة المحاولة.'
+                : 'Qibla is shown for a default location and may be wrong here. Tap to retry.'}
           </Text>
         </TouchableOpacity>
       )}

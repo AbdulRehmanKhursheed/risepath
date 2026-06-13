@@ -25,11 +25,12 @@ import { AD_UNITS } from '../services/ads';
 
 type EidTab = 'fitr' | 'adha';
 
-// How many days after Eid day the Eid still counts as "current". Adha keeps
-// the full tashreeq window (10th–13th Dhul Hijjah); Fitr lingers through the
-// customary 3-day celebration. Mirrors EidHubCard's linger behaviour so the
-// guide doesn't jump to next year's Eid on Eid morning.
-const EID_GRACE_DAYS: Record<EidTab, number> = { fitr: 2, adha: 3 };
+// How many days after Eid day the Eid still counts as "current". Kept equal
+// to EidHubCard's SHOW_DAYS_AFTER (5) so the guide and the home card never
+// disagree about which Eid is current — the guide stays on this Eid through
+// the celebration / tashreeq window instead of jumping to next year on Eid
+// morning.
+const EID_GRACE_DAYS: Record<EidTab, number> = { fitr: 5, adha: 5 };
 
 function getNextEid(now: Date = new Date()) {
   const today = new Date(now);

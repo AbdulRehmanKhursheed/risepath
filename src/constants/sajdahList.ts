@@ -26,7 +26,7 @@ export const SAJDAH_VERSES: SajdahVerse[] = [
   { surah: 25, ayah: 60 },
   { surah: 27, ayah: 26 },
   { surah: 32, ayah: 15 },
-  { surah: 38, ayah: 24, note: 'Recommended (Shafi/Maliki) sajdah of gratitude — Hanafi & Hanbali do not require it.' },
+  { surah: 38, ayah: 24, note: 'Counted as a recitation sajdah by Hanafi & Maliki; Shafi\'i & Hanbali treat it as a sajdah of gratitude (not required during recitation).' },
   { surah: 41, ayah: 38 },
   { surah: 53, ayah: 62 },
   { surah: 84, ayah: 21 },

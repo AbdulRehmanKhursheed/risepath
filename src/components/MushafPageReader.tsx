@@ -444,7 +444,9 @@ function MushafPage({
           </View>
         </View>
       );
-      if (head.surahNumber !== 9) {
+      // Surah 1 omitted too: Al-Fatiha's ayah 1 IS the Bismillah, so a header
+      // here would render it twice (matches the QuranScreen reader guard).
+      if (head.surahNumber !== 9 && head.surahNumber !== 1) {
         out.push(
           <Text
             key={`bism-${head.surahNumber}`}
