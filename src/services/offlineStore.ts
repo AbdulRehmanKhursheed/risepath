@@ -25,8 +25,9 @@ export type OfflineManifest = {
   version: number;
   // Mushaf page numbers fully written to disk.
   pages: number[];
-  // Map reciterId -> verse keys ("2:255") downloaded.
-  audio: Record<string, string[]>;
+  // Map reciter folder -> count of ayah files downloaded (for progress UI;
+  // resume is driven by actual file existence, not this counter).
+  audio: Record<string, number>;
 };
 
 let ensured = false;
@@ -138,11 +139,13 @@ export async function offlineAudioUri(reciterFolder: string, fileName: string): 
   }
 }
 
+// Returns 'exists' if already on disk (no download, no count change),
+// 'downloaded' on a fresh successful save, or 'failed'.
 export async function downloadAudioFile(
   reciterFolder: string,
   fileName: string,
   remoteUrl: string,
-): Promise<string | null> {
+): Promise<'exists' | 'downloaded' | 'failed'> {
   await ensureDirs();
   const dir = `${AUDIO_DIR}${reciterFolder}/`;
   const dest = `${dir}${fileName}`;
@@ -150,16 +153,27 @@ export async function downloadAudioFile(
     const dirInfo = await FileSystem.getInfoAsync(dir);
     if (!dirInfo.exists) await FileSystem.makeDirectoryAsync(dir, { intermediates: true });
     const existing = await FileSystem.getInfoAsync(dest);
-    if (existing.exists) return dest;
+    if (existing.exists) return 'exists';
     const res = await FileSystem.downloadAsync(remoteUrl, dest);
-    if (res.status >= 200 && res.status < 300) return dest;
+    if (res.status >= 200 && res.status < 300) return 'downloaded';
     // Failed download — remove any partial file so a retry starts clean.
     await FileSystem.deleteAsync(dest, { idempotent: true });
-    return null;
+    return 'failed';
   } catch (e) {
     captureError(e, { scope: 'offline:downloadAudio' });
-    return null;
+    return 'failed';
   }
+}
+
+export async function audioDownloadedCount(reciterFolder: string): Promise<number> {
+  const m = await readManifest();
+  return m.audio[reciterFolder] ?? 0;
+}
+
+export async function setAudioDownloadedCount(reciterFolder: string, n: number): Promise<void> {
+  const m = await readManifest();
+  m.audio[reciterFolder] = n;
+  await persistManifest(m);
 }
 
 // ── Progress / management ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { Audio, AVPlaybackStatus } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Ayah } from '../services/quran';
 import { storage } from '../services/storage';
+import { offlineAudioUri } from '../services/offlineStore';
 
 export type ReciterConfig = {
   id: string;
@@ -168,12 +169,6 @@ type Segment = { index: number; step: number };
 const RECITER_SWITCH_DELAY_MS = 60;
 const AUTO_REVERT_DELAY_MS = 80;
 
-function buildUrl(folder: string, surahNumber: number, ayahNumber: number): string {
-  const s = String(surahNumber).padStart(3, '0');
-  const a = String(ayahNumber).padStart(3, '0');
-  return `https://everyayah.com/data/${folder}/${s}${a}.mp3`;
-}
-
 function buildStepList(mode: TranslationPlaybackMode): PlayingLang[] {
   const list: PlayingLang[] = ['arabic'];
   if (mode === 'urdu' || mode === 'both') list.push('urdu');
@@ -253,7 +248,7 @@ export function useAudioPlayer(
     preloadRef.current = null;
   }, [reciterId, translationPlayback]);
 
-  const segToUrl = useCallback((seg: Segment): string | null => {
+  const segToParts = useCallback((seg: Segment): { folder: string; fileName: string } | null => {
     const sNumber = surahRef.current;
     const theAyahs = ayahsRef.current;
     if (!sNumber || seg.index < 0 || seg.index >= theAyahs.length) return null;
@@ -267,8 +262,26 @@ export function useAudioPlayer(
         : lang === 'urdu'
         ? TRANSLATION_RECITERS.urdu.folder
         : TRANSLATION_RECITERS.english.folder;
-    return buildUrl(folder, sNumber, theAyahs[seg.index].numberInSurah);
+    const s = String(sNumber).padStart(3, '0');
+    const a = String(theAyahs[seg.index].numberInSurah).padStart(3, '0');
+    return { folder, fileName: `${s}${a}.mp3` };
   }, []);
+
+  const segToUrl = useCallback((seg: Segment): string | null => {
+    const p = segToParts(seg);
+    return p ? `https://everyayah.com/data/${p.folder}/${p.fileName}` : null;
+  }, [segToParts]);
+
+  // Offline-first: if this ayah's recitation has been downloaded to the
+  // filesystem store, play the local file (works with no network and is
+  // instant); otherwise stream from everyayah.com. This is what makes
+  // recitation work offline once a reciter is downloaded.
+  const resolveUri = useCallback(async (seg: Segment): Promise<string | null> => {
+    const p = segToParts(seg);
+    if (!p) return null;
+    const local = await offlineAudioUri(p.folder, p.fileName);
+    return local ?? `https://everyayah.com/data/${p.folder}/${p.fileName}`;
+  }, [segToParts]);
 
   const nextSeg = useCallback((seg: Segment): Segment | null => {
     const steps = buildStepList(translationPlaybackRef.current);
@@ -284,7 +297,7 @@ export function useAudioPlayer(
       preloadRef.current = null;
       old.sound.unloadAsync().catch(() => {});
     }
-    const url = segToUrl(seg);
+    const url = await resolveUri(seg);
     if (!url) return;
     try {
       const { sound } = await Audio.Sound.createAsync({ uri: url }, { shouldPlay: false });
@@ -296,7 +309,7 @@ export function useAudioPlayer(
     } catch {
       // Slow path will surface any real error when the user hits this segment.
     }
-  }, [segToUrl]);
+  }, [resolveUri]);
 
   const playSegRef = useRef<((seg: Segment) => Promise<void>) | null>(null);
 
@@ -366,7 +379,8 @@ export function useAudioPlayer(
     soundRef.current = null;
     if (oldSound) oldSound.unloadAsync().catch(() => {});
 
-    const url = segToUrl(seg);
+    const url = await resolveUri(seg);
+    if (gen !== genRef.current) return;
     if (!url) return;
     try {
       const { sound } = await Audio.Sound.createAsync(
@@ -402,7 +416,7 @@ export function useAudioPlayer(
       }
       setPbStatus('error');
     }
-  }, [nextSeg, preloadSeg, segToUrl]);
+  }, [nextSeg, preloadSeg, resolveUri]);
 
   useEffect(() => { playSegRef.current = playSeg; }, [playSeg]);
 
