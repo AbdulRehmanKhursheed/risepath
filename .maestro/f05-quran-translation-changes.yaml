@@ -1,0 +1,22 @@
+appId: com.risepath.app
+name: FUNCTIONAL — Quran reading settings change the on-screen translation
+---
+- launchApp: { clearState: true }
+- extendedWaitUntil:
+    visible: { text: "Continue.*|Choose your language.*|Noor" }
+    timeout: 60000
+- tapOn: { text: "Continue.*", optional: true }
+- tapOn: { text: "Skip.*", optional: true }
+- assertVisible: { id: "menu-button" }
+
+- tapOn: "Quran"
+- tapOn: ".*Al-Fatihah.*"
+
+# Open reading settings and switch translation to English
+- tapOn: "Reading settings"
+- assertVisible: "Reading settings"
+- tapOn: "English"
+- tapOn: "Done"
+
+# The reader must now show the English translation text (Saheeh International)
+- assertVisible: ".*Merciful.*"

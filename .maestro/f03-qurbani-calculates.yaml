@@ -1,0 +1,25 @@
+appId: com.risepath.app
+name: FUNCTIONAL — Qurbani calculator stepper changes people and recomputes
+---
+- launchApp: { clearState: true }
+- extendedWaitUntil:
+    visible: { text: "Continue.*|Choose your language.*|Noor" }
+    timeout: 60000
+- tapOn: { text: "Continue.*", optional: true }
+- tapOn: { text: "Skip.*", optional: true }
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Qurbani Calculator" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Qurbani Calculator"
+
+# Calculator renders the people stepper, starting at 1
+- assertVisible: { id: "qurbani-people", text: "1" }
+# Increase -> value must climb 1 -> 2 -> 3
+- tapOn: "Increase people"
+- assertVisible: { id: "qurbani-people", text: "2" }
+- tapOn: "Increase people"
+- assertVisible: { id: "qurbani-people", text: "3" }
+# Decrease -> value must drop back to 2
+- tapOn: "Decrease people"
+- assertVisible: { id: "qurbani-people", text: "2" }

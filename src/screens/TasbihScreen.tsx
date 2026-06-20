@@ -282,12 +282,13 @@ export function TasbihScreen() {
           activeOpacity={0.88}
           onPress={increment}
           style={styles.counterButton}
+          testID="tasbih-counter"
         >
           <LinearGradient
             colors={['rgba(200,120,10,0.16)', 'rgba(26,122,60,0.10)']}
             style={styles.counterGradient}
           >
-            <Text style={[styles.counterNumber, { fontSize: fs(92) }]}>{count}</Text>
+            <Text testID="tasbih-count" style={[styles.counterNumber, { fontSize: fs(92) }]}>{count}</Text>
             <Text style={[styles.counterTarget, { fontSize: fs(14) }]}>
               {label.of} {target}
             </Text>

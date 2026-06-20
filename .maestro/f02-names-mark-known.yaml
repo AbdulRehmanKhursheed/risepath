@@ -1,0 +1,25 @@
+appId: com.risepath.app
+name: FUNCTIONAL — 99 Names mark-as-known updates the counter (persisted state)
+---
+- launchApp: { clearState: true }
+- extendedWaitUntil:
+    visible: { text: "Continue.*|Choose your language.*|Noor" }
+    timeout: 60000
+- tapOn: { text: "Continue.*", optional: true }
+- tapOn: { text: "Skip.*", optional: true }
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "99 Names of Allah" }, direction: DOWN, timeout: 20000 }
+- tapOn: "99 Names of Allah"
+
+# Counter starts at 0/99
+- assertVisible: "0/99 known"
+# Open the first name's detail
+- tapOn: ".*Ar-Rahman.*"
+- assertVisible: "Mark as known"
+- tapOn: "Mark as known"
+- assertVisible: "✓ I know this"
+- tapOn: "Close"
+# The header counter must now reflect 1 known
+- assertVisible: "1/99 known"

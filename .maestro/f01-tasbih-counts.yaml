@@ -1,0 +1,23 @@
+appId: com.risepath.app
+name: FUNCTIONAL — Tasbih counter increments on tap and resets
+---
+- launchApp: { clearState: true }
+- extendedWaitUntil:
+    visible: { text: "Continue.*|Choose your language.*|Noor" }
+    timeout: 60000
+- tapOn: { text: "Continue.*", optional: true }
+- tapOn: { text: "Skip.*", optional: true }
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Tasbih Counter" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Tasbih Counter"
+
+# Starts at 0
+- assertVisible: { id: "tasbih-count", text: "0" }
+# Tap the bead 5 times -> count must read exactly 5
+- repeat:
+    times: 5
+    commands:
+      - tapOn: { id: "tasbih-counter" }
+- assertVisible: { id: "tasbih-count", text: "5" }

@@ -1,0 +1,25 @@
+appId: com.risepath.app
+name: FUNCTIONAL — language switch actually re-renders UI in Urdu and back
+---
+- launchApp: { clearState: true }
+- extendedWaitUntil:
+    visible: { text: "Continue.*|Choose your language.*|Noor" }
+    timeout: 60000
+- tapOn: { text: "Continue.*", optional: true }
+- tapOn: { text: "Skip.*", optional: true }
+- assertVisible: { id: "menu-button" }
+
+# Sidebar nav is in English to start
+- tapOn: { id: "menu-button" }
+- assertVisible: "Tasbih Counter"
+
+# Switch to Urdu via the footer language button
+- tapOn: "English"
+- tapOn: "اردو"
+# Nav labels must now be Urdu (translation applied app-wide)
+- assertVisible: "تسبیح کاؤنٹر"
+
+# Switch back to English
+- tapOn: "اردو"
+- tapOn: "English"
+- assertVisible: "Tasbih Counter"

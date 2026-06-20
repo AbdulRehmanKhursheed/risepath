@@ -1,0 +1,138 @@
+appId: com.risepath.app
+name: Full navigation sweep — every screen opens without crashing
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      text: "Continue.*|Choose your language.*|Noor"
+    timeout: 60000
+- tapOn:
+    text: "Continue.*"
+    optional: true
+- tapOn:
+    text: "Skip.*"
+    optional: true
+- assertVisible:
+    id: "menu-button"
+
+# Turn ads OFF first so no interstitial interrupts the sweep
+- tapOn:
+    id: "menu-button"
+- scrollUntilVisible:
+    element:
+      text: "Show ads"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Show ads"
+- assertVisible: "Ads are off"
+- back
+
+# --- Prayers tab ---
+- tapOn: "Prayers"
+- back
+- assertVisible:
+    id: "menu-button"
+
+# --- Every sidebar screen: open -> assert back home (a crash would break the chain) ---
+# PRACTICE
+- tapOn:
+    id: "menu-button"
+- scrollUntilVisible: { element: { text: "Tasbih Counter" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Tasbih Counter"
+- takeScreenshot: screen-tasbih
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Takbir of Tashreeq" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Takbir of Tashreeq"
+- takeScreenshot: screen-takbir
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Qibla Direction" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Qibla Direction"
+- takeScreenshot: screen-qibla
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Dua Library" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Dua Library"
+- takeScreenshot: screen-dua
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Kalimas & Duas" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Kalimas & Duas"
+- takeScreenshot: screen-learn
+- back
+- assertVisible: { id: "menu-button" }
+
+# GUIDES (these carry the new MEDIUM_RECTANGLE ads)
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Hajj Guide" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Hajj Guide"
+- takeScreenshot: screen-hajj
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Umrah Guide" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Umrah Guide"
+- takeScreenshot: screen-umrah
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Eid Guide" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Eid Guide"
+- takeScreenshot: screen-eid
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Qurbani Calculator" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Qurbani Calculator"
+- takeScreenshot: screen-qurbani
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Janaza Guide" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Janaza Guide"
+- takeScreenshot: screen-janaza
+- back
+- assertVisible: { id: "menu-button" }
+
+# Lower group
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Sacred Journey" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Sacred Journey"
+- takeScreenshot: screen-sacred
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Hifz Tracker" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Hifz Tracker"
+- takeScreenshot: screen-hifz
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "Mood Coach" }, direction: DOWN, timeout: 20000 }
+- tapOn: "Mood Coach"
+- takeScreenshot: screen-mood
+- back
+- assertVisible: { id: "menu-button" }
+
+- tapOn: { id: "menu-button" }
+- scrollUntilVisible: { element: { text: "My Stats" }, direction: DOWN, timeout: 20000 }
+- tapOn: "My Stats"
+- takeScreenshot: screen-stats
+- back
+- assertVisible: { id: "menu-button" }

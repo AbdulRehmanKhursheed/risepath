@@ -362,7 +362,7 @@ export function QurbaniScreen() {
               <Text style={styles.stepperBtnText}>−</Text>
             </TouchableOpacity>
             <View style={styles.stepperValue}>
-              <Text style={[styles.stepperNumber, { fontSize: fs(36) }]}>{people}</Text>
+              <Text testID="qurbani-people" style={[styles.stepperNumber, { fontSize: fs(36) }]}>{people}</Text>
               <Text style={[styles.stepperLabel, { fontSize: fs(11) }]}>
                 {isUrdu ? 'افراد' : isArabic ? 'أشخاص' : 'PEOPLE'}
               </Text>
