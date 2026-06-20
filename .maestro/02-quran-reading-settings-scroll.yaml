@@ -1,0 +1,36 @@
+appId: com.risepath.app
+name: Quran reading-settings sheet scrolls to the reciter row (scroll-gesture fix)
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      text: "Continue.*|Choose your language.*|Noor"
+    timeout: 60000
+- tapOn:
+    text: "Continue.*"
+    optional: true
+- tapOn:
+    text: "Skip.*"
+    optional: true
+- assertVisible:
+    id: "menu-button"
+
+# Open the Quran tab
+- tapOn: "Quran"
+
+# Open the first surah to enter the reader
+- tapOn:
+    text: ".*Al-Fatihah.*"
+
+# Open the reading-settings sheet (gear button, accessibilityLabel)
+- tapOn: "Reading settings"
+- assertVisible: "Reading settings"
+
+# THE FIX: the sheet's ScrollView must scroll to the reciter row at the bottom.
+# (Previously a TouchableOpacity wrapper swallowed the scroll gesture.)
+- scrollUntilVisible:
+    element:
+      text: "Reciter|Mishary|Recite translation too|Reading"
+    direction: DOWN
+    timeout: 15000

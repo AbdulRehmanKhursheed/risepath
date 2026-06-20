@@ -1,0 +1,51 @@
+appId: com.risepath.app
+name: Fixes & ads — onboarding, ad opt-out toggle, 99-Names dead-feature removed
+---
+# Fresh state so onboarding is deterministic
+- launchApp:
+    clearState: true
+
+# Debug build loads JS from Metro on first launch — can take 20-40s.
+- extendedWaitUntil:
+    visible:
+      text: "Continue.*|Choose your language.*|Noor"
+    timeout: 90000
+
+# --- Bypass onboarding (language -> Continue -> Skip) ---
+- tapOn:
+    text: "Continue.*"
+    optional: true
+- tapOn:
+    text: "Skip.*"
+    optional: true
+
+# --- Home reached without crashing (AdsProvider + interstitial wiring OK) ---
+- assertVisible:
+    id: "menu-button"
+
+# --- Ads opt-out toggle works (turn off, then back on) ---
+- tapOn:
+    id: "menu-button"
+# Toggle lives in the SUPPORT section near the bottom of the sidebar scroll.
+- scrollUntilVisible:
+    element:
+      text: "Show ads"
+    direction: DOWN
+    timeout: 20000
+- tapOn: "Show ads"
+- assertVisible: "Ads are off"
+- tapOn: "Show ads"
+- assertVisible: "Support the free app"
+
+# --- 99 Names: dead 'Play / Coming soon' tease is gone ---
+# Scroll back up — the nav item is in PRACTICE near the top of the sidebar.
+- scrollUntilVisible:
+    element:
+      text: "99 Names of Allah"
+    direction: UP
+    timeout: 20000
+- tapOn: "99 Names of Allah"
+- assertVisible: "99 Names of Allah"
+- assertNotVisible: "COMING SOON"
+- assertNotVisible: "Recitation is on the way"
+- assertNotVisible: "▶ Play"
