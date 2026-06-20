@@ -491,7 +491,7 @@ export function QurbaniScreen() {
         </TouchableOpacity>
 
         <Text style={[styles.sourceLine, { fontSize: fs(11) }]}>{labels.sourceLine}</Text>
-        <AdBanner unitId={AD_UNITS.bannerGuides} />
+        <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
       </ScrollView>
     </View>
   );

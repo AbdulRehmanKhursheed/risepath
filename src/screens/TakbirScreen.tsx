@@ -328,7 +328,7 @@ export function TakbirScreen() {
           <Text style={[styles.shareBtnText, { fontSize: fs(14) }]}>📤 {labels.share}</Text>
         </TouchableOpacity>
 
-        <AdBanner unitId={AD_UNITS.bannerGuides} />
+        <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
       </ScrollView>
     </View>
   );

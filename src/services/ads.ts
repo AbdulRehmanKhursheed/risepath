@@ -36,6 +36,12 @@ const TEST_BANNER = Platform.select({
   default: 'ca-app-pub-3940256099942544/6300978111',
 }) as string;
 
+const TEST_INTERSTITIAL = Platform.select({
+  android: 'ca-app-pub-3940256099942544/1033173712',
+  ios: 'ca-app-pub-3940256099942544/4411468910',
+  default: 'ca-app-pub-3940256099942544/1033173712',
+}) as string;
+
 // In a DEV build, missing IDs fall back to Google's test unit (devs must see
 // test ads, never live ones). In PRODUCTION, a missing/placeholder ID returns
 // null → the banner renders nothing. Showing a real Google TEST ad in a
@@ -44,6 +50,17 @@ const TEST_BANNER = Platform.select({
 // degradation until the real unit ID is supplied via the EAS production env.
 function resolveBanner(envValue: string | undefined): string | null {
   if (!IS_PRODUCTION) return TEST_BANNER;
+  if (!envValue || envValue.includes('XXXX')) return null;
+  return envValue;
+}
+
+// Same safety contract as resolveBanner, but for the interstitial unit: dev
+// builds see Google's test interstitial; a production build with no real unit
+// ID returns null so no full-screen ad ever shows (better than a test ad that
+// earns nothing and risks an invalid-traffic strike). Supply the real ID via
+// EXPO_PUBLIC_ADMOB_INTERSTITIAL in the EAS production env to enable it.
+function resolveInterstitial(envValue: string | undefined): string | null {
+  if (!IS_PRODUCTION) return TEST_INTERSTITIAL;
   if (!envValue || envValue.includes('XXXX')) return null;
   return envValue;
 }
@@ -61,6 +78,7 @@ export const AD_UNITS = {
   bannerDua: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_DUA),
   bannerNames: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_NAMES),
   bannerHifz: resolveBanner(process.env.EXPO_PUBLIC_ADMOB_BANNER_HIFZ),
+  interstitial: resolveInterstitial(process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL),
 };
 
 let initialized = false;

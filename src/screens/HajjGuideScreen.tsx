@@ -256,7 +256,7 @@ export function HajjGuideScreen() {
             : 'Sources: Sahih Bukhari, Muslim, Tirmidhi, Abu Dawud.\nNote: This guide covers Hajj al-Tamattu\'. For Ifrad/Qiran, consult your scholar.'}
         </Text>
       </View>
-      <AdBanner unitId={AD_UNITS.bannerGuides} />
+      <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
     </ScrollView>
   );
 }

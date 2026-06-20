@@ -124,7 +124,7 @@ export function LearnScreen() {
             ))}
           </View>
         )}
-        <AdBanner unitId={AD_UNITS.bannerLearn} />
+        <AdBanner unitId={AD_UNITS.bannerLearn} size="rectangle" />
       </ScrollView>
     </View>
   );

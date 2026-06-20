@@ -277,7 +277,7 @@ export function EidScreen() {
             : 'This guide is for educational purposes. Consult a qualified scholar for your specific madhab.'}
         </Text>
       </View>
-      <AdBanner unitId={AD_UNITS.bannerGuides} />
+      <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
     </ScrollView>
   );
 }

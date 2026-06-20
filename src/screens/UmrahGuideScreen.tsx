@@ -267,7 +267,7 @@ export function UmrahGuideScreen() {
             : 'Note: Always consult a qualified scholar for guidance. This guide is for educational purposes.'}
         </Text>
       </View>
-      <AdBanner unitId={AD_UNITS.bannerGuides} />
+      <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
     </ScrollView>
   );
 }

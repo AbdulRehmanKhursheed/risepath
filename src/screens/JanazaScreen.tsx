@@ -190,7 +190,7 @@ export function JanazaScreen() {
             : 'Sources: Sahih Bukhari, Sahih Muslim, Sunan Abu Dawud, Tirmidhi, Ibn Majah — verified classical fiqh.\nThis guide is for educational purposes. Consult a qualified scholar for rulings.'}
         </Text>
       </View>
-      <AdBanner unitId={AD_UNITS.bannerGuides} />
+      <AdBanner unitId={AD_UNITS.bannerGuides} size="rectangle" />
     </ScrollView>
   );
 }

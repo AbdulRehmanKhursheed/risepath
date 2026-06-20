@@ -31,6 +31,12 @@ type ScreenProps = {
   statusBarStyle?: 'light-content' | 'dark-content';
   /** Safe-area edges to apply. Default ['top']. Tabs handle 'bottom' themselves. */
   edges?: readonly Edge[];
+  /**
+   * Pinned content rendered OUTSIDE the scroll, at the bottom of the screen
+   * (above the tab bar) — i.e. always visible. Used for an anchored ad banner
+   * so it isn't buried at the end of scroll content (low ad viewability).
+   */
+  footer?: React.ReactNode;
 };
 
 /**
@@ -47,6 +53,7 @@ export function Screen({
   avoidKeyboard = false,
   statusBarStyle = 'dark-content',
   edges = ['top'],
+  footer,
 }: ScreenProps) {
   const inner = scroll ? (
     <ScrollView
@@ -80,6 +87,7 @@ export function Screen({
     >
       <StatusBar barStyle={statusBarStyle} />
       {body}
+      {footer}
     </SafeAreaView>
   );
 }

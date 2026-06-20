@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Platform, NativeModules } from 'react-native';
 import { theme } from '../constants/theme';
 import { whenAdsInitialized, isAdsInitialized, retryAdsInit } from '../services/ads';
+import { useAds } from '../contexts/AdsContext';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BannerAd: any = null;
@@ -27,6 +28,10 @@ type Props = {
   // null when this placement has no real unit ID in a production build —
   // we render nothing rather than a test ad (see resolveBanner in ads.ts).
   unitId: string | null;
+  // 'banner' (default) = anchored adaptive (~50dp tall) for pinned/tool
+  // screens. 'rectangle' = MEDIUM_RECTANGLE (300x250) for end-of-scroll
+  // reading content — higher revenue, non-blocking (the user scrolls to it).
+  size?: 'banner' | 'rectangle';
 };
 
 // Retry ladder for failed ad loads. Tab screens are keep-alive (mounted for
@@ -34,7 +39,8 @@ type Props = {
 // cold start would remove the banner from that screen permanently.
 const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000];
 
-export function AdBanner({ unitId }: Props) {
+export function AdBanner({ unitId, size = 'banner' }: Props) {
+  const { adsEnabled } = useAds();
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
   // Remount key for BannerAd — monotonic, bumped on every retry.
@@ -75,15 +81,20 @@ export function AdBanner({ unitId }: Props) {
     return () => clearTimeout(t);
   }, [failed]);
 
-  if (!unitId || !adsAvailable || !adsReady || failed) return null;
+  // User opted out of ads (sidebar toggle), no real unit, native module
+  // missing (Expo Go), not yet consent-gated-initialized, or a failed load:
+  // render nothing.
+  if (!adsEnabled || !unitId || !adsAvailable || !adsReady || failed) return null;
+
+  const isRectangle = size === 'rectangle';
 
   return (
-    <View style={[styles.wrapper, !loaded && styles.hidden]}>
+    <View style={[styles.wrapper, isRectangle && styles.wrapperRectangle, !loaded && styles.hidden]}>
       <Text style={styles.label}>Sponsored</Text>
       <BannerAd
         key={retryNonce}
         unitId={unitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        size={isRectangle ? BannerAdSize.MEDIUM_RECTANGLE : BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           keywords: ['islamic', 'muslim', 'prayer', 'quran', 'education', 'family'],
         }}
@@ -117,6 +128,14 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 3 },
     }),
+  },
+  wrapperRectangle: {
+    // End-of-scroll rectangle: no top hairline (it sits in content, not as a
+    // pinned bar), centered, with breathing room above/below.
+    borderTopWidth: 0,
+    paddingTop: 12,
+    paddingBottom: 16,
+    marginTop: 8,
   },
   hidden: {
     height: 0,

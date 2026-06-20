@@ -24,6 +24,7 @@ import Constants from 'expo-constants';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useSimpleMode } from '../contexts/SimpleModeContext';
+import { useAds } from '../contexts/AdsContext';
 import { isPrivacyOptionsRequired, showPrivacyOptions } from '../services/consent';
 import { theme } from '../constants/theme';
 import { PLAY_STORE_URL } from '../constants/appLinks';
@@ -102,6 +103,7 @@ export function Sidebar() {
   const { isOpen, closeSidebar } = useSidebar();
   const { language, setLanguage } = useLanguage();
   const { simpleMode, toggleSimpleMode, fs } = useSimpleMode();
+  const { adsEnabled, toggleAds } = useAds();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const isUrdu = language === 'ur';
@@ -535,6 +537,34 @@ export function Sidebar() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Ads toggle — users can turn off banner ads. On by default to
+                keep the free app funded; never a blocker either way. */}
+            <TouchableOpacity
+              style={styles.adToggleRow}
+              onPress={toggleAds}
+              activeOpacity={0.8}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: adsEnabled }}
+              accessibilityLabel={isUrdu ? 'اشتہار دکھائیں' : isArabic ? 'عرض الإعلانات' : 'Show ads'}
+            >
+              <Text style={styles.adToggleIcon} allowFontScaling={false}>
+                {adsEnabled ? '📣' : '🚫'}
+              </Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.adToggleLabel, { fontSize: fs(13) }]}>
+                  {isUrdu ? 'اشتہار دکھائیں' : isArabic ? 'عرض الإعلانات' : 'Show ads'}
+                </Text>
+                <Text style={[styles.adToggleSub, { fontSize: fs(11) }]}>
+                  {adsEnabled
+                    ? (isUrdu ? 'مفت ایپ کو سپورٹ کریں' : isArabic ? 'ادعم التطبيق المجاني' : 'Support the free app')
+                    : (isUrdu ? 'اشتہار بند ہیں' : isArabic ? 'الإعلانات متوقفة' : 'Ads are off')}
+                </Text>
+              </View>
+              <View style={[styles.adSwitch, adsEnabled && styles.adSwitchOn]}>
+                <View style={[styles.adKnob, adsEnabled && styles.adKnobOn]} />
+              </View>
+            </TouchableOpacity>
           </View>
         </ScrollView>
 
@@ -793,6 +823,54 @@ const styles = StyleSheet.create({
   growthBtnText: {
     fontFamily: theme.typography.fontBodyMedium,
     color: theme.colors.textSecondary,
+  },
+
+  /* Ads toggle */
+  adToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: theme.spacing.lg,
+    marginTop: theme.spacing.sm,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: theme.borderRadius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+  },
+  adToggleIcon: {
+    fontSize: 17,
+  },
+  adToggleLabel: {
+    fontFamily: theme.typography.fontBodyMedium,
+    color: theme.colors.text,
+  },
+  adToggleSub: {
+    fontFamily: theme.typography.fontBody,
+    color: theme.colors.textMuted,
+    marginTop: 1,
+  },
+  adSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: theme.colors.border,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  adSwitchOn: {
+    backgroundColor: theme.colors.accent,
+  },
+  adKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#fff',
+    alignSelf: 'flex-start',
+  },
+  adKnobOn: {
+    alignSelf: 'flex-end',
   },
 
   /* Footer */

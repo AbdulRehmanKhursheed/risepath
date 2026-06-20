@@ -364,7 +364,7 @@ export function SacredJourneyScreen() {
               : 'Note: actual dates may vary ±1–2 days depending on your local moonsighting.'}
           </Text>
         </View>
-        <AdBanner unitId={AD_UNITS.bannerSacred} />
+        <AdBanner unitId={AD_UNITS.bannerSacred} size="rectangle" />
       </ScrollView>
 
       <Modal

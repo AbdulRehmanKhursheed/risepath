@@ -20,6 +20,7 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 
 import { initAds } from './src/services/ads';
+import { initInterstitial, maybeShowInterstitial } from './src/services/interstitial';
 import { prefetchAllSurahs, purgeQuranCacheOnce } from './src/services/quran';
 import { startOfflineTextDownload } from './src/services/offlineDownloader';
 import { captureError } from './src/services/sentry';
@@ -61,6 +62,7 @@ import { theme } from './src/constants/theme';
 import { LanguageProvider, useLanguage } from './src/contexts/LanguageContext';
 import { I18nProvider } from './src/contexts/I18nProvider';
 import { SimpleModeProvider } from './src/contexts/SimpleModeContext';
+import { AdsProvider, useAds } from './src/contexts/AdsContext';
 import * as Sentry from '@sentry/react-native';
 
 Sentry.init({
@@ -109,10 +111,18 @@ SplashScreen.preventAutoHideAsync();
 (async () => {
   await requestAdsConsent();
   await initAds();
+  // Warm the first interstitial after the SDK is up (itself consent-gated).
+  await initInterstitial();
 })().catch(() => {});
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
+
+// Routes that must never show or be wrapped by a full-screen interstitial —
+// scripture / supplication / divine-names content. Banners are already absent
+// from the Quran reader; this also keeps interstitials away from these screens
+// (entering or leaving them).
+const SACRED_ROUTES = new Set(['Quran', 'Duas', 'Names', 'Hifz']);
 
 const NAV_THEME = {
   ...DefaultTheme,
@@ -234,10 +244,28 @@ function routeForNotificationId(id: string): { name: string; params?: object } |
 
 function AppStack({ onLayout }: { onLayout: () => void }) {
   const { pendingSurah } = useQuranNav();
+  const { adsEnabled } = useAds();
   const navRef = useNavigationContainerRef();
   const [navReady, setNavReady] = useState(false);
   const lastNotifResponse = Notifications.useLastNotificationResponse();
   const handledNotifIdRef = useRef<string | null>(null);
+  // Tracks the previous route so interstitials fire only on a real screen
+  // change, and never immediately after leaving sacred content.
+  const lastRouteRef = useRef<string | null>(null);
+
+  // Eligible-transition handler for full-screen interstitials. The pacing /
+  // frequency cap lives in the interstitial service; here we only enforce the
+  // "no ads on or around sacred content" rule and the ads toggle.
+  const handleNavStateChange = useCallback(() => {
+    const current = navRef.getCurrentRoute()?.name ?? null;
+    const prev = lastRouteRef.current;
+    lastRouteRef.current = current;
+    if (!adsEnabled || !current) return;
+    if (!prev || prev === current) return;          // only on an actual screen change
+    if (SACRED_ROUTES.has(current)) return;         // never on top of sacred content
+    if (SACRED_ROUTES.has(prev)) return;            // never right after leaving it
+    maybeShowInterstitial();
+  }, [adsEnabled, navRef]);
 
   // Only dispatch the navigation here. Do NOT clearPending in this effect:
   // with a lazily-mounted Quran tab, the clear would batch into the same
@@ -286,7 +314,12 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
   return (
     <View style={styles.root} onLayout={onLayout}>
       <StatusBar style="dark" backgroundColor={theme.colors.background} />
-      <NavigationContainer ref={navRef} theme={NAV_THEME} onReady={() => setNavReady(true)}>
+      <NavigationContainer
+        ref={navRef}
+        theme={NAV_THEME}
+        onReady={() => setNavReady(true)}
+        onStateChange={handleNavStateChange}
+      >
         <Stack.Navigator screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen
@@ -564,6 +597,7 @@ function AppInner() {
       <LanguageProvider>
         <I18nProvider>
           <SimpleModeProvider>
+            <AdsProvider>
             <SidebarProvider>
               <QuranNavProvider>
                 {!onboardingDone ? (
@@ -576,6 +610,7 @@ function AppInner() {
                 )}
               </QuranNavProvider>
             </SidebarProvider>
+            </AdsProvider>
           </SimpleModeProvider>
         </I18nProvider>
       </LanguageProvider>

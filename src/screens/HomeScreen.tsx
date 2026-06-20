@@ -268,7 +268,10 @@ export function HomeScreen() {
   };
 
   return (
-    <Screen background={theme.colors.background}>
+    <Screen
+      background={theme.colors.background}
+      footer={<AdBanner unitId={AD_UNITS.bannerHome} />}
+    >
       <LinearGradient
         colors={['rgba(200, 120, 10, 0.14)', 'rgba(200, 120, 10, 0.04)', 'transparent']}
         style={styles.heroGradient}
@@ -352,7 +355,6 @@ export function HomeScreen() {
         ))}
       </View>
 
-      <AdBanner unitId={AD_UNITS.bannerHome} />
       <StreakCelebrationModal
         visible={day1CelebrationVisible}
         title={t.day1CelebrationTitle}
