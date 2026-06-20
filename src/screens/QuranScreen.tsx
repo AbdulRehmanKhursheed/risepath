@@ -118,12 +118,18 @@ function ReaderViewSettingsSheet({
   currentReciter,
   onOpenReciterPicker,
 }: ReaderViewSettingsSheetProps) {
+  const insets = useSafeAreaInsets();
   const title = isUrdu ? 'پڑھنے کی ترتیب' : isArabic ? 'إعدادات القراءة' : 'Reading settings';
   const done = isUrdu ? 'مکمل' : isArabic ? 'تم' : 'Done';
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity activeOpacity={1} style={settingsStyles.overlay} onPress={onClose}>
-        <TouchableOpacity activeOpacity={1} style={settingsStyles.sheet} onPress={() => {}}>
+      <View style={settingsStyles.overlay}>
+        <TouchableOpacity
+          style={settingsStyles.overlayDismiss}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        <View style={settingsStyles.sheet}>
           <View style={settingsStyles.handle} />
           <View style={settingsStyles.headerRow}>
             <Text style={settingsStyles.title}>{title}</Text>
@@ -132,7 +138,11 @@ function ReaderViewSettingsSheet({
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={settingsStyles.scroll} showsVerticalScrollIndicator={false}>
+          <ScrollView
+            style={settingsStyles.scroll}
+            contentContainerStyle={{ paddingBottom: Math.max(theme.spacing.xxl, insets.bottom + theme.spacing.xl) }}
+            showsVerticalScrollIndicator={false}
+          >
             <Text style={settingsStyles.section}>
               {isUrdu ? 'دیکھنے کا انداز' : isArabic ? 'نمط العرض' : 'Layout'}
             </Text>
@@ -253,8 +263,8 @@ function ReaderViewSettingsSheet({
               <Text style={settingsStyles.reciterArrow}>›</Text>
             </TouchableOpacity>
           </ScrollView>
-        </TouchableOpacity>
-      </TouchableOpacity>
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -263,14 +273,13 @@ const settingsStyles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
   },
+  overlayDismiss: { flex: 1 },
   sheet: {
     backgroundColor: theme.colors.surface,
     borderTopLeftRadius: theme.borderRadius.xl,
     borderTopRightRadius: theme.borderRadius.xl,
     maxHeight: '85%',
-    paddingBottom: theme.spacing.xxl,
   },
   handle: {
     width: 40,

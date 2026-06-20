@@ -50,36 +50,6 @@ export function AsmaulHusnaScreen() {
     }, [])
   );
 
-  const [comingSoonVisible, setComingSoonVisible] = useState(false);
-  const cardScale = useRef(new Animated.Value(0.88)).current;
-  const cardOpacity = useRef(new Animated.Value(0)).current;
-  const iconFloat = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!comingSoonVisible) {
-      cardScale.setValue(0.88);
-      cardOpacity.setValue(0);
-      iconFloat.setValue(0);
-      return;
-    }
-    Animated.parallel([
-      Animated.spring(cardScale, { toValue: 1, friction: 7, useNativeDriver: true }),
-      Animated.timing(cardOpacity, { toValue: 1, duration: 200, useNativeDriver: true }),
-    ]).start();
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(iconFloat, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(iconFloat, { toValue: 0, duration: 1400, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => { loop.stop(); };
-  }, [comingSoonVisible, cardScale, cardOpacity, iconFloat]);
-
-  const iconTranslateY = iconFloat.interpolate({ inputRange: [0, 1], outputRange: [0, -6] });
-
-  const onPressPlay = useCallback(() => setComingSoonVisible(true), []);
-
   const toggleKnown = async (num: number) => {
     const next = new Set(knownRef.current);
     if (next.has(num)) next.delete(num); else next.add(num);
@@ -133,16 +103,6 @@ export function AsmaulHusnaScreen() {
             <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
           </View>
           <Text style={styles.progressText}>{known.size}/99 known</Text>
-          <TouchableOpacity
-            style={styles.playAllPill}
-            onPress={onPressPlay}
-            activeOpacity={0.85}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Text style={styles.playAllPillText} allowFontScaling={false}>
-              ▶ Play
-            </Text>
-          </TouchableOpacity>
         </View>
       </LinearGradient>
 
@@ -206,46 +166,6 @@ export function AsmaulHusnaScreen() {
         </View>
       </Modal>
 
-      {/* Coming-soon modal for the recitation feature */}
-      <Modal
-        visible={comingSoonVisible}
-        animationType="fade"
-        transparent
-        onRequestClose={() => setComingSoonVisible(false)}
-      >
-        <Animated.View style={[styles.comingOverlay, { opacity: cardOpacity }]}>
-          <Animated.View style={[styles.comingCard, { transform: [{ scale: cardScale }] }]}>
-            <LinearGradient
-              colors={[theme.colors.accentMuted, theme.colors.surface]}
-              style={styles.comingGradient}
-            >
-              <View style={styles.comingBadge}>
-                <Text style={styles.comingBadgeText}>COMING SOON</Text>
-              </View>
-              <Animated.View style={{ transform: [{ translateY: iconTranslateY }] }}>
-                <Text style={styles.comingIcon}>🎧</Text>
-              </Animated.View>
-              <Text style={styles.comingTitle}>Recitation is on the way</Text>
-              <Text style={styles.comingBody}>
-                Mishary Alafasy's beautiful recitation of all 99 names will be available in the next update —
-                we're polishing it to play smoothly on every device, InshaAllah.
-              </Text>
-              <View style={styles.comingFooterRow}>
-                <Text style={styles.comingFooterIcon}>🌙</Text>
-                <Text style={styles.comingFooterText}>Stay tuned</Text>
-                <Text style={styles.comingFooterIcon}>✨</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.comingCta}
-                onPress={() => setComingSoonVisible(false)}
-                activeOpacity={0.86}
-              >
-                <Text style={styles.comingCtaText}>Got it</Text>
-              </TouchableOpacity>
-            </LinearGradient>
-          </Animated.View>
-        </Animated.View>
-      </Modal>
     </View>
   );
 }
@@ -316,22 +236,6 @@ const styles = StyleSheet.create({
   numBadgePlaying: { backgroundColor: theme.colors.accent },
   numTextPlaying: { color: '#fff' },
 
-  playAllPill: {
-    height: 26,
-    minWidth: 76,
-    paddingHorizontal: 10,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    borderRadius: 13,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1, borderColor: theme.colors.accent,
-  },
-  playAllPillActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
-  playAllPillText: {
-    fontFamily: theme.typography.fontBodyBold, fontSize: 11, lineHeight: 14,
-    color: theme.colors.accent, includeFontPadding: false,
-  },
-  playAllPillTextActive: { color: '#fff' },
-
   listenBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     backgroundColor: theme.colors.accent, borderRadius: theme.borderRadius.md,
@@ -387,52 +291,4 @@ const styles = StyleSheet.create({
     paddingVertical: 14, alignItems: 'center', marginTop: 4,
   },
   modalCloseText: { fontFamily: theme.typography.fontBodyBold, fontSize: 15, color: '#fff' },
-
-  comingOverlay: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    padding: 24,
-    backgroundColor: 'rgba(28,15,6,0.55)',
-  },
-  comingCard: {
-    width: '100%', maxWidth: 380,
-    borderRadius: 24, overflow: 'hidden',
-    borderWidth: 1.5, borderColor: theme.colors.accent,
-  },
-  comingGradient: { padding: 28, alignItems: 'center' },
-  comingBadge: {
-    paddingHorizontal: 12, paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: theme.colors.accent,
-    marginBottom: 18,
-  },
-  comingBadgeText: {
-    fontFamily: theme.typography.fontBodyBold, fontSize: 10,
-    color: '#fff', letterSpacing: 1.4,
-  },
-  comingIcon: { fontSize: 60, marginBottom: 12 },
-  comingTitle: {
-    fontFamily: theme.typography.fontHeadingBold, fontSize: 22,
-    color: theme.colors.text, textAlign: 'center', marginBottom: 10,
-  },
-  comingBody: {
-    fontFamily: theme.typography.fontBody, fontSize: 14,
-    color: theme.colors.textSecondary, textAlign: 'center',
-    lineHeight: 21, marginBottom: 18,
-  },
-  comingFooterRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 22,
-  },
-  comingFooterIcon: { fontSize: 18 },
-  comingFooterText: {
-    fontFamily: theme.typography.fontBodyMedium, fontSize: 12,
-    color: theme.colors.accent, letterSpacing: 1,
-  },
-  comingCta: {
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 30, paddingVertical: 13,
-    borderRadius: theme.borderRadius.full,
-  },
-  comingCtaText: {
-    fontFamily: theme.typography.fontBodyBold, fontSize: 15, color: '#fff',
-  },
 });
