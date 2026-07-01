@@ -19,7 +19,7 @@ import {
 } from '../constants/islamicCalendar';
 import type { CalculationMethodId, MadhabId } from '../constants/prayerMethods';
 import type { Language } from '../constants/translations';
-import { storage } from './storage';
+import { storage, CustomAlarm } from './storage';
 
 export type PrayerTime = {
   name: string;
@@ -304,6 +304,15 @@ export async function setupNotificationChannel(): Promise<void> {
     sound: 'default',
     enableVibrate: true,
     vibrationPattern: [0, 300],
+    lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+  });
+  await Notifications.setNotificationChannelAsync('custom-alarms', {
+    name: 'My Reminders',
+    description: 'Your own custom reminders — Tahajjud, Duha, Quran reading, adhkar and anything you set',
+    importance: Notifications.AndroidImportance.HIGH,
+    sound: 'default',
+    enableVibrate: true,
+    vibrationPattern: [0, 250, 250, 250],
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   });
 }
@@ -666,4 +675,114 @@ export async function scheduleSacredCountdownNotifications(
   }
 
   return toSchedule.length;
+}
+
+// ─── Custom user alarms ──────────────────────────────────────────────────────
+// User-defined reminders that are independent of the auto prayer schedule.
+// Each alarm has a label, a time, and a set of weekdays. Namespaced under the
+// `alarm:` prefix so they never collide with prayer / streak / sacred / jumu'ah
+// schedules. Recurring triggers (DAILY / WEEKLY) fire indefinitely, so unlike
+// the prayer schedule these never need a daily rebuild — only a reschedule when
+// the user edits them (and a safety re-arm on boot in case the OS wiped them).
+
+const ALARM_ID_PREFIX = 'alarm:';
+
+// Hard cap on pending alarm entries so custom alarms can never crowd out prayer
+// reminders under iOS's 64-pending-notification ceiling. A daily alarm is 1
+// entry; a weekday alarm is one entry per selected day.
+const ALARM_MAX_SCHEDULED = 10;
+
+const ALARM_BODY: Record<Language, string> = {
+  en: 'Your reminder is due. Barakallahu feek.',
+  ur: 'آپ کے ریمائنڈر کا وقت ہو گیا۔ بارک اللہ فیک۔',
+  ar: 'حان وقت تذكيرك. بارك الله فيك.',
+};
+
+// Normalize a weekday list to unique, valid, sorted expo weekdays (1–7).
+// An empty list or a full week both mean "every day".
+function normalizeDays(days: number[]): number[] {
+  const valid = Array.from(new Set(days)).filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b);
+  return valid;
+}
+
+export function scheduleCustomAlarms(
+  alarms: CustomAlarm[],
+  language: Language = 'en'
+): Promise<number> {
+  // Shares the global schedule queue with prayer/sacred rebuilds so a rapid
+  // toggle sequence on the Alarms screen can't interleave a cancel pass with
+  // another run's scheduling pass.
+  return enqueueScheduleRun(() => scheduleCustomAlarmsInner(alarms, language));
+}
+
+async function scheduleCustomAlarmsInner(
+  alarms: CustomAlarm[],
+  language: Language
+): Promise<number> {
+  // Clear only alarm:* — leaves every other schedule untouched.
+  const existing = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of existing) {
+    if (n.identifier.startsWith(ALARM_ID_PREFIX)) {
+      await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
+    }
+  }
+
+  const body = ALARM_BODY[language] ?? ALARM_BODY.en;
+  let scheduled = 0;
+
+  for (const alarm of alarms) {
+    if (!alarm.enabled) continue;
+    if (scheduled >= ALARM_MAX_SCHEDULED) break;
+
+    const hour = Math.max(0, Math.min(23, Math.round(alarm.hour)));
+    const minute = Math.max(0, Math.min(59, Math.round(alarm.minute)));
+    const title = `⏰ ${alarm.label?.trim() || 'Reminder'}`;
+    const days = normalizeDays(alarm.days);
+    const daily = days.length === 0 || days.length >= 7;
+
+    if (daily) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${ALARM_ID_PREFIX}${alarm.id}`,
+        content: { title, body, sound: true },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour,
+          minute,
+          channelId: 'custom-alarms',
+        },
+      });
+      scheduled += 1;
+    } else {
+      for (const weekday of days) {
+        if (scheduled >= ALARM_MAX_SCHEDULED) break;
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${ALARM_ID_PREFIX}${alarm.id}:${weekday}`,
+          content: { title, body, sound: true },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+            weekday,
+            hour,
+            minute,
+            channelId: 'custom-alarms',
+          },
+        });
+        scheduled += 1;
+      }
+    }
+  }
+
+  return scheduled;
+}
+
+// Reads saved alarms and (re)schedules them. Called from the Alarms screen
+// after any edit, and from app boot / resume as a safety re-arm in case the OS
+// dropped the recurring triggers (some Android OEMs wipe alarms on reboot).
+export async function rebuildCustomAlarmsFromStorage(): Promise<number> {
+  const [alarms, storedLang] = await Promise.all([
+    storage.getCustomAlarms(),
+    AsyncStorage.getItem('app_language').catch(() => null),
+  ]);
+  const language: Language =
+    storedLang === 'ur' || storedLang === 'ar' ? storedLang : 'en';
+  return scheduleCustomAlarms(alarms, language);
 }

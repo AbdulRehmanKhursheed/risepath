@@ -15,7 +15,48 @@ const KEYS = {
   LAST_STREAK_MILESTONE: 'lastStreakMilestone',
   HIJRI_OFFSET: 'hijriOffset_v1',
   RECITER_PLAYS: 'reciterPlays_v1',
+  CUSTOM_ALARMS: 'customAlarms_v1',
+  ZAKAT_INPUTS: 'zakatInputs_v1',
 } as const;
+
+// Custom user-set reminders, independent of the auto prayer schedule. The user
+// picks the label + time + which weekdays; scheduled under the `alarm:` prefix
+// in the notifications service.
+export type CustomAlarm = {
+  id: string;
+  label: string;
+  icon: string;
+  hour: number;      // 0-23 (local)
+  minute: number;    // 0-59
+  // Weekdays this alarm fires on, expo convention: Sunday=1 … Saturday=7.
+  // A full set of all seven is treated as "every day" (one DAILY trigger).
+  days: number[];
+  enabled: boolean;
+  createdAt: number;
+};
+
+// How many custom alarms a user may create. Each daily alarm costs 1 pending
+// OS notification; a weekday alarm costs one per selected day. Combined with
+// the prayer (≤25) + sacred (≤26) + streak (1) + jumu'ah (1) budget, this keeps
+// us clear of iOS's 64-pending cap even in the worst case.
+export const MAX_CUSTOM_ALARMS = 10;
+
+// Persisted Zakat calculator inputs (raw strings, exactly as typed) so the
+// user can leave and return without re-entering everything.
+export type StoredZakatInputs = {
+  currency: string;
+  goldPricePerGram: string;
+  silverPricePerGram: string;
+  goldGrams: string;
+  silverGrams: string;
+  cash: string;
+  bank: string;
+  business: string;
+  receivables: string;
+  investments: string;
+  liabilities: string;
+  nisabBasis: 'gold' | 'silver' | null; // null = auto (resolve from madhab)
+};
 
 const CALENDAR_REGION_IDS: CalendarRegion[] = [
   'saudi',
@@ -233,5 +274,35 @@ export const storage = {
     const plays = await this.getReciterPlays();
     plays[id] = (plays[id] ?? 0) + 1;
     await AsyncStorage.setItem(KEYS.RECITER_PLAYS, JSON.stringify(plays));
+  },
+
+  async getCustomAlarms(): Promise<CustomAlarm[]> {
+    const raw = await AsyncStorage.getItem(KEYS.CUSTOM_ALARMS);
+    const list = parseJson<CustomAlarm[]>(raw, []);
+    // Defensive: only keep well-formed entries so a corrupted write can't crash
+    // the scheduler or the screen.
+    return Array.isArray(list)
+      ? list.filter(
+          (a) =>
+            a &&
+            typeof a.id === 'string' &&
+            typeof a.hour === 'number' &&
+            typeof a.minute === 'number' &&
+            Array.isArray(a.days)
+        )
+      : [];
+  },
+
+  async setCustomAlarms(alarms: CustomAlarm[]): Promise<void> {
+    await AsyncStorage.setItem(KEYS.CUSTOM_ALARMS, JSON.stringify(alarms));
+  },
+
+  async getZakatInputs(): Promise<StoredZakatInputs | null> {
+    const raw = await AsyncStorage.getItem(KEYS.ZAKAT_INPUTS);
+    return parseJson<StoredZakatInputs | null>(raw, null);
+  },
+
+  async setZakatInputs(inputs: StoredZakatInputs): Promise<void> {
+    await AsyncStorage.setItem(KEYS.ZAKAT_INPUTS, JSON.stringify(inputs));
   },
 };
