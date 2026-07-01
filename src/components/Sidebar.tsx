@@ -58,6 +58,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleUr: 'روزمرہ عبادات',
     titleAr: 'العبادات اليومية',
     items: [
+      { name: 'Alarms',     icon: '⏰', labelEn: 'My Reminders',       labelUr: 'میرے ریمائنڈرز',    labelAr: 'تذكيراتي' },
       { name: 'Tasbih',      icon: '📿', labelEn: 'Tasbih Counter',     labelUr: 'تسبیح کاؤنٹر',      labelAr: 'عدّاد التسبيح' },
       { name: 'Takbir',     icon: '📣', labelEn: 'Takbir of Tashreeq', labelUr: 'تکبیراتِ تشریق',     labelAr: 'تكبيرات التشريق' },
       { name: 'Qibla',      icon: '🧭', labelEn: 'Qibla Direction',    labelUr: 'قبلہ سمت',          labelAr: 'اتجاه القبلة' },
@@ -76,6 +77,7 @@ const NAV_GROUPS: NavGroup[] = [
       { name: 'Umrah',    icon: '⭐', labelEn: 'Umrah Guide',         labelUr: 'عمرہ گائیڈ',       labelAr: 'دليل العمرة' },
       { name: 'Eid',      icon: '🕌', labelEn: 'Eid Guide',           labelUr: 'عید گائیڈ',         labelAr: 'دليل العيد' },
       { name: 'Qurbani',  icon: '🐑', labelEn: 'Qurbani Calculator',  labelUr: 'قربانی کیلکولیٹر', labelAr: 'حاسبة الأضحية' },
+      { name: 'Zakat',    icon: '💰', labelEn: 'Zakat Calculator',    labelUr: 'زکوٰۃ کیلکولیٹر', labelAr: 'حاسبة الزكاة' },
       { name: 'Janaza',   icon: '🤲', labelEn: 'Janaza Guide',        labelUr: 'جنازہ گائیڈ',     labelAr: 'دليل الجنازة' },
     ],
   },

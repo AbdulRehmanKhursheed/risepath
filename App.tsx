@@ -32,6 +32,7 @@ import {
   scheduleStreakReminder,
   scheduleJumuahReminder,
   rebuildPrayerScheduleFromStorage,
+  rebuildCustomAlarmsFromStorage,
 } from './src/services/notifications';
 import * as Location from 'expo-location';
 import { requestLocationPermissionOnce } from './src/hooks/useLocation';
@@ -55,6 +56,8 @@ import { AsmaulHusnaScreen } from './src/screens/AsmaulHusnaScreen';
 import { HifzScreen } from './src/screens/HifzScreen';
 import { QurbaniScreen } from './src/screens/QurbaniScreen';
 import { TakbirScreen } from './src/screens/TakbirScreen';
+import { AlarmsScreen } from './src/screens/AlarmsScreen';
+import { ZakatScreen } from './src/screens/ZakatScreen';
 import { Sidebar } from './src/components/Sidebar';
 import { QuranNavProvider, useQuranNav } from './src/contexts/QuranNavContext';
 import { SidebarProvider } from './src/contexts/SidebarContext';
@@ -239,6 +242,9 @@ function routeForNotificationId(id: string): { name: string; params?: object } |
   if (id.startsWith('sc:')) {
     return { name: 'SacredJourney' };
   }
+  if (id.startsWith('alarm:')) {
+    return { name: 'Alarms' };
+  }
   return null;
 }
 
@@ -397,6 +403,16 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             component={TakbirScreen}
             options={{ headerShown: true, title: 'Takbir of Tashreeq', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
+          <Stack.Screen
+            name="Alarms"
+            component={AlarmsScreen}
+            options={{ headerShown: true, title: 'My Reminders', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
+          <Stack.Screen
+            name="Zakat"
+            component={ZakatScreen}
+            options={{ headerShown: true, title: 'Zakat Calculator', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </View>
@@ -512,6 +528,11 @@ function AppInner() {
           await scheduleJumuahReminder(savedLang ?? 'en');
           await rebuildPrayerScheduleFromStorage().catch((e) =>
             captureError(e, { scope: 'startup-prayer-schedule' })
+          );
+          // Re-arm the user's custom reminders too — some Android OEMs wipe
+          // recurring alarms on reboot, and this is the first run after boot.
+          await rebuildCustomAlarmsFromStorage().catch((e) =>
+            captureError(e, { scope: 'startup-custom-alarms' })
           );
         }
       } catch (e) {
