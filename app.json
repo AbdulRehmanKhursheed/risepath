@@ -30,7 +30,8 @@
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.WAKE_LOCK",
         "android.permission.SCHEDULE_EXACT_ALARM",
-        "android.permission.RECEIVE_BOOT_COMPLETED"
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.USE_FULL_SCREEN_INTENT"
       ]
     },
     "web": {
@@ -41,9 +42,14 @@
       [
         "expo-notifications",
         {
-          "sounds": []
+          "sounds": [
+            "./assets/sounds/adhan_v1.mp3",
+            "./assets/sounds/adhan_short_v1.mp3",
+            "./assets/sounds/adhan_fajr_v1.mp3"
+          ]
         }
       ],
+      "react-native-notify-kit",
       [
         "expo-location",
         {

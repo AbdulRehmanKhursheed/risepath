@@ -18,6 +18,7 @@ const KEYS = {
   CUSTOM_ALARMS: 'customAlarms_v1',
   ZAKAT_INPUTS: 'zakatInputs_v1',
   QADA_STATE: 'qadaState_v1',
+  ADHAN_SETTINGS: 'adhanSettings_v1',
 } as const;
 
 // Custom user-set reminders, independent of the auto prayer schedule. The user
@@ -57,6 +58,23 @@ export type StoredZakatInputs = {
   investments: string;
   liabilities: string;
   nisabBasis: 'gold' | 'silver' | null; // null = auto (resolve from madhab)
+};
+
+// Full-adhan alarm preferences. All prayers default OFF: the adhan is opt-in
+// so an app update never surprises an existing user with a 3-minute alarm.
+export type AdhanPrayerName = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
+export type AdhanSettings = {
+  enabled: Record<AdhanPrayerName, boolean>;
+  // 'short' = 55s adhan, 'full' = complete 3-minute adhan.
+  soundLength: 'short' | 'full';
+  // Fajr plays the gentle slow-fade variant instead of the standard one.
+  fajrGentle: boolean;
+};
+
+export const DEFAULT_ADHAN_SETTINGS: AdhanSettings = {
+  enabled: { Fajr: false, Dhuhr: false, Asr: false, Maghrib: false, Isha: false },
+  soundLength: 'short',
+  fajrGentle: true,
 };
 
 const CALENDAR_REGION_IDS: CalendarRegion[] = [
@@ -316,5 +334,19 @@ export const storage = {
 
   async setQadaState(state: object): Promise<void> {
     await AsyncStorage.setItem(KEYS.QADA_STATE, JSON.stringify(state));
+  },
+
+  async getAdhanSettings(): Promise<AdhanSettings> {
+    const raw = await AsyncStorage.getItem(KEYS.ADHAN_SETTINGS);
+    const parsed = parseJson<Partial<AdhanSettings> | null>(raw, null);
+    return {
+      ...DEFAULT_ADHAN_SETTINGS,
+      ...(parsed ?? {}),
+      enabled: { ...DEFAULT_ADHAN_SETTINGS.enabled, ...(parsed?.enabled ?? {}) },
+    };
+  },
+
+  async setAdhanSettings(settings: AdhanSettings): Promise<void> {
+    await AsyncStorage.setItem(KEYS.ADHAN_SETTINGS, JSON.stringify(settings));
   },
 };

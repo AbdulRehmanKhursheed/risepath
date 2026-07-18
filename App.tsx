@@ -59,6 +59,8 @@ import { TakbirScreen } from './src/screens/TakbirScreen';
 import { AlarmsScreen } from './src/screens/AlarmsScreen';
 import { ZakatScreen } from './src/screens/ZakatScreen';
 import { QadaScreen } from './src/screens/QadaScreen';
+import { AdhanScreen } from './src/screens/AdhanScreen';
+import { rebuildAdhanAlarmsFromStorage } from './src/services/adhanAlarm';
 import { Sidebar } from './src/components/Sidebar';
 import { QuranNavProvider, useQuranNav } from './src/contexts/QuranNavContext';
 import { SidebarProvider } from './src/contexts/SidebarContext';
@@ -419,6 +421,11 @@ function AppStack({ onLayout }: { onLayout: () => void }) {
             component={QadaScreen}
             options={{ headerShown: true, title: 'Qada Tracker', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
           />
+          <Stack.Screen
+            name="Adhan"
+            component={AdhanScreen}
+            options={{ headerShown: true, title: 'Azan Alarm', headerStyle: { backgroundColor: theme.colors.surface }, headerTintColor: theme.colors.accent, headerTitleStyle: { fontFamily: theme.typography.fontBodyBold, color: theme.colors.text } }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </View>
@@ -540,6 +547,11 @@ function AppInner() {
           await rebuildCustomAlarmsFromStorage().catch((e) =>
             captureError(e, { scope: 'startup-custom-alarms' })
           );
+          // Re-arm adhan audio alarms (notify-kit self-heals across reboots,
+          // but location/method may have changed since the last arm).
+          await rebuildAdhanAlarmsFromStorage().catch((e) =>
+            captureError(e, { scope: 'startup-adhan-alarms' })
+          );
         }
       } catch (e) {
         // Notification setup failing silently is exactly the class of
@@ -590,6 +602,9 @@ function AppInner() {
       lastResumeRebuildAt.current = now;
       rebuildPrayerScheduleFromStorage().catch((e) =>
         captureError(e, { scope: 'resume-prayer-schedule' })
+      );
+      rebuildAdhanAlarmsFromStorage().catch((e) =>
+        captureError(e, { scope: 'resume-adhan-alarms' })
       );
     };
     const sub = AppState.addEventListener('change', onChange);

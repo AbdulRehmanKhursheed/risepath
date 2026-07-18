@@ -72,8 +72,9 @@ const PRAYER_ID_PREFIX = 'pr:';
 
 // Localized copy for the 5x-daily prayer reminders, mirroring STREAK_COPY /
 // JUMUAH_COPY below. Prayer names match translations.ts so notifications read
-// the same as the in-app tracker.
-const PRAYER_NAMES: Record<Language, Record<string, string>> = {
+// the same as the in-app tracker. Exported for the adhan alarm service, which
+// needs identical naming so its alarms read consistently with the reminders.
+export const PRAYER_NAMES: Record<Language, Record<string, string>> = {
   en: { Fajr: 'Fajr', Dhuhr: 'Dhuhr', Asr: 'Asr', Maghrib: 'Maghrib', Isha: 'Isha' },
   ur: { Fajr: 'فجر', Dhuhr: 'ظہر', Asr: 'عصر', Maghrib: 'مغرب', Isha: 'عشاء' },
   ar: { Fajr: 'الفجر', Dhuhr: 'الظهر', Asr: 'العصر', Maghrib: 'المغرب', Isha: 'العشاء' },
@@ -136,7 +137,7 @@ const ADHAN_METHOD_MAP: Record<CalculationMethodId, () => CalculationParameters>
 
 const ADHAN_MADHAB_MAP = { Shafi: Madhab.Shafi, Hanafi: Madhab.Hanafi } as const;
 
-function computePrayerTimesForDate(
+export function computePrayerTimesForDate(
   lat: number,
   lng: number,
   date: Date,
