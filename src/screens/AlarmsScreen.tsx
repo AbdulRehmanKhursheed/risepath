@@ -9,6 +9,8 @@ import {
   TextInput,
   Alert,
   Pressable,
+  AppState,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { theme } from '../constants/theme';
@@ -19,7 +21,10 @@ import {
   scheduleCustomAlarms,
   requestNotificationPermissions,
   hasNotificationPermission,
+  canAskNotificationPermissionAgain,
   setupNotificationChannel,
+  countAlarmEntries,
+  ALARM_MAX_SCHEDULED,
 } from '../services/notifications';
 import type { Language } from '../constants/translations';
 import { TimePicker } from '../components/TimePicker';
@@ -96,8 +101,17 @@ export function AlarmsScreen() {
     hasNotificationPermission().then((g) => {
       if (mounted) setGranted(g);
     }).catch(() => {});
+    // Re-check on foreground so enabling notifications in system settings and
+    // coming back dismisses the warning card without reopening the screen.
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') return;
+      hasNotificationPermission().then((g) => {
+        if (mounted) setGranted(g);
+      }).catch(() => {});
+    });
     return () => {
       mounted = false;
+      sub.remove();
     };
   }, []);
 
@@ -122,6 +136,7 @@ export function AlarmsScreen() {
       cancel: 'Cancel',
       delete: 'Delete',
       limit: `You can have up to ${MAX_CUSTOM_ALARMS} reminders.`,
+      slots: `Reminder limit reached — each repeat day uses one of ${ALARM_MAX_SCHEDULED} slots. Turn a reminder off or pick fewer repeat days.`,
       note: 'Reminders repeat automatically. They’re independent of your prayer-time alerts.',
     },
     ur: {
@@ -144,6 +159,7 @@ export function AlarmsScreen() {
       cancel: 'منسوخ',
       delete: 'حذف کریں',
       limit: `زیادہ سے زیادہ ${MAX_CUSTOM_ALARMS} ریمائنڈرز رکھ سکتے ہیں۔`,
+      slots: `ریمائنڈر کی حد پوری ہو گئی — تکرار کا ہر دن ${ALARM_MAX_SCHEDULED} میں سے ایک سلاٹ استعمال کرتا ہے۔ کوئی ریمائنڈر بند کریں یا تکرار کے دن کم کریں۔`,
       note: 'ریمائنڈرز خودبخود دہرائے جاتے ہیں۔ یہ نماز کے الرٹس سے الگ ہیں۔',
     },
     ar: {
@@ -166,6 +182,7 @@ export function AlarmsScreen() {
       cancel: 'إلغاء',
       delete: 'حذف',
       limit: `يمكنك إضافة حتى ${MAX_CUSTOM_ALARMS} تذكيرات.`,
+      slots: `اكتمل حد التذكيرات — كل يوم تكرار يستهلك خانة من ${ALARM_MAX_SCHEDULED}. عطّل تذكيراً أو قلّل أيام التكرار.`,
       note: 'تتكرر التذكيرات تلقائياً وهي مستقلة عن تنبيهات أوقات الصلاة.',
     },
   }[locale];
@@ -173,6 +190,12 @@ export function AlarmsScreen() {
   const presetLabel = (p: Preset) => (isUrdu ? p.labelUr : isArabic ? p.labelAr : p.labelEn);
 
   const ensurePermission = useCallback(async (): Promise<boolean> => {
+    // After a permanent denial the request dialog never re-shows — send the
+    // user to app settings instead of a button that silently does nothing.
+    if (!(await canAskNotificationPermissionAgain().catch(() => true))) {
+      Linking.openSettings().catch(() => {});
+      return false;
+    }
     const ok = await requestNotificationPermissions();
     setGranted(ok);
     if (ok) await setupNotificationChannel();
@@ -240,7 +263,13 @@ export function AlarmsScreen() {
   };
 
   const toggleAlarm = (id: string) => {
-    persist(alarms.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a)));
+    const next = alarms.map((a) => (a.id === id ? { ...a, enabled: !a.enabled } : a));
+    const nowEnabled = next.find((a) => a.id === id)?.enabled;
+    if (nowEnabled && countAlarmEntries(next) > ALARM_MAX_SCHEDULED) {
+      Alert.alert('', L.slots);
+      return;
+    }
+    persist(next);
   };
 
   const deleteAlarm = (id: string) => {
@@ -253,32 +282,44 @@ export function AlarmsScreen() {
     if (!draft) return;
     const label = draft.label.trim() || (isUrdu ? 'ریمائنڈر' : isArabic ? 'تذكير' : 'Reminder');
     const days = draft.days.length === 0 ? [...ALL_DAYS] : draft.days;
+    let next: CustomAlarm[];
     if (draft.id) {
-      persist(
-        alarms.map((a) =>
-          a.id === draft.id ? { ...a, label, icon: draft.icon, hour: draft.hour, minute: draft.minute, days } : a
-        )
+      next = alarms.map((a) =>
+        a.id === draft.id ? { ...a, label, icon: draft.icon, hour: draft.hour, minute: draft.minute, days } : a
       );
     } else {
-      const alarm: CustomAlarm = {
-        id: makeId(),
-        label,
-        icon: draft.icon,
-        hour: draft.hour,
-        minute: draft.minute,
-        days,
-        enabled: true,
-        createdAt: Date.now(),
-      };
-      persist([...alarms, alarm]);
+      next = [
+        ...alarms,
+        {
+          id: makeId(),
+          label,
+          icon: draft.icon,
+          hour: draft.hour,
+          minute: draft.minute,
+          days,
+          enabled: true,
+          createdAt: Date.now(),
+        },
+      ];
     }
+    // The scheduler can only hold ALARM_MAX_SCHEDULED pending entries (one per
+    // repeat day). Block the save here — with the editor still open so the
+    // user can trim days — rather than letting reminders silently not fire.
+    if (countAlarmEntries(next) > ALARM_MAX_SCHEDULED) {
+      Alert.alert('', L.slots);
+      return;
+    }
+    persist(next);
     setEditorOpen(false);
     setDraft(null);
   };
 
   const toggleDraftDay = (weekday: number) => {
     if (!draft) return;
-    const set = new Set(draft.days);
+    // An empty list renders as "every day", so expand it before toggling —
+    // otherwise tapping a chip that looks selected would select ONLY that day.
+    const base = draft.days.length === 0 ? ALL_DAYS : draft.days;
+    const set = new Set(base);
     if (set.has(weekday)) set.delete(weekday);
     else set.add(weekday);
     setDraft({ ...draft, days: Array.from(set).sort((a, b) => a - b) });
@@ -412,7 +453,7 @@ export function AlarmsScreen() {
                 <Text style={[styles.sectionLabel, styles.repeatLabel, { fontSize: fs(11) }]}>{L.repeat}</Text>
                 <TouchableOpacity
                   style={[styles.everyDayBtn, draftEveryDay && styles.everyDayBtnOn]}
-                  onPress={() => setDraft({ ...draft, days: draftEveryDay ? [] : [...ALL_DAYS] })}
+                  onPress={() => setDraft({ ...draft, days: [...ALL_DAYS] })}
                   activeOpacity={0.8}
                 >
                   <Text style={[styles.everyDayText, draftEveryDay && styles.everyDayTextOn, { fontSize: fs(13) }]}>

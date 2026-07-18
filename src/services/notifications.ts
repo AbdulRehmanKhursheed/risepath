@@ -59,6 +59,15 @@ export async function hasNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+// After a permanent denial (Android 13+ counts two dismissals) the system
+// dialog never shows again — requestPermissionsAsync resolves 'denied'
+// instantly. Callers should route the user to app settings in that case
+// instead of presenting a button that visibly does nothing.
+export async function canAskNotificationPermissionAgain(): Promise<boolean> {
+  const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+  return status === 'granted' || canAskAgain;
+}
+
 const PRAYER_ID_PREFIX = 'pr:';
 
 // Localized copy for the 5x-daily prayer reminders, mirroring STREAK_COPY /
@@ -689,8 +698,21 @@ const ALARM_ID_PREFIX = 'alarm:';
 
 // Hard cap on pending alarm entries so custom alarms can never crowd out prayer
 // reminders under iOS's 64-pending-notification ceiling. A daily alarm is 1
-// entry; a weekday alarm is one entry per selected day.
-const ALARM_MAX_SCHEDULED = 10;
+// entry; a weekday alarm is one entry per selected day. Exported so the Alarms
+// screen can block saves that would exceed the budget instead of letting the
+// scheduler silently drop reminders the user believes are active.
+export const ALARM_MAX_SCHEDULED = 10;
+
+// Pending-notification entries a single alarm consumes when enabled.
+export function alarmEntryCount(alarm: Pick<CustomAlarm, 'days'>): number {
+  const days = normalizeDays(alarm.days);
+  return days.length === 0 || days.length >= 7 ? 1 : days.length;
+}
+
+// Total entries the given list would consume (enabled alarms only).
+export function countAlarmEntries(alarms: CustomAlarm[]): number {
+  return alarms.reduce((sum, a) => (a.enabled ? sum + alarmEntryCount(a) : sum), 0);
+}
 
 const ALARM_BODY: Record<Language, string> = {
   en: 'Your reminder is due. Barakallahu feek.',
@@ -732,7 +754,11 @@ async function scheduleCustomAlarmsInner(
 
   for (const alarm of alarms) {
     if (!alarm.enabled) continue;
-    if (scheduled >= ALARM_MAX_SCHEDULED) break;
+    // Atomic per alarm: an alarm is either fully scheduled (all its days) or
+    // not at all. Partially scheduling a Mon-Fri alarm as Mon-Wed would look
+    // enabled in the UI yet silently skip days — worse than skipping it whole.
+    // The UI enforces the budget at save time, so this guard is a backstop.
+    if (scheduled + alarmEntryCount(alarm) > ALARM_MAX_SCHEDULED) continue;
 
     const hour = Math.max(0, Math.min(23, Math.round(alarm.hour)));
     const minute = Math.max(0, Math.min(59, Math.round(alarm.minute)));
@@ -754,7 +780,6 @@ async function scheduleCustomAlarmsInner(
       scheduled += 1;
     } else {
       for (const weekday of days) {
-        if (scheduled >= ALARM_MAX_SCHEDULED) break;
         await Notifications.scheduleNotificationAsync({
           identifier: `${ALARM_ID_PREFIX}${alarm.id}:${weekday}`,
           content: { title, body, sound: true },
