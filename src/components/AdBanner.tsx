@@ -39,10 +39,19 @@ type Props = {
 // cold start would remove the banner from that screen permanently.
 const RETRY_DELAYS_MS = [30_000, 60_000, 120_000, 300_000];
 
+// Space reserved while an ad is loading (ad height + "Sponsored" label). A
+// wrapper that grows from 0 when the ad arrives — and collapses again on every
+// failed refresh — shoves the whole layout around seconds after the screen
+// renders, which reads as jank. Reserving the slot keeps the layout stable;
+// the slot is only released once the retry ladder is exhausted.
+const RESERVED_HEIGHT_BANNER = 66; // anchored adaptive ≈50dp + label
+const RESERVED_HEIGHT_RECTANGLE = 296; // 250dp MREC + label + padding
+
 export function AdBanner({ unitId, size = 'banner' }: Props) {
   const { adsEnabled } = useAds();
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [exhausted, setExhausted] = useState(false);
   // Remount key for BannerAd — monotonic, bumped on every retry.
   const [retryNonce, setRetryNonce] = useState(0);
   // Backoff budget for the CURRENT failure streak. Kept separate from the
@@ -71,7 +80,11 @@ export function AdBanner({ unitId, size = 'banner' }: Props) {
   // On failure, schedule a re-attempt with backoff; bumping `retryNonce`
   // remounts BannerAd (via key) which issues a fresh request.
   useEffect(() => {
-    if (!failed || attemptRef.current >= RETRY_DELAYS_MS.length) return;
+    if (!failed) return;
+    if (attemptRef.current >= RETRY_DELAYS_MS.length) {
+      setExhausted(true); // give the reserved space back — no more attempts
+      return;
+    }
     const t = setTimeout(() => {
       attemptRef.current += 1;
       setFailed(false);
@@ -82,31 +95,42 @@ export function AdBanner({ unitId, size = 'banner' }: Props) {
   }, [failed]);
 
   // User opted out of ads (sidebar toggle), no real unit, native module
-  // missing (Expo Go), not yet consent-gated-initialized, or a failed load:
-  // render nothing.
-  if (!adsEnabled || !unitId || !adsAvailable || !adsReady || failed) return null;
+  // missing (Expo Go), not yet consent-gated-initialized, or all retries
+  // spent: render nothing.
+  if (!adsEnabled || !unitId || !adsAvailable || !adsReady || exhausted) return null;
 
   const isRectangle = size === 'rectangle';
+  const reservedHeight = isRectangle ? RESERVED_HEIGHT_RECTANGLE : RESERVED_HEIGHT_BANNER;
 
   return (
-    <View style={[styles.wrapper, isRectangle && styles.wrapperRectangle, !loaded && styles.hidden]}>
-      <Text style={styles.label}>Sponsored</Text>
-      <BannerAd
-        key={retryNonce}
+    <View
+      style={[
+        styles.wrapper,
+        isRectangle && styles.wrapperRectangle,
+        // Fixed slot until the first successful load, then let the real ad
+        // size take over (adaptive banners vary a little by device width).
+        !loaded && { height: reservedHeight, overflow: 'hidden' },
+      ]}
+    >
+      {loaded && <Text style={styles.label}>Sponsored</Text>}
+      {failed ? null : (
+        <BannerAd
+          key={retryNonce}
         unitId={unitId}
         size={isRectangle ? BannerAdSize.MEDIUM_RECTANGLE : BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         requestOptions={{
           keywords: ['islamic', 'muslim', 'prayer', 'quran', 'education', 'family'],
         }}
-        onAdLoaded={() => {
-          // Reset the backoff budget: a banner that served successfully for
-          // hours must not vanish for the rest of the session just because
-          // auto-refresh failures eventually exhausted a lifetime cap.
-          attemptRef.current = 0;
-          setLoaded(true);
-        }}
-        onAdFailedToLoad={() => setFailed(true)}
-      />
+          onAdLoaded={() => {
+            // Reset the backoff budget: a banner that served successfully for
+            // hours must not vanish for the rest of the session just because
+            // auto-refresh failures eventually exhausted a lifetime cap.
+            attemptRef.current = 0;
+            setLoaded(true);
+          }}
+          onAdFailedToLoad={() => setFailed(true)}
+        />
+      )}
     </View>
   );
 }
@@ -136,10 +160,6 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 16,
     marginTop: 8,
-  },
-  hidden: {
-    height: 0,
-    overflow: 'hidden',
   },
   label: {
     fontSize: 10,
