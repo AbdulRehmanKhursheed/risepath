@@ -17,6 +17,7 @@ const KEYS = {
   RECITER_PLAYS: 'reciterPlays_v1',
   CUSTOM_ALARMS: 'customAlarms_v1',
   ZAKAT_INPUTS: 'zakatInputs_v1',
+  QADA_STATE: 'qadaState_v1',
 } as const;
 
 // Custom user-set reminders, independent of the auto prayer schedule. The user
@@ -304,5 +305,16 @@ export const storage = {
 
   async setZakatInputs(inputs: StoredZakatInputs): Promise<void> {
     await AsyncStorage.setItem(KEYS.ZAKAT_INPUTS, JSON.stringify(inputs));
+  },
+
+  // Qada (missed-prayer) tracker state. Stored raw; the qada engine's
+  // sanitizeQadaState() re-validates on read, so this stays schema-agnostic.
+  async getQadaStateRaw(): Promise<unknown> {
+    const raw = await AsyncStorage.getItem(KEYS.QADA_STATE);
+    return parseJson<unknown>(raw, null);
+  },
+
+  async setQadaState(state: object): Promise<void> {
+    await AsyncStorage.setItem(KEYS.QADA_STATE, JSON.stringify(state));
   },
 };

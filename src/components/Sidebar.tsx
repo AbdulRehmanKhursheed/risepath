@@ -59,6 +59,7 @@ const NAV_GROUPS: NavGroup[] = [
     titleAr: 'العبادات اليومية',
     items: [
       { name: 'Alarms',     icon: '⏰', labelEn: 'My Reminders',       labelUr: 'میرے ریمائنڈرز',    labelAr: 'تذكيراتي' },
+      { name: 'Qada',       icon: '⏳', labelEn: 'Qada Tracker',       labelUr: 'قضا نمازیں',        labelAr: 'قضاء الصلوات' },
       { name: 'Tasbih',      icon: '📿', labelEn: 'Tasbih Counter',     labelUr: 'تسبیح کاؤنٹر',      labelAr: 'عدّاد التسبيح' },
       { name: 'Takbir',     icon: '📣', labelEn: 'Takbir of Tashreeq', labelUr: 'تکبیراتِ تشریق',     labelAr: 'تكبيرات التشريق' },
       { name: 'Qibla',      icon: '🧭', labelEn: 'Qibla Direction',    labelUr: 'قبلہ سمت',          labelAr: 'اتجاه القبلة' },
