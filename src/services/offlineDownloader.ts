@@ -13,7 +13,9 @@ import { captureError } from './sentry';
 
 // Default reciter (matches RECITERS[0] in useAudioPlayer). Audio offline is
 // built for this one reciter; others stay stream-only / on-demand.
-const DEFAULT_RECITER_FOLDER = 'Alafasy_128kbps';
+// Exported so playback paths (AyahSheet, useAudioPlayer) can fall back to the
+// one reciter guaranteed to be in the offline store.
+export const DEFAULT_RECITER_FOLDER = 'Alafasy_128kbps';
 const TOTAL_AYAHS = SURAH_LIST.reduce((n, s) => n + s.ayahs, 0); // 6236
 
 // Progressive background downloader. While the app is foregrounded it walks
@@ -52,6 +54,15 @@ export function subscribeOfflineProgress(l: Listener): () => void {
   return () => listeners.delete(l);
 }
 
+async function isConnected(): Promise<boolean> {
+  try {
+    const s = await NetInfo.fetch();
+    return s.isConnected === true;
+  } catch {
+    return true; // unknown → let the fetch itself decide
+  }
+}
+
 async function runLoop(): Promise<void> {
   if (running) return;
   running = true;
@@ -60,12 +71,18 @@ async function runLoop(): Promise<void> {
     for (let page = 1; page <= TOTAL_PAGES; page++) {
       if (textStop) break;
       if (await hasOfflinePage(page)) continue;
+      // Offline: park instead of walking all 604 pages through guaranteed
+      // failures (which used to queue one Sentry error per page, ~50min of
+      // churn per pass). The NetInfo listener re-kicks the loop on reconnect.
+      if (!(await isConnected())) { textStop = true; break; }
       try {
         await fetchPage(page); // persists to the filesystem store
         await emit();
         await new Promise((r) => setTimeout(r, GAP_MS));
       } catch (e) {
-        captureError(e, { scope: 'offline:download', page });
+        // Only report unexpected failures — a fetch dying because the network
+        // just dropped is normal life, not a defect signal.
+        if (await isConnected()) captureError(e, { scope: 'offline:download', page });
         await new Promise((r) => setTimeout(r, RETRY_GAP_MS));
       }
     }
@@ -158,6 +175,13 @@ export function startOfflineDownload(): void {
     else { textStop = true; audioStop = true; } // pause both on background
   };
   AppState.addEventListener('change', onState);
+
+  // Opportunistic resume: the moment connectivity returns (or the connection
+  // becomes unmetered, un-parking the WiFi-gated audio loop), pick the
+  // download back up — even if the user never backgrounds the app.
+  NetInfo.addEventListener((state) => {
+    if (state.isConnected && AppState.currentState === 'active') kick();
+  });
 
   // First run shortly after launch so it never competes with cold-start work.
   setTimeout(kick, 8000);

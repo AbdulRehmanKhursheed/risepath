@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { readOfflinePage, writeOfflinePage, readOfflineSurah, writeOfflineSurah } from './offlineStore';
+import { SURAH_LIST } from '../constants/surahList';
 
 const BASE = 'https://api.alquran.cloud/v1';
 // v3: strips the Bismillah alquran.cloud embeds in ayah 1 (it duplicated the
@@ -166,6 +167,75 @@ async function fetchFromNetwork(surahNumber: number): Promise<SurahContent> {
   };
 }
 
+// Offline fallback for the verse-by-verse reader: rebuild a surah from the
+// downloaded Mushaf pages. The background downloader persists page_<n>.json
+// (both scripts + both translations) but not surah_<n>.json — so without this,
+// a fully-downloaded device in airplane mode could read all 604 pages yet fail
+// to open a never-before-opened surah in the verse reader. Strict by design:
+// any missing page or ayah-count mismatch returns null (never cache a partial
+// surah), which leaves the normal network-error UI to handle it.
+const TOTAL_MUSHAF_PAGES = 604;
+
+async function findOfflinePageContaining(surahNumber: number): Promise<PageContent | null> {
+  let lo = 1;
+  let hi = TOTAL_MUSHAF_PAGES;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    const page = await readOfflinePage<PageContent>(mid);
+    // A gap means the text store is incomplete — binary search can't trust
+    // its ordering guarantees past a hole, so give up cleanly.
+    if (!page?.verses?.length) return null;
+    const first = page.verses[0].surahNumber;
+    const last = page.verses[page.verses.length - 1].surahNumber;
+    if (surahNumber < first) hi = mid - 1;
+    else if (surahNumber > last) lo = mid + 1;
+    else return page;
+  }
+  return null;
+}
+
+async function assembleSurahFromOfflinePages(surahNumber: number): Promise<SurahContent | null> {
+  try {
+    const expected = SURAH_LIST.find((s) => s.number === surahNumber)?.ayahs ?? 0;
+    if (expected === 0) return null;
+
+    const hit = await findOfflinePageContaining(surahNumber);
+    if (!hit) return null;
+
+    const pages: PageContent[] = [hit];
+    for (let p = hit.pageNumber - 1; p >= 1; p -= 1) {
+      const pg = await readOfflinePage<PageContent>(p);
+      if (!pg?.verses?.length) return null; // hole mid-surah → incomplete store
+      if (pg.verses[pg.verses.length - 1].surahNumber !== surahNumber) break;
+      pages.unshift(pg);
+    }
+    for (let p = hit.pageNumber + 1; p <= TOTAL_MUSHAF_PAGES; p += 1) {
+      const pg = await readOfflinePage<PageContent>(p);
+      if (!pg?.verses?.length) return null;
+      if (pg.verses[0].surahNumber > surahNumber) break;
+      pages.push(pg);
+    }
+
+    const verses = pages
+      .flatMap((pg) => pg.verses.filter((v) => v.surahNumber === surahNumber))
+      .sort((a, b) => a.ayahNumber - b.ayahNumber);
+    if (verses.length !== expected) return null;
+
+    const ayahs: Ayah[] = verses.map((v, idx) => ({
+      numberInSurah: v.ayahNumber,
+      arabic: stripEmbeddedBismillah(v.textUthmani, surahNumber, idx),
+      english: v.translationEn ?? '',
+      urdu: v.translationUr ?? '',
+    }));
+    // Same guard as fetchFromNetwork: never produce a translation-less surah.
+    if (ayahs.every((a) => !a.english && !a.urdu)) return null;
+
+    return { number: surahNumber, ayahs, fetchedAt: Date.now() };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
   const cached = await readCache(surahNumber);
   if (
@@ -187,6 +257,15 @@ export async function fetchSurah(surahNumber: number): Promise<SurahContent> {
       const content = await fetchFromNetwork(surahNumber);
       await writeCache(content);
       return content;
+    } catch (e) {
+      // Offline (or dead API): rebuild from the downloaded Mushaf pages and
+      // persist, so the surah opens instantly — and fully offline — next time.
+      const assembled = await assembleSurahFromOfflinePages(surahNumber);
+      if (assembled) {
+        await writeCache(assembled).catch(() => {});
+        return assembled;
+      }
+      throw e;
     } finally {
       inflight.delete(surahNumber);
     }

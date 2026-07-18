@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Ayah } from '../services/quran';
 import { storage } from '../services/storage';
 import { offlineAudioUri } from '../services/offlineStore';
+import { DEFAULT_RECITER_FOLDER } from '../services/offlineDownloader';
 
 export type ReciterConfig = {
   id: string;
@@ -414,9 +415,30 @@ export function useAudioPlayer(
         setTimeout(() => { if (gen === genRef.current) playSegRef.current?.(seg); }, AUTO_REVERT_DELAY_MS);
         return;
       }
+      // Last resort: the default reciter's downloaded file — the only folder
+      // the background downloader fills. Offline with e.g. Sudais selected,
+      // this plays the ayah instead of erroring, without permanently changing
+      // the user's reciter choice.
+      const parts = segToParts(seg);
+      if (parts && parts.folder !== DEFAULT_RECITER_FOLDER) {
+        const local = await offlineAudioUri(DEFAULT_RECITER_FOLDER, parts.fileName);
+        if (local && gen === genRef.current) {
+          try {
+            const { sound } = await Audio.Sound.createAsync({ uri: local }, { shouldPlay: true }, onStatus);
+            if (gen !== genRef.current) {
+              sound.unloadAsync().catch(() => {});
+              return;
+            }
+            soundRef.current = sound;
+            return;
+          } catch {
+            // fall through to the error state
+          }
+        }
+      }
       setPbStatus('error');
     }
-  }, [nextSeg, preloadSeg, resolveUri]);
+  }, [nextSeg, preloadSeg, resolveUri, segToParts]);
 
   useEffect(() => { playSegRef.current = playSeg; }, [playSeg]);
 

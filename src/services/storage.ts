@@ -14,6 +14,7 @@ const KEYS = {
   SACRED_COUNTDOWN_PREFS: 'sacredCountdownPrefs',
   LAST_STREAK_MILESTONE: 'lastStreakMilestone',
   HIJRI_OFFSET: 'hijriOffset_v1',
+  HIJRI_SEED_PENDING: 'hijriSeedPending_v1',
   RECITER_PLAYS: 'reciterPlays_v1',
   CUSTOM_ALARMS: 'customAlarms_v1',
   ZAKAT_INPUTS: 'zakatInputs_v1',
@@ -279,6 +280,22 @@ export const storage = {
   async setHijriOffset(n: number): Promise<void> {
     const clamped = Math.max(-3, Math.min(3, Math.round(n)));
     await AsyncStorage.setItem(KEYS.HIJRI_OFFSET, String(clamped));
+    // Any deliberate write (manual tune, auto-detect, server refinement)
+    // supersedes a first-launch heuristic seed — stop trying to refine it.
+    await AsyncStorage.removeItem(KEYS.HIJRI_SEED_PENDING).catch(() => {});
+  },
+
+  // First-launch regional guess: stored like a normal offset but flagged so
+  // later launches keep trying the server refinement until one succeeds (an
+  // offline first launch used to freeze the guess forever).
+  async setHijriOffsetSeed(n: number): Promise<void> {
+    const clamped = Math.max(-3, Math.min(3, Math.round(n)));
+    await AsyncStorage.setItem(KEYS.HIJRI_OFFSET, String(clamped));
+    await AsyncStorage.setItem(KEYS.HIJRI_SEED_PENDING, '1');
+  },
+
+  async isHijriSeedPending(): Promise<boolean> {
+    return (await AsyncStorage.getItem(KEYS.HIJRI_SEED_PENDING)) === '1';
   },
 
   // Per-reciter play counts. Used to surface "Your favorites" at the top of

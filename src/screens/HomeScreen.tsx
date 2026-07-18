@@ -135,12 +135,19 @@ export function HomeScreen() {
         // launches use the persisted value; users can still tune ±3 days from
         // Prayer Settings or tap "Auto-detect" there to re-fetch.
         let offset = rawOffset;
+        let seedPending = false;
         if (rawOffset === null) {
           offset = isIndoPakRegion() ? -1 : 0;
-          storage.setHijriOffset(offset).catch(() => {});
+          storage.setHijriOffsetSeed(offset).catch(() => {});
+          seedPending = true;
+        } else {
+          // A seed stored on an offline first launch stays flagged until a
+          // server refinement lands — keep retrying on later launches instead
+          // of freezing a possibly ±1-day guess forever.
+          seedPending = await storage.isHijriSeedPending().catch(() => false);
         }
         setHijriOffset(offset!);
-        if (rawOffset === null) {
+        if (seedPending) {
           computeHijriOffsetFromServer().then((fetched) => {
             if (cancelled || fetched == null) return;
             setHijriOffset(fetched);

@@ -15,6 +15,7 @@ import { theme } from '../constants/theme';
 import { PageVerse, QuranScript } from '../services/quran';
 import { SURAH_LIST } from '../constants/surahList';
 import { RECITERS } from '../hooks/useAudioPlayer';
+import { offlineAudioUri } from '../services/offlineStore';
 
 type Lang = 'en' | 'ur' | 'ar';
 
@@ -119,10 +120,32 @@ export function AyahSheet({
         shouldDuckAndroid: true,
       });
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: buildAyahUrl(folder, verse.surahNumber, verse.ayahNumber) },
-        { shouldPlay: true }
-      );
+      // Downloaded file first (plays offline and skips re-streaming audio the
+      // user already has), then the stream, and as a last resort the default
+      // reciter's downloaded file — an offline user cares more about hearing
+      // the ayah than about which reciter recites it.
+      const s3 = String(verse.surahNumber).padStart(3, '0');
+      const a3 = String(verse.ayahNumber).padStart(3, '0');
+      const fileName = `${s3}${a3}.mp3`;
+      const candidates = [
+        await offlineAudioUri(folder, fileName),
+        buildAyahUrl(folder, verse.surahNumber, verse.ayahNumber),
+        folder !== DEFAULT_RECITER_FOLDER
+          ? await offlineAudioUri(DEFAULT_RECITER_FOLDER, fileName)
+          : null,
+      ].filter((u): u is string => !!u);
+
+      let sound: Audio.Sound | null = null;
+      for (const uri of candidates) {
+        if (gen !== genRef.current) return;
+        try {
+          ({ sound } = await Audio.Sound.createAsync({ uri }, { shouldPlay: true }));
+          break;
+        } catch {
+          sound = null;
+        }
+      }
+      if (!sound) throw new Error('ayah-audio-unavailable');
       if (gen !== genRef.current) {
         sound.unloadAsync().catch(() => {});
         return;
