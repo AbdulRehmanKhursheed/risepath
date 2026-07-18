@@ -39,15 +39,50 @@ export type ZakatResult = {
   zakatDue: number;         // 0 when below nisab
 };
 
-// Parse a user-entered numeric string safely. Strips grouping commas and any
-// stray currency symbols/spaces; negatives and non-finite values collapse to
-// 0 so a stray '-' or 'e' can never produce a negative or NaN total.
+// Parse a user-entered numeric string safely. Handles the numeral systems and
+// separator conventions of the app's target locales: Eastern-Arabic digits
+// (Urdu/Arabic keyboards), comma-as-decimal (Turkish/Indonesian decimal-pad
+// keyboards emit ',' — stripping it silently made "1,5" read as 15, a 10×
+// error), plus grouping separators and stray currency symbols. Negatives and
+// non-finite values collapse to 0 so a stray '-' or 'e' can never produce a
+// negative or NaN total.
 export function num(raw: string | undefined | null): number {
   if (!raw) return 0;
-  const s = String(raw);
+  let s = String(raw);
   // Reject anything with a minus sign outright — wealth is never negative, and
   // stripping the sign would silently turn "-500" into 500.
   if (s.includes('-')) return 0;
+  // Normalize Eastern Arabic (٠-٩) and Extended Arabic-Indic (۰-۹) digits,
+  // then the Arabic decimal (٫) / thousands (٬) separators.
+  s = s
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/٫/g, ',')
+    .replace(/[٬\s]/g, '');
+  // Disambiguate ',' — decimal point in TR/ID/EU input, grouping in EN input.
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma !== -1) {
+    if (lastDot > lastComma) {
+      // "1,234.56" — dot is the decimal, commas are grouping.
+      s = s.replace(/,/g, '');
+    } else if (lastDot !== -1) {
+      // "1.234,56" — comma is the decimal, dots are grouping.
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // Comma(s) only. A single comma with 1-2 trailing digits reads as a
+      // decimal ("1,5" → 1.5); anything else ("1,000", "1,000,000") reads as
+      // grouping. Three digits after one comma is ambiguous — we side with
+      // grouping, the dominant pattern for typed money amounts.
+      const commaCount = (s.match(/,/g) ?? []).length;
+      const digitsAfter = s.slice(lastComma + 1).replace(/[^0-9]/g, '').length;
+      if (commaCount === 1 && digitsAfter >= 1 && digitsAfter <= 2) {
+        s = s.replace(',', '.');
+      } else {
+        s = s.replace(/,/g, '');
+      }
+    }
+  }
   const cleaned = s.replace(/[^0-9.]/g, '');
   const n = parseFloat(cleaned);
   if (!Number.isFinite(n) || n < 0) return 0;

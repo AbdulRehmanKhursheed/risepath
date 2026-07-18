@@ -32,6 +32,25 @@ describe('num', () => {
   test('negative inputs collapse to 0 (no negative wealth)', () => {
     expect(num('-500')).toBe(0);
   });
+  test('comma as decimal separator (TR/ID/EU keyboards)', () => {
+    expect(num('1,5')).toBe(1.5);
+    expect(num('1,50')).toBe(1.5);
+    expect(num(',5')).toBe(0.5);
+    expect(num('12345,67')).toBe(12345.67);
+  });
+  test('mixed separators resolved by position', () => {
+    expect(num('1.234,56')).toBe(1234.56);
+    expect(num('1,234.56')).toBe(1234.56);
+  });
+  test('single comma with 3 trailing digits stays grouping', () => {
+    expect(num('1,000')).toBe(1000);
+    expect(num('1,000,000')).toBe(1000000);
+  });
+  test('Eastern Arabic and Extended Arabic-Indic digits', () => {
+    expect(num('١٥٠')).toBe(150);
+    expect(num('۵۰۰')).toBe(500);
+    expect(num('١٢٫٥')).toBe(12.5); // Arabic decimal separator ٫
+  });
 });
 
 describe('round2', () => {
