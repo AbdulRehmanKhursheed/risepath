@@ -40,6 +40,8 @@ indexable phrases.
 | **Hifz / Memorisation** | `hifz`, `hifdh`, `quran memorization`, `quran memorisation` |
 | **Tajweed** | `tajweed`, `tajwid`, `tajweed quran`, `mushaf` |
 | **Hadith** | `hadith`, `bukhari`, `muslim`, `sunnah` |
+| **Zakat** | `zakat`, `zakat calculator`, `nisab`, `zakat calculator gold`, `زكاة` |
+| **Qada / Missed prayers** | `qada`, `qaza namaz`, `kaza`, `missed prayer tracker`, `قضاء` |
 | **Hijri Calendar** | `hijri calendar`, `islamic calendar`, `kalender hijriyah` (ID) |
 | **Ramadan** | `ramadan`, `ramazan`, `ramadhan` (ID), `roza` |
 | **Eid** | `eid`, `eid mubarak`, `eid al-adha`, `eid al-fitr`, `idul adha` (ID) |
@@ -123,6 +125,9 @@ Memorise the Holy Quran one ayah at a time. Track surahs in progress, set goals,
 ✦ DIGITAL TASBIH · DHIKR COUNTER
 Tasbih counter with vibration. Track Subhanallah, Alhamdulillah, Allahu Akbar, Astaghfirullah, salutations on the Prophet ﷺ — or set any custom dhikr. Daily totals saved automatically. Beautiful interface, large numerals, accessible in low light.
 
+✦ ZAKAT CALCULATOR · QADA TRACKER · CUSTOM REMINDERS
+Work out the Zakat due on your wealth — gold or silver nisab, assets, liabilities, the 2.5% rate and the eight recipients, fully offline. Track and make up Qada (missed) prayers with a per-prayer counter and progress bar. Set your own worship reminders — Tahajjud, Duha, morning and evening adhkar — on your times, repeating on the days you choose.
+
 ✦ HIJRI / ISLAMIC CALENDAR · SACRED COUNTDOWN
 Full Hijri (Islamic) calendar with countdowns to Ramadan, Eid al-Fitr, Eid al-Adha, Day of Arafah, Day of Ashura, Mawlid al-Nabi ﷺ, Isra wa Mi'raj, Arbaeen and Shab-e-Barat. Choose your moonsighting region — Saudi Arabia & Gulf, South Asia, UK, North America, Europe, Africa, Southeast Asia.
 
@@ -140,7 +145,7 @@ No account. No login. No profiling of your prayers, Quran reading, mood or perso
 Eid Mubarak 🌙 — Taqabbalallahu Minna wa Minkum. May Allah accept from us and from you.
 ```
 
-*(~3,420 chars / 4000 limit. **Tier-1 coverage:** Quran ×8, Prayer Times / Salah / Namaz ×6, Azan / Adhan ×3, Qibla ×3, Dua ×4. **Tier-2 coverage:** Tasbih ×3, 99 Names ×2, Hifz ×3, Tajweed ×2, Hadith / Bukhari / Muslim ×3, Hijri / Islamic Calendar ×2, Eid ×6, Hajj / Umrah / Janaza ×2. **Tier-3 coverage:** Karachi method, ISNA, Umm al-Qura, Jafari, Hanafi, Shafi'i, Saheeh International, Maududi, Uthmani, Day of Arafah, Takbeer al-Tashreeq, Qurbani, Udhiyah, Mawlid, Ashura, Arbaeen, Shab-e-Barat — all named at least once.)*
+*(~3,810 chars / 4000 limit — includes the Zakat Calculator · Qada Tracker · Custom Reminders section added for v1.0.13. **Tier-1 coverage:** Quran ×8, Prayer Times / Salah / Namaz ×6, Azan / Adhan ×3, Qibla ×3, Dua ×4. **Tier-2 coverage:** Tasbih ×3, 99 Names ×2, Hifz ×3, Tajweed ×2, Hadith / Bukhari / Muslim ×3, Hijri / Islamic Calendar ×2, Eid ×6, Hajj / Umrah / Janaza ×2. **Tier-3 coverage:** Karachi method, ISNA, Umm al-Qura, Jafari, Hanafi, Shafi'i, Saheeh International, Maududi, Uthmani, Day of Arafah, Takbeer al-Tashreeq, Qurbani, Udhiyah, Mawlid, Ashura, Arbaeen, Shab-e-Barat — all named at least once.)*
 
 ### 1.4 What's New — 500 char limit (rotate every release)
 
@@ -149,6 +154,12 @@ Eid Mubarak 🌙 — Taqabbalallahu Minna wa Minkum. May Allah accept from us an
 🌙 Eid Mubarak from Noor. New in 1.0: full Eid al-Adha guide with the 10 Sacred Days of Dhul Hijjah, Day of Arafah fasting, Takbeer al-Tashreeq, Eid Salah for all four madhabs + Jafari, Qurbani / Udhiyah rules — every ruling cited to Bukhari, Muslim or Quran by ayah. Fajr reminders, Quran with Tajweed, Hifz tracker, 99 Names, Tasbih. Welcome.
 ```
 *(~410 chars. Hits Eid · Adha · Dhul Hijjah · Arafah · Takbeer · Salah · Jafari · Qurbani · Udhiyah · Bukhari · Muslim · Fajr · Quran · Tajweed · Hifz · Tasbih.)*
+
+**v1.0.13 — Zakat + Qada + Reminders release:**
+```
+🌙 New: Zakat Calculator — gold/silver nisab, assets, liabilities, the 2.5% rate and the 8 recipients, fully offline. New: Qada Tracker — count down your missed prayers one salah at a time. New: My Reminders — your own Tahajjud, Duha and adhkar alarms on your times. Plus the Quran with Tajweed, prayer times with 14 methods, Qibla compass, Hifz tracker, digital Tasbih and Hijri calendar. Free, private, no account.
+```
+*(~430 chars. Hits Zakat · nisab · Qada · missed prayers · Tahajjud · adhkar · Quran · Tajweed · prayer times · Qibla · Hifz · Tasbih · Hijri.)*
 
 **v1.0.1+ template — keep keywords flowing:**
 ```
